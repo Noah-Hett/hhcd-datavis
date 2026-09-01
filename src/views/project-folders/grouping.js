@@ -17,7 +17,7 @@ export const GROUPINGS = [
   },
   {
     id: "type",
-    label: "Project type",
+    label: "Type",
     hint: "What it produced",
     description:
       "Folders by output: concepts, prototypes, guidelines, business models, and campaigns.",
