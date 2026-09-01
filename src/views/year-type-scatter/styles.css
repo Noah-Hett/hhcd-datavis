@@ -174,7 +174,7 @@
   height: 28px;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--border);
+  border: 1px solid #5c5348;
   border-radius: 50%;
   background: #fff;
   color: var(--text);
@@ -230,10 +230,10 @@
   flex-shrink: 0;
   margin: 0;
   padding: 6px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid #5c5348;
   border-radius: 999px;
   background: #fff;
-  color: var(--text);
+  color: #1c140c;
   font-size: 12px;
   line-height: 1.2;
   white-space: nowrap;
@@ -263,15 +263,37 @@
 }
 
 .method-pill.is-inactive {
-  background: #d5d5d5;
-  border-color: #8a8a8a;
-  color: #3d3d3d;
+  background: #cfcfcf;
+  border-color: #5a5a5a;
+  color: #222222;
 }
 
 .method-pill.is-inactive:hover,
 .method-pill.is-inactive:focus-visible {
-  background: #c8c8c8;
-  color: #2a2a2a;
+  background: #c2c2c2;
+  color: #161616;
+}
+
+.method-carousel.is-sheet {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 12px;
+}
+
+.method-carousel.is-sheet .method-carousel-frame {
+  flex: 1 1 100%;
+}
+
+.method-carousel.is-sheet .method-carousel-scroll {
+  overflow: visible;
+  touch-action: manipulation;
+}
+
+.method-carousel.is-sheet .method-pills {
+  flex-wrap: wrap;
+  width: auto;
+  max-width: 100%;
+  padding-inline: 0;
 }
 
 .scatter-frame {
@@ -388,6 +410,15 @@
 
 .dot.active .dot-mark {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.dot.is-selected .dot-mark {
+  stroke-width: 2.2;
+}
+
+.dot.is-selected .dot-focus {
+  stroke: #111;
+  stroke-width: 2;
 }
 
 .tooltip {
