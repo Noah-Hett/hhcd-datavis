@@ -1,0 +1,7 @@
+.help-keys {
+  list-style: disc;
+}
+
+.help-keys kbd + kbd {
+  margin-left: 4px;
+}

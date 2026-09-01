@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useSelection } from "../state/SelectionContext.jsx";
 import { reports } from "../data/index.js";
+import "./report-sidebar-sheet.css";
 
 const FIELDS = [
   { key: "targetedUser", label: "Targeted user" },
@@ -13,6 +14,8 @@ const FIELDS = [
   { key: "partner", label: "Partner" },
   { key: "connections", label: "Connections" },
 ];
+
+const SHEET_QUERY = "(max-width: 799px)";
 
 function isEmpty(value) {
   if (value == null) return true;
@@ -35,14 +38,38 @@ function findReport(reportNo) {
   return reports.find((report) => String(report.reportNo) === id) ?? null;
 }
 
+function focusableIn(root) {
+  if (!root) return [];
+  return [
+    ...root.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])',
+    ),
+  ].filter((node) => !node.hasAttribute("inert") && node.offsetParent !== null);
+}
+
 export default function ReportSidebar() {
   const { selectedReportNo, sidebarOpen, clearReport, setSidebarOpen } =
     useSelection();
   const headingRef = useRef(null);
+  const asideRef = useRef(null);
+  const backdropRef = useRef(null);
   const titleId = useId();
   const liveId = useId();
   const report = findReport(selectedReportNo);
   const open = sidebarOpen;
+  const [sheet, setSheet] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia(SHEET_QUERY).matches
+      : false,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia(SHEET_QUERY);
+    const onChange = () => setSheet(media.matches);
+    onChange();
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     if (open && report) {
@@ -62,6 +89,29 @@ export default function ReportSidebar() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, selectedReportNo, clearReport, setSidebarOpen]);
+
+  useEffect(() => {
+    if (!open || !sheet) return undefined;
+    const onKey = (event) => {
+      if (event.key !== "Tab") return;
+      const nodes = [
+        backdropRef.current,
+        ...focusableIn(asideRef.current),
+      ].filter(Boolean);
+      if (!nodes.length) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, sheet, report]);
 
   const liveText = open && report
     ? `Opened ${report.title} by ${report.author ?? "unknown author"}${
@@ -84,6 +134,7 @@ export default function ReportSidebar() {
       {open ? (
         <button
           type="button"
+          ref={backdropRef}
           className="report-sidebar-backdrop"
           aria-label="Close report sidebar"
           onClick={close}
@@ -91,10 +142,14 @@ export default function ReportSidebar() {
       ) : null}
       <aside
         id="report-sidebar"
+        ref={asideRef}
         className={
           open ? "report-sidebar is-open" : "report-sidebar is-closed"
         }
+        role={sheet ? "dialog" : undefined}
+        aria-modal={sheet && open ? true : undefined}
         aria-labelledby={titleId}
+        aria-describedby={liveId}
         aria-hidden={!open}
         {...(!open ? { inert: "" } : {})}
       >

@@ -1,0 +1,38 @@
+/* Mobile sheet polish for ReportSidebar. Desktop docking stays in index.css. */
+
+@media (max-width: 799px) {
+  .report-sidebar-backdrop {
+    z-index: 45;
+    background: rgb(28 20 12 / 36%);
+  }
+
+  .report-sidebar {
+    z-index: 50;
+    max-height: min(82dvh, 680px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    overflow: hidden;
+  }
+
+  .report-sidebar.is-closed {
+    transform: translateY(110%);
+  }
+
+  .report-sidebar.is-open {
+    transform: translateY(0);
+  }
+
+  .report-sidebar-body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .report-sidebar-title:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-sidebar {
+    transition: none;
+  }
+}
