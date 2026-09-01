@@ -102,8 +102,18 @@
   text-decoration: underline;
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
   top: 12px;
+}
+
+.grouping-tabs label:focus-visible,
+.list-toggle:focus-visible,
+.folder-btn:focus-visible,
+.report-btn:focus-visible,
+.toggle:focus-within {
+  outline: 3px solid var(--archive-focus);
+  outline-offset: 2px;
 }
 
 .stage {

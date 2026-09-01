@@ -157,6 +157,7 @@ export default function ArchiveScene({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.BasicShadowMap;
     renderer.domElement.setAttribute("aria-hidden", "true");
+    renderer.domElement.setAttribute("tabindex", "-1");
     renderer.domElement.style.display = "block";
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
@@ -694,8 +695,8 @@ export default function ArchiveScene({
   }, []);
 
   return (
-    <div className="scene">
-      <div ref={mountRef} className="scene-mount" />
+    <div className="scene" aria-hidden="true">
+      <div ref={mountRef} className="scene-mount" aria-hidden="true" />
       <div ref={labelRef} className="scene-labels" aria-hidden="true" />
     </div>
   );

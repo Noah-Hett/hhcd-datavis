@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { reports } from "../../data/index.js";
+import { reports, yearRange } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveScene from "../project-folders/ArchiveScene.jsx";
 import {
@@ -9,17 +9,16 @@ import {
 } from "../project-folders/grouping.js";
 import "../project-folders/styles.css";
 import "./ArchiveSection.css";
+import {
+  ORGANIZE_SCALE,
+  applyOrganizeDelta,
+  isArchiveFiled,
+  isFiled,
+} from "./archivePhysics.js";
+
+export { ORGANIZE_SCALE, applyOrganizeDelta, isArchiveFiled, isFiled };
 
 const STACKED_QUERY = "(max-width: 860px)";
-export const ORGANIZE_SCALE = 900;
-
-export function applyOrganizeDelta(current, deltaY, scale = ORGANIZE_SCALE) {
-  return Math.min(1, Math.max(0, current + deltaY / scale));
-}
-
-export function isArchiveFiled(organize, reduceMotion = false) {
-  return Boolean(reduceMotion) || Number(organize) >= 1;
-}
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -258,13 +257,15 @@ export default function ArchiveSection({
       >
         <a
           className="skip-link"
-          href="#folder-index"
+          href="#archive-list"
           onClick={(event) => {
             event.preventDefault();
             finishIntro();
             openList();
             window.setTimeout(() => {
-              document.getElementById("folder-index")?.scrollIntoView();
+              const list = document.getElementById("archive-list");
+              list?.scrollIntoView();
+              list?.focus?.();
             }, 50);
           }}
         >
@@ -278,11 +279,10 @@ export default function ArchiveSection({
           <div className="stage-visual" ref={stageRef}>
             <section className="intro" aria-labelledby="archive-intro-title">
               <h1 id="archive-intro-title" className="intro-title">
-                Graduate and associate research reports
+                HHCD graduate and associate research reports
               </h1>
               <p className="intro-lead">
-                Helen Hamlyn Centre for Design. {reports.length} reports,{" "}
-                2000–2017.{" "}
+                {reports.length} reports, {yearRange.min}–{yearRange.max}.{" "}
                 {!isFiled
                   ? "These documents are on show — not yet divided into folders. Scroll, swipe, or file them by theme, year, or type."
                   : "The reports are filed in magazine folders. Theme, year, and type regroup the shelves."}
@@ -382,7 +382,7 @@ function FolderIndex({
       <h2 className="panel-kicker" id="folder-heading">
         Folders by {groupingMeta?.label?.toLowerCase()}
       </h2>
-      <ul className="folder-list" id="folder-index">
+      <ul className="folder-list" id="archive-list" tabIndex={-1}>
         {folders.map((folder) => {
           const open = folder.id === selectedFolderId;
           return (

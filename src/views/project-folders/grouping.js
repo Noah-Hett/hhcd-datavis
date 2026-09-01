@@ -1,4 +1,4 @@
-import { reports } from "../../data/index.js";
+import { reports, yearRange } from "../../data/index.js";
 
 export const GROUPINGS = [
   {
@@ -13,7 +13,7 @@ export const GROUPINGS = [
     label: "Year",
     hint: "When it was written",
     description:
-      `The same ${reports.length} reports, re-shelved into year bands from 2000 to 2017.`,
+      `The same ${reports.length} reports, re-shelved into year bands from ${yearRange.min} to ${yearRange.max}.`,
   },
   {
     id: "type",
