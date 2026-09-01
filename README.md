@@ -74,6 +74,36 @@ Import from `src/data/index.js` (exports `reports`, `categories`,
 `methodsPrimary` (array) for research methods; categories include both
 `Mobility and Transport` and a separate `Transport`.
 
+## Deploy and branch previews (Vercel)
+
+This is a Vite SPA. `vercel.json` tells Vercel to `npm ci`, `npm run build`,
+serve `dist/`, and rewrite every client route to `index.html` so React Router
+paths (`/folders`, `/year-type`, `/search`) work on preview URLs.
+
+Once the GitHub repo is connected to a Vercel project, **every push** gets a
+deployment:
+
+- **`main`** → production (`https://<project>.vercel.app`)
+- **any other branch or pull request** → a unique preview URL, posted as a
+  comment on the PR. Teammates do not need their own Vercel accounts to open
+  those links.
+
+### One-time: connect the GitHub repo
+
+Someone with access to this GitHub repo does this once.
+
+1. Open [vercel.com/new](https://vercel.com/new) and import
+   `Noah-Hett/hhcd-datavis`.
+2. Root Directory: repo root (`.`).
+3. Framework: **Vite** (or leave auto-detect). Leave build settings — this
+   repo’s `vercel.json` already sets install, build, and output.
+4. Deploy.
+
+If the Vercel GitHub App is not already installed on the account, GitHub will
+ask you to grant it access to this repository. After that, branch pushes and
+PRs deploy automatically. Fork PRs need a one-click authorisation the first
+time, so preview env vars are not leaked.
+
 ## Cloud Agent environment
 
 `.cursor/environment.json` runs `npm install` on setup and keeps a `dev`
