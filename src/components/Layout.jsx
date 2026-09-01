@@ -1,4 +1,4 @@
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import HelpDialog from "./HelpDialog.jsx";
 import SimpleSearch from "./SimpleSearch.jsx";
@@ -17,6 +17,7 @@ export default function Layout() {
   const { pathname, search } = useLocation();
   const { sidebarOpen, setSidebarOpen, selectedReportNo } = useSelection();
   const [helpOpen, setHelpOpen] = useState(false);
+  const helpButtonRef = useRef(null);
   const fill = !pathname.startsWith("/search");
   const query = keepSearch(search);
 
@@ -56,6 +57,7 @@ export default function Layout() {
 
           <button
             type="button"
+            ref={helpButtonRef}
             className="chrome-btn chrome-btn-accent"
             aria-haspopup="dialog"
             aria-expanded={helpOpen}
@@ -79,7 +81,13 @@ export default function Layout() {
           </button>
         </div>
       </header>
-      <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <HelpDialog
+        open={helpOpen}
+        onClose={() => {
+          setHelpOpen(false);
+          helpButtonRef.current?.focus();
+        }}
+      />
       <main id="main" className={fill ? "app-main is-fill" : "app-main is-scroll"}>
         <Suspense
           fallback={

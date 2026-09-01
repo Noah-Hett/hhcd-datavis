@@ -293,44 +293,21 @@ select {
   scroll-snap-stop: always;
 }
 
-.explore-intro {
-  display: flex;
-  align-items: flex-start;
-  padding: 28px 24px 48px;
-  background: var(--bg);
+.explore-archive-span {
+  position: relative;
+  height: 200%;
 }
 
-.explore-intro-copy {
-  max-width: 36rem;
+.explore-archive-span > .explore-section {
+  height: 50%;
+  min-height: 50%;
+  pointer-events: none;
 }
 
-.explore-intro-eyebrow {
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.explore-intro-copy h1 {
-  margin: 0 0 12px;
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-}
-
-.explore-intro-lead {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: var(--muted);
-}
-
-.explore-archive,
 .explore-map {
   background: var(--bg);
+  min-height: 100%;
+  height: 100%;
 }
 
 /* --- Report sidebar --------------------------------------------------- */
@@ -354,6 +331,7 @@ select {
   color: var(--text);
   border: 1px solid var(--archive-line);
   box-shadow: 0 16px 48px rgb(28 20 12 / 16%);
+  transition: transform 0.2s ease, visibility 0.2s ease;
 }
 
 .report-sidebar.is-closed {
@@ -480,6 +458,23 @@ select {
     max-height: min(78dvh, 640px);
     border-radius: 16px 16px 0 0;
     border-bottom: 0;
+  }
+
+  .report-sidebar-bar::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 8px;
+    width: 42px;
+    height: 4px;
+    margin-left: -21px;
+    border-radius: 999px;
+    background: var(--archive-line);
+  }
+
+  .report-sidebar-bar {
+    position: relative;
+    padding-top: 18px;
   }
 
   .report-sidebar.is-closed {

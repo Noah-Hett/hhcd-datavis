@@ -26,9 +26,11 @@
 }
 
 .explore-archive-span .archive-section {
-  position: absolute;
-  inset: 0;
+  position: sticky;
+  top: 0;
+  height: 50%;
   z-index: 1;
+  pointer-events: auto;
 }
 
 .explore-archive-span .archive-section .intro {

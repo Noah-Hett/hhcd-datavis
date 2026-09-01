@@ -137,6 +137,10 @@ export default function ArchiveSection({
   }, [reduceMotion]);
 
   useEffect(() => {
+    if (webglFailed) setListOpen(true);
+  }, [webglFailed]);
+
+  useEffect(() => {
     if (!captureWheel) return undefined;
     const el = stageRef.current;
     if (!el || reduceMotion) return undefined;

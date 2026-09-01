@@ -87,7 +87,10 @@ export default function HelpDialog({ open, onClose }) {
             <li>
               <kbd>Escape</kbd> closes help, search, or the report sidebar
             </li>
-            <li>Skip links jump past the 3D archive to the list or map</li>
+            <li>
+              Skip links jump past the 3D archive to the map, or to the
+              folder list fallback
+            </li>
           </ul>
         </div>
       </div>
