@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import ReportSidebar from "../../components/ReportSidebar.jsx";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import { appliedChips, buildIndex, buildVocab, search } from "./search.js";
-import { stepActive } from "./listKeyboard.js";
+import {
+  isEditableTarget,
+  isOverlayTarget,
+  searchListKeyAction,
+  stepActive,
+} from "./listKeyboard.js";
 import "./styles.css";
 
 const vocab = buildVocab(reports);
@@ -35,55 +41,6 @@ export default function ReportSearch() {
     setActive(0);
   }, [query]);
 
-  useEffect(() => {
-    function onKey(event) {
-      const tag = event.target?.tagName;
-      const typing =
-        tag === "INPUT" || tag === "TEXTAREA" || event.target?.isContentEditable;
-      if (event.key === "/" && !typing) {
-        event.preventDefault();
-        inputRef.current?.focus();
-        return;
-      }
-      if (event.key === "Escape") {
-        if (query && document.activeElement === inputRef.current) {
-          setQuery("");
-          writeQuery("");
-        }
-        return;
-      }
-      if (typing && event.target === inputRef.current) {
-        if (event.key === "ArrowDown" && rows.length) {
-          event.preventDefault();
-          setActive(0);
-          itemRefs.current.get(rows[0]?.key)?.focus();
-        }
-        return;
-      }
-      if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Home" || event.key === "End") {
-        event.preventDefault();
-        setActive((value) => {
-          const next = stepActive(value, event.key, rows.length);
-          const row = rows[next];
-          if (row) itemRefs.current.get(row.key)?.focus();
-          return next;
-        });
-      }
-      if (event.key === "Enter") {
-        const row = rows[active];
-        if (row?.report?.reportNo) {
-          event.preventDefault();
-          openReport(row.report.reportNo, {
-            source: "search",
-            returnFocus: itemRefs.current.get(row.key),
-          });
-        }
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [active, query, rows, openReport]);
-
   function writeQuery(next) {
     setSearchParams(
       (current) => {
@@ -95,6 +52,87 @@ export default function ReportSearch() {
       { replace: true },
     );
   }
+
+  function focusInput() {
+    inputRef.current?.focus();
+  }
+
+  function focusRow(next) {
+    const row = rows[next];
+    if (row) itemRefs.current.get(row.key)?.focus();
+  }
+
+  function openRow(row, trigger) {
+    if (!row?.report?.reportNo) return;
+    openReport(row.report.reportNo, {
+      source: "search",
+      returnFocus: trigger ?? itemRefs.current.get(row.key),
+    });
+  }
+
+  useEffect(() => {
+    function onKey(event) {
+      const typing = isEditableTarget(event.target);
+      const inInput = event.target === inputRef.current;
+      const overlayOpen =
+        isOverlayTarget(event.target) ||
+        Boolean(document.querySelector("#help-dialog")?.open) ||
+        Boolean(document.querySelector("#report-sidebar.is-open")) ||
+        Boolean(document.querySelector("#report-sidebar[open]"));
+      const action = searchListKeyAction({
+        key: event.key,
+        typing,
+        inInput,
+        overlayOpen,
+        length: rows.length,
+      });
+      if (!action) return;
+
+      if (action.type === "focus-input") {
+        event.preventDefault();
+        focusInput();
+        return;
+      }
+      if (action.type === "escape-input") {
+        if (query) {
+          event.preventDefault();
+          setQuery("");
+          writeQuery("");
+        } else {
+          inputRef.current?.blur();
+        }
+        return;
+      }
+      if (action.type === "focus-row") {
+        event.preventDefault();
+        setActive(action.index);
+        focusRow(action.index);
+        return;
+      }
+      if (action.type === "move") {
+        event.preventDefault();
+        setActive((value) => {
+          const next = stepActive(value, action.key, rows.length);
+          const row = rows[next];
+          if (row) itemRefs.current.get(row.key)?.focus();
+          return next;
+        });
+        return;
+      }
+      if (action.type === "open") {
+        if (event.target?.closest?.(".search-row")) return;
+        const row = rows[active];
+        if (row?.report?.reportNo) {
+          event.preventDefault();
+          openRow(row);
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // focusRow / openRow / writeQuery close over the current rows and query.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, query, rows, openReport]);
 
   function onChange(event) {
     const next = event.target.value;
@@ -109,9 +147,10 @@ export default function ReportSearch() {
           <p className="search-page-eyebrow">{reports.length} reports</p>
           <h1>Simple view</h1>
           <p className="search-page-lede">
-            A keyboard-first list of every report. Type to rank by meaning;
-            chips show the filters the query applied. Enter opens the shared
-            sidebar.
+            A keyboard-first list of every report — no 3D archive, no graph.
+            Type to rank by meaning; chips show the filters the query applied.
+            Arrow keys move, Enter opens the shared sidebar, Escape returns
+            here.
           </p>
           <label className="search-page-box">
             <span className="sr-only">Search all reports</span>
@@ -123,6 +162,10 @@ export default function ReportSearch() {
               placeholder="lighting, growing older, interviews…"
               autoComplete="off"
               spellCheck="false"
+              enterKeyHint="search"
+              autoFocus
+              aria-controls="search-report-list"
+              aria-keyshortcuts="/"
             />
           </label>
           {chips.length > 0 ? (
@@ -153,11 +196,19 @@ export default function ReportSearch() {
             : `${result.pops.length} close matches · ${rows.length} in the list`}
         </p>
 
-        <ul className="search-list" aria-label="All reports">
+        <ul
+          id="search-report-list"
+          className="search-list"
+          aria-label="All reports"
+        >
           {rows.map((item, i) => {
             const report = item.report;
             const current =
               String(report.reportNo) === String(selectedReportNo);
+            const author = report.author || "Unknown author";
+            const year = report.year ?? "—";
+            const theme = report.category || "—";
+            const type = report.projectType || "—";
             return (
               <li key={item.key}>
                 <button
@@ -174,21 +225,33 @@ export default function ReportSearch() {
                   ]
                     .filter(Boolean)
                     .join(" ")}
+                  tabIndex={i === active ? 0 : -1}
+                  aria-current={current ? "true" : undefined}
+                  aria-label={`${report.title}, ${author}, ${year}, theme ${theme}, type ${type}`}
                   onMouseEnter={() => setActive(i)}
                   onFocus={() => setActive(i)}
                   onClick={(event) =>
-                    openReport(report.reportNo, {
-                      source: "search",
-                      returnFocus: event.currentTarget,
-                    })
+                    openRow(item, event.currentTarget)
                   }
                 >
                   <span className="search-row-title">{report.title}</span>
                   <span className="search-row-meta">
-                    <span>{report.author || "Unknown author"}</span>
-                    <span>{report.year ?? "—"}</span>
-                    <span>{report.category || "—"}</span>
-                    <span>{report.projectType || "—"}</span>
+                    <span>
+                      <span className="sr-only">Author </span>
+                      {author}
+                    </span>
+                    <span>
+                      <span className="sr-only">Year </span>
+                      {year}
+                    </span>
+                    <span>
+                      <span className="sr-only">Theme </span>
+                      {theme}
+                    </span>
+                    <span>
+                      <span className="sr-only">Type </span>
+                      {type}
+                    </span>
                   </span>
                 </button>
               </li>
@@ -196,6 +259,7 @@ export default function ReportSearch() {
           })}
         </ul>
       </div>
+      <ReportSidebar />
     </div>
   );
 }

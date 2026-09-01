@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useSelection } from "../state/SelectionContext.jsx";
 import { reports } from "../data/index.js";
+import "./report-sidebar-sheet.css";
 
 const FIELDS = [
   { key: "targetedUser", label: "Targeted user" },
@@ -13,6 +14,8 @@ const FIELDS = [
   { key: "partner", label: "Partner" },
   { key: "connections", label: "Connections" },
 ];
+
+const SHEET_QUERY = "(max-width: 799px)";
 
 function isEmpty(value) {
   if (value == null) return true;
@@ -36,32 +39,53 @@ function findReport(reportNo) {
 }
 
 export default function ReportSidebar() {
-  const { selectedReportNo, sidebarOpen, clearReport, setSidebarOpen } =
-    useSelection();
+  const { selectedReportNo, sidebarOpen, setSidebarOpen } = useSelection();
   const headingRef = useRef(null);
+  const asideRef = useRef(null);
   const titleId = useId();
   const liveId = useId();
   const report = findReport(selectedReportNo);
   const open = sidebarOpen;
+  const [sheet, setSheet] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia(SHEET_QUERY).matches
+      : false,
+  );
+
+  const close = () => {
+    // Dismiss the panel without clearing ?report=; SelectionContext would
+    // otherwise re-open from the URL before the param is removed.
+    setSidebarOpen(false);
+  };
+  const closeRef = useRef(close);
+  closeRef.current = close;
 
   useEffect(() => {
-    if (open && report) {
-      window.setTimeout(() => headingRef.current?.focus(), 0);
-    }
+    const media = window.matchMedia(SHEET_QUERY);
+    const onChange = () => setSheet(media.matches);
+    onChange();
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!open || !report) return undefined;
+    const id = window.setTimeout(() => headingRef.current?.focus(), 40);
+    return () => window.clearTimeout(id);
   }, [open, report, selectedReportNo]);
 
   useEffect(() => {
-    if (!open) return undefined;
     const onKey = (event) => {
       if (event.key !== "Escape") return;
-      if (event.target?.closest?.("dialog[open]")) return;
+      if (document.getElementById("help-dialog")?.open) return;
+      const panel = asideRef.current;
+      if (!panel?.classList.contains("is-open")) return;
       event.preventDefault();
-      if (selectedReportNo) clearReport();
-      else setSidebarOpen(false);
+      closeRef.current();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, selectedReportNo, clearReport, setSidebarOpen]);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
 
   const liveText = open && report
     ? `Opened ${report.title} by ${report.author ?? "unknown author"}${
@@ -70,11 +94,6 @@ export default function ReportSidebar() {
     : open
       ? "Report sidebar opened. No report selected."
       : "";
-
-  const close = () => {
-    if (selectedReportNo) clearReport();
-    else setSidebarOpen(false);
-  };
 
   return (
     <>
@@ -91,11 +110,14 @@ export default function ReportSidebar() {
       ) : null}
       <aside
         id="report-sidebar"
+        ref={asideRef}
         className={
           open ? "report-sidebar is-open" : "report-sidebar is-closed"
         }
         aria-labelledby={titleId}
+        aria-describedby={liveId}
         aria-hidden={!open}
+        aria-modal={sheet && open ? true : undefined}
         {...(!open ? { inert: "" } : {})}
       >
         <div className="report-sidebar-bar">

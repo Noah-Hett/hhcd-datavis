@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react";
+import "./help-dialog.css";
 
 export default function HelpDialog({ open, onClose }) {
   const dialogRef = useRef(null);
@@ -45,7 +46,9 @@ export default function HelpDialog({ open, onClose }) {
         <div className="help-dialog-body">
           <p>
             Two pages share one header and one report sidebar. Explore is a
-            scrolling scene; Simple is a keyboard-first list of every report.
+            scrolling scene with the archive and map. Simple view is a
+            keyboard-first list of every report — it does not load the 3D
+            archive or the year × type graph.
           </p>
           <h3>Three waypoints</h3>
           <ol>
@@ -56,11 +59,13 @@ export default function HelpDialog({ open, onClose }) {
             <li>
               <strong>Archive</strong> — scroll or swipe to file documents into
               magazine folders. Theme, Year, and Type appear once they are
-              filed.
+              filed. If the 3D scene cannot run, a folder list is the fallback.
             </li>
             <li>
               <strong>Map</strong> — a year × type scatter, coloured by theme,
-              with method pills that grey out when they are not active.
+              with method pills that grey out when they are not active. On a
+              phone, the first tap peeks a map tooltip; the second tap opens
+              the sidebar.
             </li>
           </ol>
           <h3>Grouping and methods</h3>
@@ -71,21 +76,29 @@ export default function HelpDialog({ open, onClose }) {
           </p>
           <h3>Search versus Simple view</h3>
           <p>
-            The header search is a quick typeahead on Explore. Simple view is
-            the full ranked list, with the same search engine and chips for
-            what the query applied.
+            The header field is a typeahead that uses the same ranking as
+            Simple view. Choosing a match opens the shared sidebar. A footer
+            link opens Simple view with that query. Simple view lists every
+            report — title, author, year, theme, and type — with chips for
+            filters the query applied. You can read the catalogue without
+            touching the 3D scene or the graph.
           </p>
           <h3>Keyboard</h3>
-          <ul>
+          <ul className="help-keys">
             <li>
-              <kbd>/</kbd> focuses search
+              <kbd>/</kbd> focuses search — the header typeahead on Explore,
+              or the list search on Simple view
             </li>
             <li>
-              Arrow keys move through search results, method pills, and map
-              dots
+              Arrow keys move through typeahead suggestions, the Simple list,
+              method pills, and map dots
             </li>
             <li>
-              <kbd>Escape</kbd> closes help, search, or the report sidebar
+              <kbd>Enter</kbd> opens the selected report in the sidebar
+            </li>
+            <li>
+              <kbd>Escape</kbd> closes help, the typeahead, or the sidebar.
+              On Simple view it also returns focus to the search box
             </li>
             <li>
               Skip links jump past the 3D archive to the map, or to the

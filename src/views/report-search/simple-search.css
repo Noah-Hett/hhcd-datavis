@@ -28,6 +28,7 @@
   display: grid;
   grid-template-columns: 3.2rem 1fr;
   gap: 8px;
+  min-height: 44px;
   padding: 8px 12px;
   border: 0;
   background: transparent;

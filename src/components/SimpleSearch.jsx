@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { reports } from "../data/index.js";
 import { useSelection } from "../state/SelectionContext.jsx";
 import { buildIndex, buildVocab, search } from "../views/report-search/search.js";
+import { isEditableTarget } from "../views/report-search/listKeyboard.js";
 import "../views/report-search/simple-search.css";
 
 const vocab = buildVocab(reports);
@@ -11,12 +12,14 @@ const index = buildIndex(reports);
 export default function SimpleSearch() {
   const { openReport } = useSelection();
   const { pathname } = useLocation();
+  const onSimpleView = pathname.startsWith("/search");
   const [query, setQuery] = useState("");
   const [listOpen, setListOpen] = useState(false);
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
   const listId = useId();
   const labelId = useId();
+  const statusId = useId();
 
   const result = useMemo(
     () => search(reports, query, { vocab, index }),
@@ -24,8 +27,10 @@ export default function SimpleSearch() {
   );
   const items = result.idle ? [] : [...result.pops, ...result.nearby];
   const open = listOpen && items.length > 0;
-  const advancedHref = query.trim()
-    ? `/search?q=${encodeURIComponent(query.trim())}`
+  const showPop = listOpen && !result.idle;
+  const trimmed = query.trim();
+  const advancedHref = trimmed
+    ? `/search?q=${encodeURIComponent(trimmed)}`
     : "/search";
 
   useEffect(() => {
@@ -34,18 +39,17 @@ export default function SimpleSearch() {
 
   useEffect(() => {
     function onKey(event) {
-      const tag = event.target?.tagName;
-      const typing =
-        tag === "INPUT" || tag === "TEXTAREA" || event.target?.isContentEditable;
-      if (event.key === "/" && !typing) {
-        event.preventDefault();
-        inputRef.current?.focus();
-        setListOpen(true);
-      }
+      if (onSimpleView) return;
+      if (event.key !== "/") return;
+      if (isEditableTarget(event.target)) return;
+      if (event.target?.closest?.("dialog[open]")) return;
+      event.preventDefault();
+      inputRef.current?.focus();
+      setListOpen(true);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [onSimpleView]);
 
   function choose(item) {
     const reportNo = item?.report?.reportNo;
@@ -59,10 +63,17 @@ export default function SimpleSearch() {
 
   function onInputKeyDown(event) {
     if (event.key === "Escape") {
-      event.preventDefault();
-      if (open || query) {
+      if (open || showPop) {
+        event.preventDefault();
         setListOpen(false);
-        if (!open) setQuery("");
+        return;
+      }
+      if (document.querySelector("#report-sidebar.is-open")) {
+        return;
+      }
+      event.preventDefault();
+      if (query) {
+        setQuery("");
         return;
       }
       inputRef.current?.blur();
@@ -92,9 +103,10 @@ export default function SimpleSearch() {
 
   return (
     <div className="simple-search">
-      <label className="simple-search-label" id={labelId}>
+      <label className="simple-search-label" id={labelId} htmlFor={`${listId}-input`}>
         <span className="sr-only">Search reports</span>
         <input
+          id={`${listId}-input`}
           ref={inputRef}
           type="search"
           className="simple-search-input"
@@ -107,7 +119,10 @@ export default function SimpleSearch() {
           aria-labelledby={labelId}
           aria-expanded={open}
           aria-controls={listId}
+          aria-haspopup="listbox"
           aria-autocomplete="list"
+          aria-keyshortcuts={onSimpleView ? undefined : "/"}
+          aria-describedby={statusId}
           aria-activedescendant={
             open && items[active] ? `${listId}-${items[active].key}` : undefined
           }
@@ -122,7 +137,14 @@ export default function SimpleSearch() {
           onKeyDown={onInputKeyDown}
         />
       </label>
-      {listOpen && !result.idle ? (
+      <p id={statusId} className="sr-only" aria-live="polite">
+        {showPop
+          ? items.length
+            ? `${items.length} suggestions. Use arrows and Enter to open a report.`
+            : "No close matches yet."
+          : ""}
+      </p>
+      {showPop ? (
         <div className="simple-search-pop">
           <ul
             id={listId}
@@ -161,10 +183,12 @@ export default function SimpleSearch() {
             <p className="simple-search-empty">No close matches yet.</p>
           ) : null}
           <p className="simple-search-footer">
-            {pathname.startsWith("/search") ? (
+            {onSimpleView ? (
               <span>Showing ranking from the catalogue search.</span>
             ) : (
-              <Link to={advancedHref}>Open advanced search</Link>
+              <Link to={advancedHref}>
+                See all reports{trimmed ? ` for “${trimmed}”` : ""} in Simple view
+              </Link>
             )}
           </p>
         </div>
