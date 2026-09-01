@@ -25,9 +25,16 @@
   display: none;
 }
 
-.archive-section .report-btn.is-selected {
+.archive-section .report-btn.is-selected,
+.archive-section .report-btn[aria-current="true"] {
   background: var(--archive-hover);
   box-shadow: inset 3px 0 0 var(--archive-ink);
+}
+
+.archive-section :where(a, button, input, [tabindex]):focus-visible,
+.explore-waypoints a:focus-visible {
+  outline: 3px solid var(--archive-focus, var(--focus, #1c140c));
+  outline-offset: 2px;
 }
 
 .explore-archive-span .archive-section {
@@ -40,4 +47,73 @@
 
 .explore-archive-span .archive-section .intro {
   pointer-events: none;
+}
+
+/* Hold snap while files are still on show so a wheel tick cannot skip #archive. */
+.explore-scroll.is-filing {
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+
+#archive {
+  scroll-snap-stop: always;
+}
+
+.explore-waypoints {
+  position: fixed;
+  top: calc(var(--app-header-h, 56px) + 8px);
+  right: 12px;
+  z-index: 12;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 4px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  margin: 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--archive-panel, #f7f1e8);
+  border: 1px solid var(--archive-line, #cbbba6);
+  color: var(--archive-ink, #1c140c);
+  pointer-events: auto;
+}
+
+.explore-waypoints a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--archive-ink, #1c140c);
+}
+
+.explore-waypoints a[aria-current="true"] {
+  background: var(--archive-ink, #1c140c);
+  color: var(--archive-panel, #f7f1e8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-scroll,
+  .explore-scroll.is-filing,
+  .explore-scroll.is-filed {
+    scroll-snap-type: none;
+    scroll-behavior: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .explore-waypoints {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
+  .explore-waypoints a {
+    padding: 0 10px;
+    font-size: 12px;
+  }
 }

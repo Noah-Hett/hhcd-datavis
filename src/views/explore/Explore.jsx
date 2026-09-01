@@ -1,16 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import ReportSidebar from "../../components/ReportSidebar.jsx";
-import ArchiveSection, {
+import ArchiveSection from "./ArchiveSection.jsx";
+import {
   applyOrganizeDelta,
-  isArchiveFiled,
-} from "./ArchiveSection.jsx";
+  isFiled,
+  waypointFromScroll,
+} from "./archivePhysics.js";
 import MapSection from "./MapSection.jsx";
+
+const WAYPOINTS = [
+  { id: "intro", label: "Intro" },
+  { id: "archive", label: "Archive" },
+  { id: "map", label: "Map" },
+];
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
+
+export { waypointFromScroll };
 
 export default function Explore() {
   const { hash } = useLocation();
@@ -21,9 +31,13 @@ export default function Explore() {
   const [organize, setOrganize] = useState(() =>
     prefersReducedMotion() ? 1 : 0,
   );
-  const isFiled = isArchiveFiled(organize, reduceMotion);
+  const [waypoint, setWaypoint] = useState(() => {
+    const id = hash.replace(/^#/, "");
+    return WAYPOINTS.some((item) => item.id === id) ? id : "intro";
+  });
+  const filed = isFiled(organize, reduceMotion);
   organizeRef.current = organize;
-  const wasFiledRef = useRef(isFiled);
+  const wasFiledRef = useRef(filed);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -39,8 +53,14 @@ export default function Explore() {
 
   useEffect(() => {
     const id = hash.replace(/^#/, "");
+    if (id === "intro" && !reduceMotion) {
+      setOrganize(0);
+    }
     if (id === "archive" || id === "map") {
       setOrganize(1);
+    }
+    if (WAYPOINTS.some((item) => item.id === id)) {
+      setWaypoint(id);
     }
     const scrollToHash = () => {
       const node = id ? document.getElementById(id) : null;
@@ -50,14 +70,36 @@ export default function Explore() {
       window.requestAnimationFrame(scrollToHash);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [hash]);
+  }, [hash, reduceMotion]);
 
   useEffect(() => {
-    if (isFiled && !wasFiledRef.current && hash !== "#map") {
+    if (filed && !wasFiledRef.current && hash !== "#map") {
       document.getElementById("archive")?.scrollIntoView({ block: "start" });
     }
-    wasFiledRef.current = isFiled;
-  }, [isFiled, hash]);
+    wasFiledRef.current = filed;
+  }, [filed, hash]);
+
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return undefined;
+
+    const syncWaypoint = () => {
+      const archive = document.getElementById("archive");
+      const map = document.getElementById("map");
+      setWaypoint(
+        waypointFromScroll({
+          scrollTop: scroller.scrollTop,
+          archiveTop: archive?.offsetTop,
+          mapTop: map?.offsetTop,
+          filed: isFiled(organizeRef.current, reduceMotion),
+        }),
+      );
+    };
+
+    scroller.addEventListener("scroll", syncWaypoint, { passive: true });
+    syncWaypoint();
+    return () => scroller.removeEventListener("scroll", syncWaypoint);
+  }, [reduceMotion, filed]);
 
   useEffect(() => {
     const scroller = scrollRef.current;
@@ -78,23 +120,32 @@ export default function Explore() {
       return scroller.scrollTop >= map.offsetTop - 12;
     };
 
+    const lockToIntro = () => {
+      if (organizeRef.current >= 1) return;
+      if (scroller.scrollTop > 1) scroller.scrollTop = 0;
+    };
+
     const onWheel = (event) => {
       const current = organizeRef.current;
       const down = event.deltaY > 0;
+      // Mid-file: consume the wheel so snap cannot skip the archive.
       if (current > 0 && current < 1) {
         event.preventDefault();
         apply(event.deltaY);
+        lockToIntro();
         return;
       }
-      if (current <= 0 && down && !pastArchive()) {
+      if (current <= 0 && down) {
         event.preventDefault();
         apply(event.deltaY);
+        lockToIntro();
         return;
       }
       if (current >= 1 && !down && !pastArchive()) {
         event.preventDefault();
         apply(event.deltaY);
       }
+      // Filed + downward wheel is not captured — snap can release to #map.
     };
 
     let touchY = null;
@@ -110,9 +161,11 @@ export default function Explore() {
       if (current > 0 && current < 1) {
         event.preventDefault();
         apply(dy);
-      } else if (current <= 0 && dy > 0 && !pastArchive()) {
+        lockToIntro();
+      } else if (current <= 0 && dy > 0) {
         event.preventDefault();
         apply(dy);
+        lockToIntro();
       } else if (current >= 1 && dy < 0 && !pastArchive()) {
         event.preventDefault();
         apply(dy);
@@ -120,13 +173,19 @@ export default function Explore() {
       touchY = y;
     };
 
+    const onScroll = () => {
+      lockToIntro();
+    };
+
     scroller.addEventListener("wheel", onWheel, { passive: false });
     scroller.addEventListener("touchstart", onTouchStart, { passive: true });
     scroller.addEventListener("touchmove", onTouchMove, { passive: false });
+    scroller.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       scroller.removeEventListener("wheel", onWheel);
       scroller.removeEventListener("touchstart", onTouchStart);
       scroller.removeEventListener("touchmove", onTouchMove);
+      scroller.removeEventListener("scroll", onScroll);
     };
   }, [reduceMotion]);
 
@@ -134,10 +193,21 @@ export default function Explore() {
     <div className="view-explore">
       <div
         className={
-          isFiled ? "explore-scroll is-filed" : "explore-scroll is-filing"
+          filed ? "explore-scroll is-filed" : "explore-scroll is-filing"
         }
         ref={scrollRef}
       >
+        <nav className="explore-waypoints" aria-label="Explore waypoints">
+          {WAYPOINTS.map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              aria-current={waypoint === item.id ? "true" : undefined}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
         <div className="explore-archive-span">
           <ArchiveSection
             organize={organize}
