@@ -38,21 +38,10 @@ function findReport(reportNo) {
   return reports.find((report) => String(report.reportNo) === id) ?? null;
 }
 
-function focusableIn(root) {
-  if (!root) return [];
-  return [
-    ...root.querySelectorAll(
-      'a[href], button:not([disabled]), input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])',
-    ),
-  ].filter((node) => !node.hasAttribute("inert") && node.offsetParent !== null);
-}
-
 export default function ReportSidebar() {
-  const { selectedReportNo, sidebarOpen, clearReport, setSidebarOpen } =
-    useSelection();
+  const { selectedReportNo, sidebarOpen, setSidebarOpen } = useSelection();
   const headingRef = useRef(null);
   const asideRef = useRef(null);
-  const backdropRef = useRef(null);
   const titleId = useId();
   const liveId = useId();
   const report = findReport(selectedReportNo);
@@ -62,6 +51,14 @@ export default function ReportSidebar() {
       ? window.matchMedia(SHEET_QUERY).matches
       : false,
   );
+
+  const close = () => {
+    // Dismiss the panel without clearing ?report=; SelectionContext would
+    // otherwise re-open from the URL before the param is removed.
+    setSidebarOpen(false);
+  };
+  const closeRef = useRef(close);
+  closeRef.current = close;
 
   useEffect(() => {
     const media = window.matchMedia(SHEET_QUERY);
@@ -78,41 +75,17 @@ export default function ReportSidebar() {
   }, [open, report, selectedReportNo]);
 
   useEffect(() => {
-    if (!open) return undefined;
     const onKey = (event) => {
       if (event.key !== "Escape") return;
-      if (event.target?.closest?.("dialog[open]")) return;
+      if (document.getElementById("help-dialog")?.open) return;
+      const panel = asideRef.current;
+      if (!panel?.classList.contains("is-open")) return;
       event.preventDefault();
-      event.stopPropagation();
-      if (selectedReportNo) clearReport();
-      else setSidebarOpen(false);
+      closeRef.current();
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [open, selectedReportNo, clearReport, setSidebarOpen]);
-
-  useEffect(() => {
-    if (!open || !sheet) return undefined;
-    const onKey = (event) => {
-      if (event.key !== "Tab") return;
-      const nodes = [
-        backdropRef.current,
-        ...focusableIn(asideRef.current),
-      ].filter(Boolean);
-      if (!nodes.length) return;
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, sheet, report]);
+  }, []);
 
   const liveText = open && report
     ? `Opened ${report.title} by ${report.author ?? "unknown author"}${
@@ -122,11 +95,6 @@ export default function ReportSidebar() {
       ? "Report sidebar opened. No report selected."
       : "";
 
-  const close = () => {
-    if (selectedReportNo) clearReport();
-    else setSidebarOpen(false);
-  };
-
   return (
     <>
       <div className="sr-only" id={liveId} aria-live="polite" aria-atomic="true">
@@ -135,7 +103,6 @@ export default function ReportSidebar() {
       {open ? (
         <button
           type="button"
-          ref={backdropRef}
           className="report-sidebar-backdrop"
           aria-label="Close report sidebar"
           onClick={close}
@@ -147,11 +114,10 @@ export default function ReportSidebar() {
         className={
           open ? "report-sidebar is-open" : "report-sidebar is-closed"
         }
-        role={sheet ? "dialog" : undefined}
-        aria-modal={sheet && open ? true : undefined}
         aria-labelledby={titleId}
         aria-describedby={liveId}
         aria-hidden={!open}
+        aria-modal={sheet && open ? true : undefined}
         {...(!open ? { inert: "" } : {})}
       >
         <div className="report-sidebar-bar">

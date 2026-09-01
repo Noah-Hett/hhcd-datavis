@@ -16,7 +16,7 @@ const vocab = buildVocab(reports);
 const index = buildIndex(reports);
 
 export default function ReportSearch() {
-  const { selectedReportNo, sidebarOpen, openReport } = useSelection();
+  const { selectedReportNo, openReport } = useSelection();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [active, setActive] = useState(0);
@@ -75,10 +75,10 @@ export default function ReportSearch() {
       const typing = isEditableTarget(event.target);
       const inInput = event.target === inputRef.current;
       const overlayOpen =
-        sidebarOpen ||
         isOverlayTarget(event.target) ||
-        Boolean(document.querySelector("dialog[open]")) ||
-        Boolean(document.querySelector("#report-sidebar.is-open"));
+        Boolean(document.querySelector("#help-dialog")?.open) ||
+        Boolean(document.querySelector("#report-sidebar.is-open")) ||
+        Boolean(document.querySelector("#report-sidebar[open]"));
       const action = searchListKeyAction({
         key: event.key,
         typing,
@@ -130,7 +130,9 @@ export default function ReportSearch() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active, query, rows, openReport, sidebarOpen]);
+    // focusRow / openRow / writeQuery close over the current rows and query.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, query, rows, openReport]);
 
   function onChange(event) {
     const next = event.target.value;

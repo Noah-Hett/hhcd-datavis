@@ -63,11 +63,15 @@ export default function SimpleSearch() {
 
   function onInputKeyDown(event) {
     if (event.key === "Escape") {
-      event.preventDefault();
       if (open || showPop) {
+        event.preventDefault();
         setListOpen(false);
         return;
       }
+      if (document.querySelector("#report-sidebar.is-open")) {
+        return;
+      }
+      event.preventDefault();
       if (query) {
         setQuery("");
         return;
