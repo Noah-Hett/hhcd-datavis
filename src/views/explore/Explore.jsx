@@ -42,9 +42,14 @@ export default function Explore() {
     if (id === "archive" || id === "map") {
       setOrganize(1);
     }
-    const node = id ? document.getElementById(id) : null;
-    if (!node) return;
-    node.scrollIntoView({ block: "start" });
+    const scrollToHash = () => {
+      const node = id ? document.getElementById(id) : null;
+      node?.scrollIntoView({ block: "start" });
+    };
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(scrollToHash);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [hash]);
 
   useEffect(() => {

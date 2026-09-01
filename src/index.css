@@ -75,6 +75,8 @@ select {
 .app {
   min-height: 100%;
   min-height: 100dvh;
+  height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -242,7 +244,9 @@ select {
 .app-main.is-fill {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
+  height: 0;
   overflow: hidden;
 }
 
@@ -307,6 +311,11 @@ select {
 .explore-map {
   background: var(--bg);
   min-height: 100%;
+  height: 100%;
+}
+
+.explore-map .map-section,
+.explore-map .workspace {
   height: 100%;
 }
 
