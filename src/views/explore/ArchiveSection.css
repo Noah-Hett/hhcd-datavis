@@ -47,6 +47,7 @@
 
 .explore-archive-span .archive-section .intro {
   pointer-events: none;
+  padding-top: 58px;
 }
 
 /* Hold snap while files are still on show so a wheel tick cannot skip #archive. */
@@ -59,10 +60,18 @@
   scroll-snap-stop: always;
 }
 
+.explore-waypoints-slot {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 12;
+  pointer-events: none;
+}
+
 .explore-waypoints {
-  position: fixed;
-  top: calc(var(--app-header-h, 56px) + 8px);
-  right: 12px;
+  position: absolute;
+  top: 10px;
+  left: 12px;
   z-index: 12;
   display: inline-flex;
   align-items: stretch;
@@ -76,6 +85,12 @@
   border: 1px solid var(--archive-line, #cbbba6);
   color: var(--archive-ink, #1c140c);
   pointer-events: auto;
+}
+
+.archive:has(.webgl-fallback) .intro {
+  position: relative;
+  padding-bottom: 12px;
+  background: var(--archive-bg);
 }
 
 .explore-waypoints a {
@@ -108,12 +123,16 @@
 
 @media (max-width: 640px) {
   .explore-waypoints {
-    margin-left: 8px;
-    margin-right: 8px;
+    left: 8px;
+    top: 8px;
   }
 
   .explore-waypoints a {
     padding: 0 10px;
     font-size: 12px;
+  }
+
+  .explore-archive-span .archive-section .intro {
+    padding-top: 52px;
   }
 }

@@ -197,17 +197,19 @@ export default function Explore() {
         }
         ref={scrollRef}
       >
-        <nav className="explore-waypoints" aria-label="Explore waypoints">
-          {WAYPOINTS.map((item) => (
-            <a
-              key={item.id}
-              href={`#${item.id}`}
-              aria-current={waypoint === item.id ? "true" : undefined}
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
+        <div className="explore-waypoints-slot">
+          <nav className="explore-waypoints" aria-label="Explore waypoints">
+            {WAYPOINTS.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                aria-current={waypoint === item.id ? "true" : undefined}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
         <div className="explore-archive-span">
           <ArchiveSection
             organize={organize}
