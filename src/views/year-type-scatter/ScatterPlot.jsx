@@ -118,6 +118,7 @@ export default function ScatterPlot({
   onHover,
   onLeave,
   onSelect,
+  onActivate,
   onDotRef,
 }) {
   const { frameRef, scrollRef, size } = usePlotSize();
@@ -125,9 +126,14 @@ export default function ScatterPlot({
   const ready = size.viewportWidth > 1 && size.height > 1;
 
   function handleKeyDown(event, cluster) {
-    if (event.key === "Enter" || event.key === " ") {
+    if (event.key === "Enter") {
       event.preventDefault();
-      onSelect(cluster);
+      (onActivate ?? onSelect)(cluster, event);
+      return;
+    }
+    if (event.key === " ") {
+      event.preventDefault();
+      onSelect(cluster, event);
     }
   }
 
@@ -270,7 +276,7 @@ export default function ScatterPlot({
                     onMouseLeave={onLeave}
                     onFocus={(event) => onHover(cluster, event)}
                     onBlur={onLeave}
-                    onClick={() => onSelect(cluster)}
+                    onClick={(event) => onSelect(cluster, event)}
                     onKeyDown={(event) => handleKeyDown(event, cluster)}
                   >
                     <circle

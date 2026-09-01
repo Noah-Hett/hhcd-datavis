@@ -262,6 +262,18 @@
   border-color: #333;
 }
 
+.method-pill.is-inactive {
+  background: #d5d5d5;
+  border-color: #8a8a8a;
+  color: #3d3d3d;
+}
+
+.method-pill.is-inactive:hover,
+.method-pill.is-inactive:focus-visible {
+  background: #c8c8c8;
+  color: #2a2a2a;
+}
+
 .scatter-frame {
   position: absolute;
   inset: 0;

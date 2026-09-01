@@ -114,11 +114,18 @@ export default function MethodCarousel({ methods, selected, onToggle, onClear })
           >
             {methods.map((method) => {
               const pressed = selected.has(method.label);
+              const inactive = selectedCount > 0 && !pressed;
               return (
                 <li key={method.label}>
                   <button
                     type="button"
-                    className={pressed ? "method-pill is-selected" : "method-pill"}
+                    className={[
+                      "method-pill",
+                      pressed ? "is-selected" : "",
+                      inactive ? "is-inactive" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                     aria-pressed={pressed}
                     onClick={() => onToggle(method.label)}
                   >

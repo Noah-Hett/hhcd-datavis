@@ -1,0 +1,36 @@
+.archive-section {
+  position: sticky;
+  top: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.archive-section .archive {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.archive-section .archive.is-unfiled .grouping-tabs {
+  visibility: hidden;
+}
+
+.archive-section .archive.is-unfiled .archive-bar[hidden] {
+  display: none;
+}
+
+.archive-section .report-btn.is-selected {
+  background: var(--archive-hover);
+  box-shadow: inset 3px 0 0 var(--archive-ink);
+}
+
+.explore-archive-span .archive-section {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.explore-archive-span .archive-section .intro {
+  pointer-events: none;
+}
