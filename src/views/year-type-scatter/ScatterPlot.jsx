@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
 
+const Y_COL = 168;
 const LEFT = 20;
 const RIGHT = 40;
 const TOP = 28;
@@ -137,6 +138,36 @@ export default function ScatterPlot({
       }
       ref={frameRef}
     >
+      <div className="scatter-y-col">
+        {ready ? (
+          <svg
+            className="scatter-y"
+            width={Y_COL}
+            height={layout.height}
+            viewBox={`0 0 ${Y_COL} ${layout.height}`}
+            overflow="visible"
+            aria-hidden="true"
+            style={{ width: Y_COL, height: layout.height }}
+          >
+            {Y_BANDS.map((band) => {
+              const y = yForBand(band.id, layout);
+              return (
+                <foreignObject
+                  key={band.id}
+                  x={8}
+                  y={y - 22}
+                  width={Y_COL - 16}
+                  height={44}
+                >
+                  <div xmlns="http://www.w3.org/1999/xhtml" className="y-label">
+                    {band.label}
+                  </div>
+                </foreignObject>
+              );
+            })}
+          </svg>
+        ) : null}
+      </div>
       <div
         className="scatter-scroll"
         ref={scrollRef}
@@ -168,12 +199,13 @@ export default function ScatterPlot({
               </title>
               <desc id="scatter-desc">
                 Scatter plot of research associate reports. The horizontal axis
-                is year. Project types sit on unmarked horizontal tracks, from
-                conceptual framework at the bottom to products / media campaign
-                at the top. Each report is a same-size dot, coloured by research
-                theme. Reports that share a year and type pack into a small
-                cluster. Activate a dot to read the report. On a narrow window,
-                scroll horizontally to keep year spacing readable.
+                is year. The vertical axis is project type, from conceptual
+                framework at the bottom to products / media campaign at the top,
+                each on a faint horizontal track. Each report is a same-size
+                dot, coloured by research theme. Reports that share a year and
+                type pack into a small cluster. Activate a dot to read the
+                report. On a narrow window, scroll horizontally to keep year
+                spacing readable.
               </desc>
 
               <defs>
