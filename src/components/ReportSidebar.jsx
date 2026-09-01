@@ -53,8 +53,8 @@ export default function ReportSidebar() {
   );
 
   const close = () => {
-    // Dismiss the panel without clearing ?report=; SelectionContext would
-    // otherwise re-open from the URL before the param is removed.
+    // Layout owns the single sidebar instance. Closing clears selection
+    // and ?report= so SelectionContext cannot reopen from a stale param.
     setSidebarOpen(false);
   };
   const closeRef = useRef(close);

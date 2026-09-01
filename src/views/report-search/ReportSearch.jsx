@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import ReportSidebar from "../../components/ReportSidebar.jsx";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import { appliedChips, buildIndex, buildVocab, search } from "./search.js";
@@ -259,7 +258,6 @@ export default function ReportSearch() {
           })}
         </ul>
       </div>
-      <ReportSidebar />
     </div>
   );
 }

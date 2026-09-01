@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import ReportSidebar from "../../components/ReportSidebar.jsx";
 import ArchiveSection from "./ArchiveSection.jsx";
 import {
   applyOrganizeDelta,
@@ -235,7 +234,6 @@ export default function Explore() {
         >
           <MapSection />
         </section>
-        <ReportSidebar />
       </div>
     </div>
   );
