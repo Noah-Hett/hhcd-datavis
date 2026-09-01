@@ -77,7 +77,8 @@ export default function ReportSearch() {
       const overlayOpen =
         sidebarOpen ||
         isOverlayTarget(event.target) ||
-        Boolean(document.querySelector("dialog[open]"));
+        Boolean(document.querySelector("dialog[open]")) ||
+        Boolean(document.querySelector("#report-sidebar.is-open"));
       const action = searchListKeyAction({
         key: event.key,
         typing,

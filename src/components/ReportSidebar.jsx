@@ -72,9 +72,9 @@ export default function ReportSidebar() {
   }, []);
 
   useEffect(() => {
-    if (open && report) {
-      window.setTimeout(() => headingRef.current?.focus(), 0);
-    }
+    if (!open || !report) return undefined;
+    const id = window.setTimeout(() => headingRef.current?.focus(), 40);
+    return () => window.clearTimeout(id);
   }, [open, report, selectedReportNo]);
 
   useEffect(() => {
@@ -83,11 +83,12 @@ export default function ReportSidebar() {
       if (event.key !== "Escape") return;
       if (event.target?.closest?.("dialog[open]")) return;
       event.preventDefault();
+      event.stopPropagation();
       if (selectedReportNo) clearReport();
       else setSidebarOpen(false);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [open, selectedReportNo, clearReport, setSidebarOpen]);
 
   useEffect(() => {
