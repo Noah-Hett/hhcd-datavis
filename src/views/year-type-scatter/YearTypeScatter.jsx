@@ -4,7 +4,7 @@ import { COLOR_GROUPS, mapReports } from "./mapReports.js";
 import ScatterPlot from "./ScatterPlot.jsx";
 import Tooltip from "./Tooltip.jsx";
 import ReportPanel from "./ReportPanel.jsx";
-import MethodFilter from "./MethodFilter.jsx";
+import MethodCarousel from "./MethodCarousel.jsx";
 import "./styles.css";
 
 function uniqueMethods(allReports) {
@@ -149,12 +149,6 @@ export default function YearTypeScatter() {
       <div className={selected ? "workspace panel-open" : "workspace"}>
         <div className="toolbar">
           <p className="status">{status}</p>
-          <MethodFilter
-            methods={methodOptions}
-            selected={selectedMethods}
-            onToggle={handleToggleMethod}
-            onClear={handleClearMethods}
-          />
           <ul className="legend">
             {COLOR_GROUPS.map((group) => (
               <li key={group.id}>
@@ -167,18 +161,26 @@ export default function YearTypeScatter() {
 
         <div className="chart-row">
           <div className="chart-wrap">
-            <ScatterPlot
-              clusters={mapped.clusters}
-              yearMin={fullMapped.yearMin}
-              yearMax={fullMapped.yearMax}
-              hoveredKey={hovered?.key ?? null}
-              selectedKey={selected?.key ?? null}
-              onHover={handleHover}
-              onLeave={handleLeave}
-              onSelect={handleSelect}
-              onDotRef={setDotRef}
+            <div className="plot-stage">
+              <ScatterPlot
+                clusters={mapped.clusters}
+                yearMin={fullMapped.yearMin}
+                yearMax={fullMapped.yearMax}
+                hoveredKey={hovered?.key ?? null}
+                selectedKey={selected?.key ?? null}
+                onHover={handleHover}
+                onLeave={handleLeave}
+                onSelect={handleSelect}
+                onDotRef={setDotRef}
+              />
+              <Tooltip cluster={hovered} x={tipPos.x} y={tipPos.y} />
+            </div>
+            <MethodCarousel
+              methods={methodOptions}
+              selected={selectedMethods}
+              onToggle={handleToggleMethod}
+              onClear={handleClearMethods}
             />
-            <Tooltip cluster={hovered} x={tipPos.x} y={tipPos.y} />
           </div>
           <ReportPanel
             cluster={selected}
