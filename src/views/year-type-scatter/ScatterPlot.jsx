@@ -259,18 +259,26 @@ export default function ScatterPlot({
                 const cx =
                   xForYear(cluster.year, yearMin, yearMax, layout) + cluster.dx;
                 const cy = yForBand(cluster.yBand, layout) + cluster.dy;
-                const active =
-                  hoveredKey === cluster.key || selectedKey === cluster.key;
+                const selected = selectedKey === cluster.key;
+                const active = hoveredKey === cluster.key || selected;
                 return (
                   <g
                     key={cluster.key}
-                    className={active ? "dot active" : "dot"}
+                    className={
+                      [
+                        "dot",
+                        active ? "active" : "",
+                        selected ? "is-selected" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")
+                    }
                     transform={`translate(${cx} ${cy})`}
                     tabIndex={0}
                     role="button"
                     aria-label={clusterAriaLabel(cluster)}
-                    aria-pressed={selectedKey === cluster.key}
-                    ref={(node) => onDotRef(cluster.key, node)}
+                    aria-pressed={selected}
+                    ref={(node) => onDotRef?.(cluster.key, node)}
                     onMouseEnter={(event) => onHover(cluster, event)}
                     onMouseMove={(event) => onHover(cluster, event)}
                     onMouseLeave={onLeave}

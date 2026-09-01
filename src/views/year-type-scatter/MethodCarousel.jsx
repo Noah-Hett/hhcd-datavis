@@ -1,12 +1,20 @@
 import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
+import { methodPillClassName, methodPillState } from "./mapFilters.js";
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export default function MethodCarousel({ methods, selected, onToggle, onClear }) {
+export default function MethodCarousel({
+  methods,
+  selected,
+  onToggle,
+  onClear,
+  variant = "carousel",
+}) {
   const scrollerRef = useRef(null);
   const labelId = useId();
+  const isSheet = variant === "sheet";
   const [overflow, setOverflow] = useState({
     canScroll: false,
     atStart: true,
@@ -26,6 +34,7 @@ export default function MethodCarousel({ methods, selected, onToggle, onClear })
   }, []);
 
   useLayoutEffect(() => {
+    if (isSheet) return undefined;
     const el = scrollerRef.current;
     if (!el) return undefined;
 
@@ -44,7 +53,7 @@ export default function MethodCarousel({ methods, selected, onToggle, onClear })
       el.removeEventListener("scroll", read);
       window.removeEventListener("resize", read);
     };
-  }, [methods, updateOverflow]);
+  }, [isSheet, methods, updateOverflow]);
 
   function scrollByDir(dir) {
     const el = scrollerRef.current;
@@ -57,13 +66,19 @@ export default function MethodCarousel({ methods, selected, onToggle, onClear })
   }
 
   function handleListKeyDown(event) {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    const buttons = [...(scrollerRef.current?.querySelectorAll(".method-pill") ?? [])];
+    const keys = isSheet
+      ? ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]
+      : ["ArrowLeft", "ArrowRight"];
+    if (!keys.includes(event.key)) return;
+    const buttons = [
+      ...(scrollerRef.current?.querySelectorAll(".method-pill") ?? []),
+    ];
     const index = buttons.indexOf(event.target);
     if (index < 0) return;
     event.preventDefault();
-    const next = event.key === "ArrowRight" ? index + 1 : index - 1;
-    const target = buttons[Math.max(0, Math.min(buttons.length - 1, next))];
+    const delta =
+      event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+    const target = buttons[Math.max(0, Math.min(buttons.length - 1, index + delta))];
     target?.focus();
     target?.scrollIntoView({
       inline: "nearest",
@@ -73,9 +88,14 @@ export default function MethodCarousel({ methods, selected, onToggle, onClear })
   }
 
   const selectedCount = selected.size;
+  const showNav = !isSheet && overflow.canScroll;
 
   return (
-    <div className="method-carousel" role="group" aria-labelledby={labelId}>
+    <div
+      className={isSheet ? "method-carousel is-sheet" : "method-carousel"}
+      role="group"
+      aria-labelledby={labelId}
+    >
       <div className="method-carousel-meta">
         <span className="method-carousel-label" id={labelId}>
           methods
@@ -89,14 +109,14 @@ export default function MethodCarousel({ methods, selected, onToggle, onClear })
       <div
         className={[
           "method-carousel-frame",
-          overflow.canScroll ? "is-overflow" : "",
+          !isSheet && overflow.canScroll ? "is-overflow" : "",
           overflow.atStart ? "is-start" : "",
           overflow.atEnd ? "is-end" : "",
         ]
           .filter(Boolean)
           .join(" ")}
       >
-        {overflow.canScroll ? (
+        {showNav ? (
           <button
             type="button"
             className="method-nav method-nav-prev"
@@ -108,24 +128,17 @@ export default function MethodCarousel({ methods, selected, onToggle, onClear })
           </button>
         ) : null}
         <div className="method-carousel-scroll" ref={scrollerRef}>
-          <ul
-            className="method-pills"
-            onKeyDown={handleListKeyDown}
-          >
+          <ul className="method-pills" onKeyDown={handleListKeyDown}>
             {methods.map((method) => {
-              const pressed = selected.has(method.label);
-              const inactive = selectedCount > 0 && !pressed;
+              const { pressed, inactive } = methodPillState(
+                method.label,
+                selected,
+              );
               return (
                 <li key={method.label}>
                   <button
                     type="button"
-                    className={[
-                      "method-pill",
-                      pressed ? "is-selected" : "",
-                      inactive ? "is-inactive" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
+                    className={methodPillClassName({ pressed, inactive })}
                     aria-pressed={pressed}
                     onClick={() => onToggle(method.label)}
                   >
@@ -136,7 +149,7 @@ export default function MethodCarousel({ methods, selected, onToggle, onClear })
             })}
           </ul>
         </div>
-        {overflow.canScroll ? (
+        {showNav ? (
           <button
             type="button"
             className="method-nav method-nav-next"
