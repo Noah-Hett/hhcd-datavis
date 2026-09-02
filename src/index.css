@@ -449,6 +449,11 @@ select {
     min-width: 0;
   }
 
+  .app-main.is-fill {
+    height: auto;
+    align-self: stretch;
+  }
+
   .report-sidebar {
     position: relative;
     top: auto;
