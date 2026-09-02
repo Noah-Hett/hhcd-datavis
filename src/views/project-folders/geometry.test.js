@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  ARCHIVE_ROWS,
+  ARCHIVE_PILE_RECIPE,
   CAROUSEL_FACE_YAW,
   CAROUSEL_FEATURED_SCALE,
   CAROUSEL_FORWARD,
@@ -74,30 +74,48 @@ test("selected fan is wider than the rest peek so titles can sit apart", () => {
   assert.ok(selectPeekSlot(14) > selectPeekSlot(4));
 });
 
-test("computeArchiveLayout fans 64 reports into a curved three-row pile", () => {
+test("computeArchiveLayout piles 64 reports into a messy desk, not a barcode", () => {
   const list = fakeReports(64);
   const layout = computeArchiveLayout(list);
-  assert.equal(Object.keys(layout.reportPos).length, 64);
-  assert.equal(layout.rows, ARCHIVE_ROWS);
+  const poses = Object.values(layout.reportPos);
+  assert.equal(poses.length, 64);
+  assert.ok(layout.pileCount >= 6);
+  assert.equal(ARCHIVE_PILE_RECIPE.reduce((sum, pile) => sum + pile.weight, 0), 64);
 
-  const zs = Object.values(layout.reportPos).map((pose) => pose.z);
-  const depth = Math.max(...zs) - Math.min(...zs);
-  assert.ok(depth > 0.9, "pile should have real depth, not a barcode wobble");
+  const types = new Set(poses.map((pose) => pose.pileType));
+  assert.ok(types.has("stack"));
+  assert.ok(types.has("lean"));
+  assert.ok(types.has("fan"));
+  assert.ok(types.has("fallen"));
 
-  const rows = new Set(Object.values(layout.reportPos).map((pose) => pose.row));
-  assert.deepEqual([...rows].sort(), [0, 1, 2]);
-
-  const back = Object.values(layout.reportPos).filter((pose) => pose.row === 0);
-  const midZ = back.reduce((sum, pose) => sum + pose.z, 0) / back.length;
-  const endZ = Math.max(
-    ...back.filter((pose) => pose.col === 0 || pose.col === back.length - 1).map((pose) => pose.z),
+  const ys = poses.map((pose) => pose.y);
+  assert.ok(
+    Math.max(...ys) - Math.min(...ys) > 0.45,
+    "stacks should have real height, not a single layer",
   );
-  assert.ok(endZ > midZ, "each row should arc so the ends come forward");
 
-  const yaws = new Set(
-    Object.values(layout.reportPos).map((pose) => pose.ry.toFixed(3)),
+  const zs = poses.map((pose) => pose.z);
+  assert.ok(
+    Math.max(...zs) - Math.min(...zs) > 2,
+    "piles should spread in depth, not a barcode wobble",
   );
-  assert.ok(yaws.size > 8, "yaw should fan across the arc, not a single angle");
+  const xs = poses.map((pose) => pose.x);
+  assert.ok(Math.max(...xs) - Math.min(...xs) > 3.5, "piles should spread across the desk");
+
+  const flats = poses.filter(
+    (pose) => Math.abs(Math.abs(pose.rz) - Math.PI / 2) < 0.45,
+  );
+  assert.ok(flats.length > 28, "most reports should lie in heaps or fans");
+  const stands = poses.filter((pose) => Math.abs(pose.rz) < 0.4);
+  assert.ok(stands.length >= 12, "some reports still stand in leaning clumps");
+
+  const yaws = new Set(poses.map((pose) => pose.ry.toFixed(2)));
+  assert.ok(yaws.size > 12, "yaw should vary across piles, not a single angle");
+
+  assert.ok(
+    flats.every((pose) => Math.abs(pose.ry) < 1.5),
+    "flat yaw must stay in Euler-safe range so stacks sit on the table",
+  );
 });
 
 test("computeArchiveLayout keeps every report pickable with a unique slot", () => {
@@ -106,7 +124,7 @@ test("computeArchiveLayout keeps every report pickable with a unique slot", () =
   const keys = list.map((report) => report.reportNo);
   assert.ok(keys.every((id) => layout.reportPos[id]));
   const slots = new Set(
-    Object.values(layout.reportPos).map((pose) => `${pose.row}:${pose.col}`),
+    Object.values(layout.reportPos).map((pose) => `${pose.pileIndex}:${pose.slot}`),
   );
   assert.equal(slots.size, 64);
 });

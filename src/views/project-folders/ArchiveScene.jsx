@@ -115,16 +115,34 @@ function fitArchiveCamera(archive, aspect, outPos, outLook) {
   const a = Math.min(2.15, Math.max(0.72, Number.isFinite(aspect) && aspect > 0 ? aspect : 1.6));
   const lookX = ((archive.minX ?? 0) + (archive.maxX ?? 0)) / 2;
   const lookZ = ((archive.minZ ?? 0) + (archive.maxZ ?? 0)) / 2;
-  outLook.set(lookX, REPORT_H * 0.48, lookZ);
+  const maxY = archive.maxY ?? REPORT_H;
+  const lookY = Math.max(0.28, maxY * 0.22);
+  outLook.set(lookX, lookY, lookZ);
   const fov = CAM_FOV * (Math.PI / 180);
-  const worldW = (archive.span ?? 1) + 1.8;
-  const worldH = REPORT_H + 0.7;
-  const worldD = (archive.maxZ ?? 0) - (archive.minZ ?? 0) + 1.15;
+  const worldW = (archive.span ?? 1) + 2.4;
+  const worldH = Math.max(maxY, 1.15) + 1.15;
+  const worldD = (archive.maxZ ?? 0) - (archive.minZ ?? 0) + 1.8;
   const distX = worldW / 2 / (Math.tan(fov / 2) * a);
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 7.6) * 1.1;
-  outPos.set(lookX - 0.18 * dist, REPORT_H * 0.72 + 0.28 * dist, lookZ + dist);
+  const dist = Math.max(distX, distY, distZ, 6.4) * 1.08;
+  // Steeper 3/4 so stacked covers read as heaps, not a row of spines.
+  outPos.set(lookX - 0.3 * dist, lookY + 0.72 * dist, lookZ + 0.7 * dist);
+}
+
+function fitArchiveShadow(sun, archive) {
+  const pad = 2.6;
+  const minX = archive.minX ?? -4;
+  const maxX = archive.maxX ?? 4;
+  const minZ = archive.minZ ?? -3;
+  const maxZ = archive.maxZ ?? 3;
+  sun.shadow.camera.left = minX - pad;
+  sun.shadow.camera.right = maxX + pad;
+  sun.shadow.camera.top = Math.max(maxZ - minZ, 6) + pad;
+  sun.shadow.camera.bottom = -Math.max(maxZ - minZ, 5) - pad;
+  sun.shadow.camera.updateProjectionMatrix();
+  sun.target.position.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+  sun.target.updateMatrixWorld();
 }
 
 function fitShadow(sun, layout) {
@@ -284,7 +302,7 @@ export default function ArchiveScene({
       scene.add(group);
       if (loose) {
         group.position.set(loose.x, loose.y, loose.z);
-        group.rotation.y = loose.ry ?? 0;
+        group.rotation.set(loose.rx ?? 0, loose.ry ?? 0, loose.rz ?? 0);
         group.visible = true;
       } else {
         group.visible = false;
@@ -356,7 +374,7 @@ export default function ArchiveScene({
     fitRowCamera(startLayout, camera.aspect, destPos, destLook);
     camera.position.copy(introPos);
     camera.lookAt(introLook);
-    fitShadow(sun, startLayout);
+    fitArchiveShadow(sun, archiveLayout);
 
     let hovered = null;
     let dragging = false;
@@ -600,10 +618,18 @@ export default function ArchiveScene({
       }
       sizeDirty = false;
 
-      const shadowKey = `${transTo}:${rowKey}:${toLayout.count}:${selectedFolder ?? ""}`;
-      if (shadowKey !== lastShadowKey) {
-        fitShadow(sun, toLayout);
-        lastShadowKey = shadowKey;
+      if (!shelved) {
+        const introKey = `intro:${archiveLayout.span}`;
+        if (introKey !== lastShadowKey) {
+          fitArchiveShadow(sun, archiveLayout);
+          lastShadowKey = introKey;
+        }
+      } else {
+        const shadowKey = `${transTo}:${rowKey}:${toLayout.count}:${selectedFolder ?? ""}`;
+        if (shadowKey !== lastShadowKey) {
+          fitShadow(sun, toLayout);
+          lastShadowKey = shadowKey;
+        }
       }
 
       const stageOrigin =
@@ -730,12 +756,14 @@ export default function ArchiveScene({
           const tz = THREE.MathUtils.lerp(az, bz, enter);
           const targetRx = THREE.MathUtils.lerp(loose?.rx ?? 0, dest?.rx ?? 0, enter);
           const targetRy = THREE.MathUtils.lerp(loose?.ry ?? 0, 0, enter);
+          const targetRz = THREE.MathUtils.lerp(loose?.rz ?? 0, 0, enter);
           const follow = reduce ? 1 : FOLLOW_REPORT;
           g.position.x += (tx - g.position.x) * follow;
           g.position.y += (ty - g.position.y) * follow;
           g.position.z += (tz - g.position.z) * follow;
           g.rotation.x += (targetRx - g.rotation.x) * follow;
           g.rotation.y += shortestAngleDelta(g.rotation.y, targetRy) * follow;
+          g.rotation.z += shortestAngleDelta(g.rotation.z, targetRz) * follow;
           g.scale.setScalar(1);
           continue;
         }
@@ -808,6 +836,7 @@ export default function ArchiveScene({
           g.position.set(dest.x, restY, dest.z);
           g.rotation.x = dest.rx;
           g.rotation.y = 0;
+          g.rotation.z = 0;
           g.scale.setScalar(1);
           continue;
         }
@@ -817,6 +846,7 @@ export default function ArchiveScene({
         g.position.z += (targetZ - g.position.z) * follow;
         g.rotation.x += (targetRx - g.rotation.x) * follow;
         g.rotation.y += shortestAngleDelta(g.rotation.y, 0) * follow;
+        g.rotation.z += shortestAngleDelta(g.rotation.z, 0) * follow;
         const s = isReport ? 1.08 : 1;
         g.scale.x += (s - g.scale.x) * follow;
         g.scale.y += (s - g.scale.y) * follow;
