@@ -50,15 +50,16 @@ export default function HelpDialog({ open, onClose }) {
             keyboard-first list of every report — it does not load the 3D
             archive or the year × type graph.
           </p>
-          <h3>Three waypoints</h3>
+          <h3>Mode switch</h3>
           <p>
-            Folders, Map, and Simple. Intro is not a waypoint — none of these
-            is selected while you are at the intro scroll position.
+            Folders, Map, and Simple are the header toggle — not three
+            waypoints over the canvas. Intro is the start of Folders scroll,
+            so Folders stays selected there and at the archive.
           </p>
           <ol>
             <li>
-              <strong>Folders</strong> — the archive waypoint. Scroll down from
-              the intro to file documents into magazine folders; scroll up from
+              <strong>Folders</strong> — the archive. Scroll down from the
+              intro to file documents into magazine folders; scroll up from
               the map to return here. Theme, Year, and Type appear once they
               are filed. If the 3D scene cannot run, a folder list is the
               fallback.

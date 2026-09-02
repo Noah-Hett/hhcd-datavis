@@ -40,8 +40,7 @@
   accent-color: var(--archive-ink);
 }
 
-.archive-section :where(a, button, input, [tabindex]):focus-visible,
-.explore-waypoints a:focus-visible {
+.archive-section :where(a, button, input, [tabindex]):focus-visible {
   outline: 3px solid var(--archive-focus, var(--focus, #1c140c));
   outline-offset: 2px;
 }
@@ -83,24 +82,6 @@
 
 .explore-archive-span .archive-section .intro {
   pointer-events: none;
-  padding-top: 58px;
-}
-
-.explore-waypoints-slot {
-  position: sticky;
-  top: 0;
-  height: 0;
-  z-index: 12;
-  pointer-events: none;
-}
-
-.explore-waypoints {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 12;
-  pointer-events: auto;
 }
 
 .archive:has(.webgl-fallback) .intro {
@@ -140,21 +121,5 @@
 
   .archive-section .archive {
     overflow: hidden;
-  }
-}
-
-@media (max-width: 640px) {
-  .explore-waypoints {
-    left: 50%;
-    top: 8px;
-  }
-
-  .explore-waypoints a {
-    padding: 0 10px;
-    font-size: 12px;
-  }
-
-  .explore-archive-span .archive-section .intro {
-    padding-top: 52px;
   }
 }
