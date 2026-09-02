@@ -8,8 +8,11 @@ export const WALL = 0.034;
 export const FOLDER_LIP = 0.075;
 
 export const REPORT_H = 2.22;
-export const REPORT_D = 1.14;
 export const REPORT_THICK = 0.05;
+/** Jacket is 2:3, matching the cover canvas so type is not stretched. */
+export const COVER_CANVAS_W = 512;
+export const COVER_CANVAS_H = 768;
+export const COVER_W = REPORT_H * (COVER_CANVAS_W / COVER_CANVAS_H);
 
 const C_LEFT = "#8A6A4C";
 const C_FRONT = "#6B4A34";
@@ -90,12 +93,12 @@ export function createSharedResources() {
   const pagesGeo = new THREE.BoxGeometry(
     REPORT_THICK,
     REPORT_H * 0.98,
-    REPORT_D * 0.96,
+    COVER_W * 0.96,
   );
-  const coverGeo = new THREE.PlaneGeometry(REPORT_D, REPORT_H);
-  const reportBackGeo = new THREE.BoxGeometry(0.008, REPORT_H, REPORT_D);
+  const coverGeo = new THREE.PlaneGeometry(COVER_W, REPORT_H);
+  const reportBackGeo = new THREE.BoxGeometry(0.008, REPORT_H, COVER_W);
   const ringGeo = new THREE.TorusGeometry(0.036, 0.012, 6, 12);
-  const reportHitGeo = new THREE.BoxGeometry(0.16, REPORT_H * 1.08, REPORT_D * 1.04);
+  const reportHitGeo = new THREE.BoxGeometry(0.16, REPORT_H * 1.08, COVER_W * 1.02);
   const reportHitMat = new THREE.MeshBasicMaterial({ visible: false });
   const pagesMat = lambert(C_PAGES);
   const reportBackMat = lambert("#E8E0D4");
@@ -251,19 +254,19 @@ function wrapTitle(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
 export function createCoverTexture(report) {
   const jacket = coverColorFor(report.reportNo);
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 768;
+  canvas.width = COVER_CANVAS_W;
+  canvas.height = COVER_CANVAS_H;
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = jacket;
-  ctx.fillRect(0, 0, 512, 768);
+  ctx.fillRect(0, 0, COVER_CANVAS_W, COVER_CANVAS_H);
 
   ctx.fillStyle = "rgba(28, 20, 12, 0.08)";
-  ctx.fillRect(0, 0, 512, 92);
+  ctx.fillRect(0, 0, COVER_CANVAS_W, 92);
 
   ctx.strokeStyle = "rgba(28, 20, 12, 0.16)";
   ctx.lineWidth = 10;
-  ctx.strokeRect(8, 8, 496, 752);
+  ctx.strokeRect(8, 8, COVER_CANVAS_W - 16, COVER_CANVAS_H - 16);
 
   ctx.fillStyle = C_INK;
   ctx.textAlign = "left";
@@ -287,7 +290,7 @@ export function createReportMesh(report, shared) {
   const pickable = [];
   const jacket = coverColorFor(report.reportNo);
   const texture = createCoverTexture(report);
-  const bindZ = -REPORT_D / 2 + 0.018;
+  const bindZ = -COVER_W / 2 + 0.018;
 
   const pages = new THREE.Mesh(shared.pagesGeo, shared.pagesMat);
   pages.position.x = 0.006;
@@ -365,8 +368,6 @@ export const CAROUSEL_SPACING = 0.72;
 export const CAROUSEL_FORWARD = 4.4;
 export const CAROUSEL_RECEDE = 0.18;
 export const CAROUSEL_FEATURED_SCALE = 1.28;
-/** Stretch the jacket on screen (local Z after face-yaw) so covers read as pages, not needles. */
-export const CAROUSEL_WIDTH_SCALE = 1.42;
 /** Cover sits on local −X; +π/2 yaw faces it toward a camera on +Z. */
 export const CAROUSEL_FACE_YAW = Math.PI / 2;
 /** Neighbour tilt stays small enough that cover titles keep facing the camera. */
@@ -426,7 +427,7 @@ export function carouselVisibleRadius(count) {
 
 export function carouselSpacing(count) {
   const visible = carouselVisibleRadius(count) * 2 + 1;
-  const face = REPORT_D * CAROUSEL_WIDTH_SCALE;
+  const face = COVER_W;
   if (visible <= 5) return face * 0.7;
   if (visible <= 9) return face * 0.52;
   return face * 0.42;
@@ -434,7 +435,7 @@ export function carouselSpacing(count) {
 
 export function carouselSpan(count) {
   const radius = carouselVisibleRadius(count);
-  const featuredW = REPORT_D * CAROUSEL_WIDTH_SCALE * CAROUSEL_FEATURED_SCALE;
+  const featuredW = COVER_W * CAROUSEL_FEATURED_SCALE;
   return radius * 2 * carouselSpacing(count) + featuredW;
 }
 
@@ -597,8 +598,8 @@ export function computeLayout(folders, { twoRows = false } = {}) {
         selectX: FOLDER_W * 0.5 + u * fanSlot,
         y: WALL + REPORT_H * 0.42,
         riseY: WALL + REPORT_H * 0.42 + PEEK_RISE,
-        z: WALL + REPORT_D * 0.5 + 0.04,
-        selectZ: WALL + REPORT_D * 0.5 + 0.04 + Math.abs(u) * 0.035,
+        z: FOLDER_D / 2,
+        selectZ: FOLDER_D / 2 + Math.abs(u) * 0.035,
         rx: 0.04,
         folderId: folder.id,
         slotIndex,

@@ -8,7 +8,6 @@ import {
   FOLDER_W,
   REPORT_H,
   CAROUSEL_FEATURED_SCALE,
-  CAROUSEL_WIDTH_SCALE,
   carouselOrigin,
   carouselSignedOffset,
   carouselSpan,
@@ -773,11 +772,7 @@ export default function ArchiveScene({
           g.position.y += (ty - g.position.y) * follow;
           g.position.z += (tz - g.position.z) * follow;
           followYaw(g, pose.ry, follow);
-          const sx = pose.scale;
-          const sz = pose.scale * CAROUSEL_WIDTH_SCALE;
-          g.scale.x += (sx - g.scale.x) * follow;
-          g.scale.y += (sx - g.scale.y) * follow;
-          g.scale.z += (sz - g.scale.z) * follow;
+          g.scale.setScalar(g.scale.x + (pose.scale - g.scale.x) * follow);
           continue;
         }
 
@@ -818,9 +813,7 @@ export default function ArchiveScene({
         g.rotation.x += (targetRx - g.rotation.x) * follow;
         g.rotation.y += shortestAngleDelta(g.rotation.y, 0) * follow;
         const s = isReport ? 1.08 : 1;
-        g.scale.x += (s - g.scale.x) * follow;
-        g.scale.y += (s - g.scale.y) * follow;
-        g.scale.z += (s - g.scale.z) * follow;
+        g.scale.setScalar(g.scale.x + (s - g.scale.x) * follow);
       }
 
       {
