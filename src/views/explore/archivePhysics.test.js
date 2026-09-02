@@ -5,6 +5,7 @@ import {
   applyOrganizeDelta,
   isArchiveFiled,
   isFiled,
+  organizeFromScroll,
   waypointFromScroll,
 } from "./archivePhysics.js";
 
@@ -29,31 +30,28 @@ test("isFiled / isArchiveFiled treat reduced motion as already filed", () => {
   assert.equal(isFiled, isArchiveFiled);
 });
 
-test("waypointFromScroll prefers map, then filed archive, then intro", () => {
+test("organizeFromScroll files in proportion between intro and archive", () => {
+  assert.equal(organizeFromScroll(0, 800), 0);
+  assert.equal(organizeFromScroll(400, 800), 0.5);
+  assert.equal(organizeFromScroll(800, 800), 1);
+  assert.equal(organizeFromScroll(1600, 800), 1);
+  assert.equal(organizeFromScroll(100, 0), 1);
+});
+
+test("waypointFromScroll is geometric: intro, archive, then map", () => {
   assert.equal(
     waypointFromScroll({
       scrollTop: 0,
       archiveTop: 800,
       mapTop: 1600,
-      filed: false,
     }),
     "intro",
-  );
-  assert.equal(
-    waypointFromScroll({
-      scrollTop: 0,
-      archiveTop: 800,
-      mapTop: 1600,
-      filed: true,
-    }),
-    "archive",
   );
   assert.equal(
     waypointFromScroll({
       scrollTop: 820,
       archiveTop: 800,
       mapTop: 1600,
-      filed: false,
     }),
     "archive",
   );
@@ -62,7 +60,6 @@ test("waypointFromScroll prefers map, then filed archive, then intro", () => {
       scrollTop: 1580,
       archiveTop: 800,
       mapTop: 1600,
-      filed: true,
     }),
     "map",
   );

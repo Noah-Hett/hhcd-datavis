@@ -11,14 +11,21 @@ export function isArchiveFiled(organize, reduceMotion = false) {
 /** Scroller alias — Explore treats organize >= 1 (or reduced motion) as filed. */
 export const isFiled = isArchiveFiled;
 
-export function waypointFromScroll({
-  scrollTop,
-  archiveTop,
-  mapTop,
-  filed,
-}) {
-  if (mapTop != null && scrollTop >= mapTop - 40) return "map";
-  if (filed || (archiveTop != null && scrollTop >= archiveTop - 40)) {
+const WAYPOINT_SLOP = 40;
+
+/**
+ * Filing follows how far the scroller has travelled from intro (0) to
+ * archive (1). Past the archive — including the map — stays fully filed.
+ */
+export function organizeFromScroll(scrollTop, archiveTop) {
+  const top = Number(archiveTop);
+  if (!Number.isFinite(top) || top <= 0) return 1;
+  return Math.min(1, Math.max(0, Number(scrollTop) / top));
+}
+
+export function waypointFromScroll({ scrollTop, archiveTop, mapTop }) {
+  if (mapTop != null && scrollTop >= mapTop - WAYPOINT_SLOP) return "map";
+  if (archiveTop != null && scrollTop >= archiveTop - WAYPOINT_SLOP) {
     return "archive";
   }
   return "intro";

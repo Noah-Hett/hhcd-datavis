@@ -286,18 +286,21 @@ select {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  overflow-anchor: none;
   scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 .explore-section {
   min-height: 100%;
   height: 100%;
   scroll-snap-align: start;
-  scroll-snap-stop: normal;
+  scroll-snap-stop: always;
 }
 
-#archive {
+#intro,
+#archive,
+#map {
   scroll-snap-stop: always;
 }
 
