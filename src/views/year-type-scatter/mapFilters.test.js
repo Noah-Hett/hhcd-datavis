@@ -31,6 +31,8 @@ test("MapSection opens the shared sidebar from the map source", async () => {
   );
   assert.match(source, /source:\s*MAP_SELECTION_SOURCE/);
   assert.match(source, /shouldPeekFirst/);
+  assert.match(source, /tooltipAnchorAboveDot/);
+  assert.match(source, /onActivate=\{handleTooltipActivate\}/);
   assert.match(source, /variant=\{mobile \? "sheet" : "carousel"\}/);
   assert.match(source, /showModal/);
   assert.match(source, /event\.key !== "Escape"/);

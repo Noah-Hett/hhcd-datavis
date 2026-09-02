@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import { reports } from "../year-type-scatter/loadReports.js";
 import { COLOR_GROUPS, mapReports } from "../year-type-scatter/mapReports.js";
@@ -7,7 +15,12 @@ import {
   reportsMatchingMethods,
   uniqueMethods,
 } from "../year-type-scatter/mapFilters.js";
-import { shouldPeekFirst } from "../year-type-scatter/mapInteraction.js";
+import {
+  TOOLTIP_ESTIMATED_HEIGHT,
+  TOOLTIP_WIDTH,
+  shouldPeekFirst,
+  tooltipAnchorAboveDot,
+} from "../year-type-scatter/mapInteraction.js";
 import ScatterPlot from "../year-type-scatter/ScatterPlot.jsx";
 import Tooltip from "../year-type-scatter/Tooltip.jsx";
 import MethodCarousel from "../year-type-scatter/MethodCarousel.jsx";
@@ -15,30 +28,10 @@ import "../year-type-scatter/styles.css";
 import "./MapSection.css";
 
 const MOBILE_QUERY = "(max-width: 799px)";
+const TIP_LEAVE_MS = 160;
 
-function tooltipPosition(event) {
-  const pad = 12;
-  const width = 280;
-  const estimatedHeight = 120;
-  let x;
-  let y;
-
-  if (event.type === "focus" && event.currentTarget?.getBoundingClientRect) {
-    const box = event.currentTarget.getBoundingClientRect();
-    x = box.right + 8;
-    y = box.top;
-  } else {
-    x = event.clientX + 16;
-    y = event.clientY + 16;
-  }
-
-  if (x + width > window.innerWidth - pad) {
-    x = Math.max(pad, window.innerWidth - width - pad);
-  }
-  if (y + estimatedHeight > window.innerHeight - pad) {
-    y = Math.max(pad, window.innerHeight - estimatedHeight - pad);
-  }
-  return { x, y };
+function relatedIsTooltip(event) {
+  return Boolean(event?.relatedTarget?.closest?.(".tooltip"));
 }
 
 function isCoarsePointer() {
@@ -66,6 +59,8 @@ export default function MapSection() {
   const [methodsOpen, setMethodsOpen] = useState(false);
   const lastTapKey = useRef(null);
   const dotRefs = useRef(new Map());
+  const tooltipRef = useRef(null);
+  const leaveTimer = useRef(null);
   const methodsTitleId = useId();
   const methodsDialogId = useId();
   const dialogRef = useRef(null);
@@ -89,17 +84,53 @@ export default function MapSection() {
     else dotRefs.current.delete(key);
   }, []);
 
-  const handleHover = useCallback((cluster, event) => {
-    setHovered(cluster);
-    if (event) setTipPos(tooltipPosition(event));
+  const cancelLeave = useCallback(() => {
+    if (leaveTimer.current) {
+      window.clearTimeout(leaveTimer.current);
+      leaveTimer.current = null;
+    }
   }, []);
 
-  const handleLeave = useCallback(() => {
-    setHovered(null);
+  const placeTooltip = useCallback((cluster) => {
+    if (!cluster) return;
+    const node = dotRefs.current.get(cluster.key);
+    if (!node?.getBoundingClientRect) return;
+    const rect = node.getBoundingClientRect();
+    const tip = tooltipRef.current;
+    const next = tooltipAnchorAboveDot({
+      dot: rect,
+      tipWidth: tip?.offsetWidth || TOOLTIP_WIDTH,
+      tipHeight: tip?.offsetHeight || TOOLTIP_ESTIMATED_HEIGHT,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      allowShift: !isCoarsePointer() && !window.matchMedia?.(MOBILE_QUERY)?.matches,
+    });
+    setTipPos((prev) => (prev.x === next.x && prev.y === next.y ? prev : next));
   }, []);
+
+  const handleHover = useCallback(
+    (cluster) => {
+      cancelLeave();
+      setHovered(cluster);
+      placeTooltip(cluster);
+    },
+    [cancelLeave, placeTooltip],
+  );
+
+  const handleLeave = useCallback((event) => {
+    if (relatedIsTooltip(event)) return;
+    cancelLeave();
+    leaveTimer.current = window.setTimeout(() => {
+      setHovered(null);
+      leaveTimer.current = null;
+    }, TIP_LEAVE_MS);
+  }, [cancelLeave]);
 
   const clearPeek = useCallback((restoreFocus = false) => {
     const key = peekRestoreKey.current ?? lastTapKey.current;
+    cancelLeave();
     setPeeked(null);
     setHovered(null);
     lastTapKey.current = null;
@@ -110,7 +141,7 @@ export default function MapSection() {
         window.setTimeout(() => node.focus(), 0);
       }
     }
-  }, []);
+  }, [cancelLeave]);
 
   const openCluster = useCallback(
     (cluster, trigger) => {
@@ -124,13 +155,17 @@ export default function MapSection() {
     [openReport],
   );
 
-  const handlePeek = useCallback((cluster, event) => {
-    lastTapKey.current = cluster.key;
-    peekRestoreKey.current = cluster.key;
-    setPeeked(cluster);
-    if (event) setTipPos(tooltipPosition(event));
-    setHovered(cluster);
-  }, []);
+  const handlePeek = useCallback(
+    (cluster) => {
+      cancelLeave();
+      lastTapKey.current = cluster.key;
+      peekRestoreKey.current = cluster.key;
+      setPeeked(cluster);
+      setHovered(cluster);
+      placeTooltip(cluster);
+    },
+    [cancelLeave, placeTooltip],
+  );
 
   const handleActivate = useCallback(
     (cluster, event) => {
@@ -150,6 +185,35 @@ export default function MapSection() {
       openCluster(cluster, trigger);
     },
     [handlePeek, openCluster],
+  );
+
+  const handleTooltipActivate = useCallback(
+    (event) => {
+      const cluster = peeked ?? hovered;
+      if (!cluster) return;
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      cancelLeave();
+      const trigger = dotRefs.current.get(cluster.key) ?? event?.currentTarget;
+      lastTapKey.current = cluster.key;
+      peekRestoreKey.current = cluster.key;
+      openCluster(cluster, trigger);
+    },
+    [cancelLeave, hovered, openCluster, peeked],
+  );
+
+  const handleTooltipEnter = useCallback(() => {
+    cancelLeave();
+    setHovered((current) => current ?? peeked);
+  }, [cancelLeave, peeked]);
+
+  const handleTooltipLeave = useCallback(
+    (event) => {
+      if (event?.relatedTarget?.closest?.(".dot")) return;
+      if (peeked) return;
+      handleLeave(event);
+    },
+    [handleLeave, peeked],
   );
 
   const handleToggleMethod = useCallback((label) => {
@@ -233,6 +297,21 @@ export default function MapSection() {
   }, [mapped, selectedReportNo]);
 
   const tipCluster = hovered ?? peeked;
+
+  useEffect(() => () => cancelLeave(), [cancelLeave]);
+
+  useLayoutEffect(() => {
+    if (!tipCluster) return undefined;
+    placeTooltip(tipCluster);
+    const onReposition = () => placeTooltip(tipCluster);
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [placeTooltip, tipCluster]);
+
   const status =
     mapped.unmappedCount === 0
       ? `${mapped.plottedCount} of ${reports.length} reports plotted`
@@ -278,7 +357,17 @@ export default function MapSection() {
                 onActivate={openCluster}
                 onDotRef={setDotRef}
               />
-              <Tooltip cluster={tipCluster} x={tipPos.x} y={tipPos.y} />
+              <Tooltip
+                ref={tooltipRef}
+                cluster={tipCluster}
+                x={tipPos.x}
+                y={tipPos.y}
+                interactive
+                peeked={Boolean(peeked)}
+                onActivate={handleTooltipActivate}
+                onPointerEnter={handleTooltipEnter}
+                onPointerLeave={handleTooltipLeave}
+              />
             </div>
             {mobile ? (
               <div className="map-methods-mobile">
