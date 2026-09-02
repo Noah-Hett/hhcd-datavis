@@ -58,10 +58,24 @@ export default function MethodCarousel({
   function scrollByDir(dir) {
     const el = scrollerRef.current;
     if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const atStart = el.scrollLeft <= 1;
+    const atEnd = el.scrollLeft >= maxScroll - 1;
+    const behavior = prefersReducedMotion() ? "auto" : "smooth";
+
+    if (dir > 0 && atEnd) {
+      el.scrollTo({ left: 0, behavior });
+      return;
+    }
+    if (dir < 0 && atStart) {
+      el.scrollTo({ left: maxScroll, behavior });
+      return;
+    }
+
     const amount = Math.max(el.clientWidth * 0.65, 180);
     el.scrollBy({
       left: dir * amount,
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      behavior,
     });
   }
 
@@ -74,11 +88,12 @@ export default function MethodCarousel({
       ...(scrollerRef.current?.querySelectorAll(".method-pill") ?? []),
     ];
     const index = buttons.indexOf(event.target);
-    if (index < 0) return;
+    if (index < 0 || buttons.length === 0) return;
     event.preventDefault();
     const delta =
       event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
-    const target = buttons[Math.max(0, Math.min(buttons.length - 1, index + delta))];
+    const target =
+      buttons[(index + delta + buttons.length) % buttons.length];
     target?.focus();
     target?.scrollIntoView({
       inline: "nearest",
@@ -121,7 +136,6 @@ export default function MethodCarousel({
             type="button"
             className="method-nav method-nav-prev"
             aria-label="Scroll methods left"
-            disabled={overflow.atStart}
             onClick={() => scrollByDir(-1)}
           >
             ‹
@@ -154,7 +168,6 @@ export default function MethodCarousel({
             type="button"
             className="method-nav method-nav-next"
             aria-label="Scroll methods right"
-            disabled={overflow.atEnd}
             onClick={() => scrollByDir(1)}
           >
             ›
