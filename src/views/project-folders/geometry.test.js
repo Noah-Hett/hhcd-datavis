@@ -2,11 +2,20 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   ARCHIVE_ROWS,
+  CAROUSEL_FACE_YAW,
+  CAROUSEL_FEATURED_SCALE,
+  CAROUSEL_FORWARD,
+  CAROUSEL_RADIUS,
   PEEK_REST,
   PEEK_SELECT,
+  carouselAnnouncement,
+  carouselOrigin,
+  carouselSignedOffset,
   computeArchiveLayout,
+  computeCarouselPose,
   computeLayout,
   selectPeekSlot,
+  stepCarouselIndex,
 } from "./geometry.js";
 
 function fakeReports(n) {
@@ -90,4 +99,57 @@ test("computeArchiveLayout keeps every report pickable with a unique slot", () =
     Object.values(layout.reportPos).map((pose) => `${pose.row}:${pose.col}`),
   );
   assert.equal(slots.size, 64);
+});
+
+test("carouselSignedOffset wraps the short way around a 17-report ring", () => {
+  assert.equal(carouselSignedOffset(0, 0, 17), 0);
+  assert.equal(carouselSignedOffset(1, 0, 17), 1);
+  assert.equal(carouselSignedOffset(16, 0, 17), -1);
+  assert.equal(carouselSignedOffset(0, 16, 17), 1);
+  assert.equal(carouselSignedOffset(8, 0, 17), 8);
+});
+
+test("stepCarouselIndex wraps by default and can clamp", () => {
+  assert.equal(stepCarouselIndex(0, -1, 17), 16);
+  assert.equal(stepCarouselIndex(16, 1, 17), 0);
+  assert.equal(stepCarouselIndex(3, 1, 17), 4);
+  assert.equal(stepCarouselIndex(0, -1, 17, { wrap: false }), 0);
+  assert.equal(stepCarouselIndex(16, 1, 17, { wrap: false }), 16);
+  assert.equal(stepCarouselIndex(0, 1, 0), 0);
+});
+
+test("computeCarouselPose features the centre cover and recedes neighbours", () => {
+  const featured = computeCarouselPose(0);
+  const left = computeCarouselPose(-1);
+  const right = computeCarouselPose(1);
+  const far = computeCarouselPose(CAROUSEL_RADIUS + 1);
+
+  assert.equal(featured.featured, true);
+  assert.equal(featured.visible, true);
+  assert.equal(featured.scale, CAROUSEL_FEATURED_SCALE);
+  assert.equal(featured.ry, CAROUSEL_FACE_YAW);
+  assert.ok(featured.scale > left.scale);
+  assert.ok(featured.z > left.z, "neighbours recede away from the camera");
+  assert.ok(featured.z > right.z);
+  assert.ok(left.x < 0 && right.x > 0);
+  assert.ok(left.ry > featured.ry);
+  assert.ok(right.ry < featured.ry);
+  assert.equal(far.visible, false);
+  assert.equal(far.featured, false);
+});
+
+test("carouselOrigin sits in front of the folder row", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4]));
+  const origin = carouselOrigin(layout);
+  const zs = Object.values(layout.folderPos).map((pos) => pos.z);
+  assert.ok(origin.z > Math.max(...zs));
+  assert.ok(origin.z >= CAROUSEL_FORWARD);
+});
+
+test("carouselAnnouncement names the featured report", () => {
+  assert.equal(
+    carouselAnnouncement(3, 17, "Work and workplace"),
+    "Report 4 of 17, Work and workplace",
+  );
+  assert.equal(carouselAnnouncement(0, 0, "Nope"), "No reports in this folder");
 });

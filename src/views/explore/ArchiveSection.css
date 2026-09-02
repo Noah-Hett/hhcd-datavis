@@ -17,6 +17,10 @@
   min-height: 12rem;
 }
 
+.archive-section .scene-stage {
+  min-height: 100%;
+}
+
 .archive-section .archive.is-unfiled .grouping-tabs {
   visibility: hidden;
 }
