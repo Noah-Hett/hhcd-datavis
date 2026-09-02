@@ -51,8 +51,8 @@ export const COLOR_GROUPS = [
   },
 ];
 
-const DOT_R = 6;
-const DOT_GAP = 2 * DOT_R;
+const DOT_R = 10;
+const DOT_GAP = 18;
 
 function bandForProjectType(projectType) {
   if (!projectType) return undefined;
