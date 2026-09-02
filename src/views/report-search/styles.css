@@ -5,6 +5,20 @@
   padding: 28px 16px 64px;
 }
 
+.search-waypoints-slot {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  display: flex;
+  justify-content: center;
+  padding: 10px 12px 8px;
+  pointer-events: none;
+}
+
+.search-waypoints-slot .explore-waypoints {
+  pointer-events: auto;
+}
+
 .search-page-eyebrow {
   margin: 0 0 6px;
   font-size: 12px;

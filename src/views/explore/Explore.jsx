@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import ArchiveSection from "./ArchiveSection.jsx";
 import {
   isFiled,
@@ -8,11 +8,17 @@ import {
 } from "./archivePhysics.js";
 import MapSection from "./MapSection.jsx";
 
+const SCROLL_IDS = ["intro", "archive", "map"];
+
 const WAYPOINTS = [
-  { id: "intro", label: "Intro" },
-  { id: "archive", label: "Archive" },
-  { id: "map", label: "Map" },
+  { id: "archive", label: "Folders", href: "#archive" },
+  { id: "map", label: "Map", href: "#map" },
+  { id: "simple", label: "Simple", to: "/search" },
 ];
+
+function keepSearch(search) {
+  return search || "";
+}
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -22,7 +28,8 @@ function prefersReducedMotion() {
 export { waypointFromScroll };
 
 export default function Explore() {
-  const { hash } = useLocation();
+  const { hash, search } = useLocation();
+  const query = keepSearch(search);
   const scrollRef = useRef(null);
   const organizeRef = useRef(0);
   const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
@@ -31,7 +38,7 @@ export default function Explore() {
   );
   const [waypoint, setWaypoint] = useState(() => {
     const id = hash.replace(/^#/, "");
-    return WAYPOINTS.some((item) => item.id === id) ? id : "intro";
+    return SCROLL_IDS.includes(id) ? id : "intro";
   });
   const filed = isFiled(organize, reduceMotion);
   organizeRef.current = organize;
@@ -50,7 +57,7 @@ export default function Explore() {
 
   useEffect(() => {
     const id = hash.replace(/^#/, "");
-    if (WAYPOINTS.some((item) => item.id === id)) {
+    if (SCROLL_IDS.includes(id)) {
       setWaypoint(id);
     }
     const scrollToHash = () => {
@@ -99,15 +106,29 @@ export default function Explore() {
       <div className="explore-scroll" data-filed={filed ? "true" : "false"} ref={scrollRef}>
         <div className="explore-waypoints-slot">
           <nav className="explore-waypoints" aria-label="Explore waypoints">
-            {WAYPOINTS.map((item) => (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                aria-current={waypoint === item.id ? "true" : undefined}
-              >
-                {item.label}
-              </a>
-            ))}
+            {WAYPOINTS.map((item) => {
+              const current = item.id !== "simple" && waypoint === item.id;
+              if (item.to) {
+                return (
+                  <Link
+                    key={item.id}
+                    to={{ pathname: item.to, search: query }}
+                    aria-current={current ? "true" : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              }
+              return (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  aria-current={current ? "true" : undefined}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
           </nav>
         </div>
         <div className="explore-archive-span">

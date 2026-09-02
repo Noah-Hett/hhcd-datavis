@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import { appliedChips, buildIndex, buildVocab, search } from "./search.js";
@@ -16,7 +16,9 @@ const index = buildIndex(reports);
 
 export default function ReportSearch() {
   const { selectedReportNo, openReport } = useSelection();
+  const { search } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryString = search || "";
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
@@ -141,9 +143,27 @@ export default function ReportSearch() {
 
   return (
     <div className="view-search">
+      <div className="search-waypoints-slot">
+        <nav className="explore-waypoints" aria-label="Explore waypoints">
+          <Link to={{ pathname: "/", search: queryString, hash: "archive" }}>
+            Folders
+          </Link>
+          <Link to={{ pathname: "/", search: queryString, hash: "map" }}>
+            Map
+          </Link>
+          <Link
+            to={{ pathname: "/search", search: queryString }}
+            aria-current="true"
+          >
+            Simple
+          </Link>
+        </nav>
+      </div>
       <div className="search-page">
         <header className="search-page-head">
-          <p className="search-page-eyebrow">{reports.length} reports</p>
+          {result.idle ? null : (
+            <p className="search-page-eyebrow">{rows.length} reports</p>
+          )}
           <h1>Simple view</h1>
           <p className="search-page-lede">
             A keyboard-first list of every report — no 3D archive, no graph.

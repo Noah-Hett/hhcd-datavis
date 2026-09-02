@@ -88,19 +88,9 @@
 .explore-waypoints {
   position: absolute;
   top: 10px;
-  left: 12px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 12;
-  display: inline-flex;
-  align-items: stretch;
-  gap: 4px;
-  width: max-content;
-  max-width: calc(100vw - 24px);
-  margin: 0;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--archive-panel, #f7f1e8);
-  border: 1px solid var(--archive-line, #cbbba6);
-  color: var(--archive-ink, #1c140c);
   pointer-events: auto;
 }
 
@@ -108,25 +98,6 @@
   position: relative;
   padding-bottom: 12px;
   background: var(--archive-bg);
-}
-
-.explore-waypoints a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  min-width: 44px;
-  padding: 0 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  color: var(--archive-ink, #1c140c);
-}
-
-.explore-waypoints a[aria-current="true"] {
-  background: var(--archive-ink, #1c140c);
-  color: var(--archive-panel, #f7f1e8);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -138,9 +109,14 @@
   }
 }
 
+.archive-section .archive.is-filed .intro {
+  background: none;
+  padding: 0;
+}
+
 @media (max-width: 640px) {
   .explore-waypoints {
-    left: 8px;
+    left: 50%;
     top: 8px;
   }
 

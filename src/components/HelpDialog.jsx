@@ -51,13 +51,13 @@ export default function HelpDialog({ open, onClose }) {
             archive or the year × type graph.
           </p>
           <h3>Three waypoints</h3>
+          <p>
+            Folders, Map, and Simple. Intro is not a waypoint — none of these
+            is selected while you are at the intro scroll position.
+          </p>
           <ol>
             <li>
-              <strong>Intro</strong> — the 64 graduate and associate reports
-              sit on show, 2000–2017, not yet filed.
-            </li>
-            <li>
-              <strong>Archive</strong> — the middle waypoint. Scroll down from
+              <strong>Folders</strong> — the archive waypoint. Scroll down from
               the intro to file documents into magazine folders; scroll up from
               the map to return here. Theme, Year, and Type appear once they
               are filed. If the 3D scene cannot run, a folder list is the
@@ -68,6 +68,10 @@ export default function HelpDialog({ open, onClose }) {
               with method pills that grey out when they are not active. On a
               phone, the first tap peeks a map tooltip; the second tap opens
               the sidebar.
+            </li>
+            <li>
+              <strong>Simple</strong> — a keyboard-first list of every report.
+              It does not load the 3D archive or the year × type graph.
             </li>
           </ol>
           <h3>Grouping and methods</h3>
