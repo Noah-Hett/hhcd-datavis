@@ -13,66 +13,101 @@ export default function MethodCarousel({
   variant = "carousel",
 }) {
   const scrollerRef = useRef(null);
+  const normalizingRef = useRef(false);
   const labelId = useId();
   const isSheet = variant === "sheet";
-  const [overflow, setOverflow] = useState({
-    canScroll: false,
-    atStart: true,
-    atEnd: true,
-  });
+  const [looping, setLooping] = useState(false);
+  const [canScroll, setCanScroll] = useState(false);
 
-  const updateOverflow = useCallback(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const canScroll = maxScroll > 1;
-    setOverflow({
-      canScroll,
-      atStart: el.scrollLeft <= 1,
-      atEnd: el.scrollLeft >= maxScroll - 1,
-    });
+  const canonicalCopy = looping ? 1 : 0;
+  const copies = !isSheet && looping ? [0, 1, 2] : [0];
+
+  const measureSetWidth = useCallback((el) => {
+    const first = el.querySelector('[data-copy="0"]');
+    const second = el.querySelector('[data-copy="1"]');
+    if (!first || !second) return 0;
+    return second.offsetLeft - first.offsetLeft;
   }, []);
+
+  const normalizeScroll = useCallback(
+    (el) => {
+      if (!el || normalizingRef.current) return;
+      const setWidth = measureSetWidth(el);
+      if (setWidth <= 0) return;
+      const { scrollLeft } = el;
+      if (scrollLeft < setWidth * 0.5) {
+        normalizingRef.current = true;
+        el.scrollLeft = scrollLeft + setWidth;
+        normalizingRef.current = false;
+      } else if (scrollLeft >= setWidth * 1.5) {
+        normalizingRef.current = true;
+        el.scrollLeft = scrollLeft - setWidth;
+        normalizingRef.current = false;
+      }
+    },
+    [measureSetWidth],
+  );
+
+  const syncScroller = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el || isSheet) return;
+
+    if (!looping) {
+      const overflows = el.scrollWidth - el.clientWidth > 1;
+      setCanScroll(false);
+      if (overflows) setLooping(true);
+      return;
+    }
+
+    const setWidth = measureSetWidth(el);
+    const overflows = setWidth > el.clientWidth + 1;
+    if (!overflows) {
+      setLooping(false);
+      setCanScroll(false);
+      return;
+    }
+
+    setCanScroll(true);
+    // Keep the viewport over the center copy when we first enter loop mode
+    // or after a layout change that left us near 0.
+    if (el.scrollLeft < setWidth * 0.25 || el.scrollLeft >= setWidth * 2.5) {
+      normalizingRef.current = true;
+      el.scrollLeft = setWidth;
+      normalizingRef.current = false;
+    } else {
+      normalizeScroll(el);
+    }
+  }, [isSheet, looping, measureSetWidth, normalizeScroll]);
 
   useLayoutEffect(() => {
     if (isSheet) return undefined;
     const el = scrollerRef.current;
     if (!el) return undefined;
 
-    const read = () => updateOverflow();
-    read();
-    const raf = requestAnimationFrame(read);
-    const observer = new ResizeObserver(read);
+    const onScroll = () => {
+      if (looping) normalizeScroll(el);
+    };
+    const onResize = () => syncScroller();
+
+    syncScroller();
+    const raf = requestAnimationFrame(() => syncScroller());
+    const observer = new ResizeObserver(onResize);
     observer.observe(el);
     const list = el.querySelector(".method-pills");
     if (list) observer.observe(list);
-    el.addEventListener("scroll", read, { passive: true });
-    window.addEventListener("resize", read);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
     return () => {
       cancelAnimationFrame(raf);
       observer.disconnect();
-      el.removeEventListener("scroll", read);
-      window.removeEventListener("resize", read);
+      el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
     };
-  }, [isSheet, methods, updateOverflow]);
+  }, [isSheet, methods, looping, normalizeScroll, syncScroller]);
 
   function scrollByDir(dir) {
     const el = scrollerRef.current;
     if (!el) return;
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const atStart = el.scrollLeft <= 1;
-    const atEnd = el.scrollLeft >= maxScroll - 1;
-
-    // Jump instantly when wrapping the full list; smooth full-length
-    // scrolls race with follow-up clicks and are hard to follow.
-    if (dir > 0 && atEnd) {
-      el.scrollTo({ left: 0, behavior: "auto" });
-      return;
-    }
-    if (dir < 0 && atStart) {
-      el.scrollTo({ left: maxScroll, behavior: "auto" });
-      return;
-    }
-
     const amount = Math.max(el.clientWidth * 0.65, 180);
     el.scrollBy({
       left: dir * amount,
@@ -85,9 +120,16 @@ export default function MethodCarousel({
       ? ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]
       : ["ArrowLeft", "ArrowRight"];
     if (!keys.includes(event.key)) return;
-    const buttons = [
-      ...(scrollerRef.current?.querySelectorAll(".method-pill") ?? []),
-    ];
+
+    const root = scrollerRef.current;
+    if (!root) return;
+    const buttons = isSheet
+      ? [...root.querySelectorAll(".method-pill")]
+      : [
+          ...root.querySelectorAll(
+            `.method-pill[data-copy="${canonicalCopy}"]`,
+          ),
+        ];
     const index = buttons.indexOf(event.target);
     if (index < 0 || buttons.length === 0) return;
     event.preventDefault();
@@ -104,7 +146,7 @@ export default function MethodCarousel({
   }
 
   const selectedCount = selected.size;
-  const showNav = !isSheet && overflow.canScroll;
+  const showNav = !isSheet && canScroll;
 
   return (
     <div
@@ -125,9 +167,8 @@ export default function MethodCarousel({
       <div
         className={[
           "method-carousel-frame",
-          !isSheet && overflow.canScroll ? "is-overflow" : "",
-          overflow.atStart ? "is-start" : "",
-          overflow.atEnd ? "is-end" : "",
+          !isSheet && canScroll ? "is-overflow" : "",
+          // While looping there is no real start/end — keep both edge fades.
         ]
           .filter(Boolean)
           .join(" ")}
@@ -144,24 +185,33 @@ export default function MethodCarousel({
         ) : null}
         <div className="method-carousel-scroll" ref={scrollerRef}>
           <ul className="method-pills" onKeyDown={handleListKeyDown}>
-            {methods.map((method) => {
-              const { pressed, inactive } = methodPillState(
-                method.label,
-                selected,
-              );
-              return (
-                <li key={method.label}>
-                  <button
-                    type="button"
-                    className={methodPillClassName({ pressed, inactive })}
-                    aria-pressed={pressed}
-                    onClick={() => onToggle(method.label)}
+            {copies.flatMap((copy) =>
+              methods.map((method) => {
+                const { pressed, inactive } = methodPillState(
+                  method.label,
+                  selected,
+                );
+                const isCanonical = copy === canonicalCopy;
+                return (
+                  <li
+                    key={`${copy}-${method.label}`}
+                    data-copy={copy}
+                    aria-hidden={isCanonical ? undefined : true}
                   >
-                    {method.label}
-                  </button>
-                </li>
-              );
-            })}
+                    <button
+                      type="button"
+                      data-copy={copy}
+                      className={methodPillClassName({ pressed, inactive })}
+                      aria-pressed={isCanonical ? pressed : undefined}
+                      tabIndex={isCanonical ? undefined : -1}
+                      onClick={() => onToggle(method.label)}
+                    >
+                      {method.label}
+                    </button>
+                  </li>
+                );
+              }),
+            )}
           </ul>
         </div>
         {showNav ? (
