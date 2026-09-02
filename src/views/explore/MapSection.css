@@ -9,31 +9,11 @@
   background: var(--bg);
 }
 
-.map-section .chart-wrap,
-.map-section .scatter-frame,
-.map-section .scatter-y-col,
-.map-section .scatter-scroll,
-.map-section .method-carousel {
-  background: #fbf8f2;
-}
-
-.map-section .method-carousel-frame.is-overflow:not(.is-start)::before {
-  background: linear-gradient(to right, #fbf8f2, rgba(251, 248, 242, 0));
-}
-
-.map-section .method-carousel-frame.is-overflow:not(.is-end)::after {
-  background: linear-gradient(to left, #fbf8f2, rgba(251, 248, 242, 0));
-}
-
-.map-section .scatter-frame.is-scrollable::after {
-  background: linear-gradient(to right, rgba(251, 248, 242, 0), #fbf8f2);
-}
-
 .map-methods-mobile {
   flex-shrink: 0;
   padding: 10px 12px 14px;
   border-top: 1px solid var(--border);
-  background: #fbf8f2;
+  background: var(--chart-surface);
 }
 
 .map-methods-launch {
@@ -48,7 +28,7 @@
 }
 
 .map-methods-launch:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -106,7 +86,7 @@
 }
 
 .map-methods-sheet-bar button:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 

@@ -104,7 +104,7 @@ function AxisArrowMarker({ id }) {
       orient="auto"
       markerUnits="userSpaceOnUse"
     >
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111" />
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text)" />
     </marker>
   );
 }
@@ -296,7 +296,7 @@ export default function ScatterPlot({
                       className="dot-mark"
                       r={cluster.r}
                       fill={cluster.color}
-                      stroke="#111"
+                      stroke="var(--text)"
                       strokeWidth={active ? 1.6 : 1}
                     />
                     <circle className="dot-focus" r={cluster.r + 3.5} />

@@ -25,6 +25,10 @@
   --archive-hover: #eadcc9;
   --archive-focus: #1c140c;
 
+  /* Warm paper surface for chart interiors (map scatter, method carousel). */
+  --chart-surface: #fbf8f2;
+  --chart-grid: #d4c8b8;
+
   --app-header-h: 56px;
   --sidebar-w: 22rem;
 }

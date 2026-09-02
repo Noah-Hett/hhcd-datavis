@@ -176,6 +176,6 @@ test("styles.css keeps the documented inactive greys", async () => {
   assert.match(css, /\.method-pill\.is-inactive\s*\{[^}]*background:\s*#cfcfcf/i);
   assert.match(css, /\.method-pill\.is-inactive\s*\{[^}]*border-color:\s*#5a5a5a/i);
   assert.match(css, /\.method-pill\.is-inactive\s*\{[^}]*color:\s*#222222/i);
-  assert.match(css, /\.method-pill\s*\{[^}]*border:\s*1px solid #5c5348/i);
+  assert.match(css, /\.method-pill\s*\{[^}]*border:\s*1px solid var\(--archive-line\)/i);
   assert.doesNotMatch(css, /\.method-pill\.is-inactive\s*\{[^}]*display:\s*none/);
 });
