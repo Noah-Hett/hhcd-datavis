@@ -6,7 +6,7 @@
 }
 
 .map-section .workspace {
-  background: var(--bg);
+  background: var(--map-bg-gradient);
 }
 
 .map-methods-mobile {
