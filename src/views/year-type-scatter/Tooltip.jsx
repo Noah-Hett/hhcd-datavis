@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { createPortal } from "react-dom";
+import "./tooltip.css";
 
 const Tooltip = forwardRef(function Tooltip(
   {
@@ -36,7 +37,7 @@ const Tooltip = forwardRef(function Tooltip(
       ref={ref}
       type="button"
       className={className}
-      style={{ left: x, top: y }}
+      style={{ position: "fixed", left: x, top: y }}
       aria-label={`Open report: ${title}`}
       onClick={handleActivate}
       onPointerDown={(event) => event.stopPropagation()}

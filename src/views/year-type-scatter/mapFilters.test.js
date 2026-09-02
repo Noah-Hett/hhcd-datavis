@@ -38,6 +38,26 @@ test("MapSection opens the shared sidebar from the map source", async () => {
   assert.match(source, /event\.key !== "Escape"/);
 });
 
+test("portaled map tooltip styles are global, not nested under .view-year-type", async () => {
+  const tooltip = await readFile(
+    new URL("./Tooltip.jsx", import.meta.url),
+    "utf8",
+  );
+  const overlayCss = await readFile(
+    new URL("./tooltip.css", import.meta.url),
+    "utf8",
+  );
+  const scopedCss = await readFile(
+    new URL("./styles.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(tooltip, /createPortal\(node,\s*document\.body\)/);
+  assert.match(tooltip, /import\s+"\.\/tooltip\.css"/);
+  assert.match(tooltip, /position:\s*"fixed"/);
+  assert.match(overlayCss, /\.tooltip\s*\{[^}]*position:\s*fixed/);
+  assert.doesNotMatch(scopedCss, /\.tooltip\s*\{/);
+});
+
 test("uniqueMethods lists every method and never drops labels", () => {
   const methods = uniqueMethods(reports);
   assert.deepEqual(
