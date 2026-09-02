@@ -52,6 +52,14 @@ export default function ArchiveSection({
   const [webglFailed, setWebglFailed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselKey, setCarouselKey] = useState(
+    () => `${grouping}:${selectedFolderId ?? ""}`,
+  );
+  const nextCarouselKey = `${grouping}:${selectedFolderId ?? ""}`;
+  if (nextCarouselKey !== carouselKey) {
+    setCarouselKey(nextCarouselKey);
+    setCarouselIndex(0);
+  }
 
   const controlled = organizeProp != null;
   const organize = reduceMotion ? 1 : controlled ? organizeProp : internalOrganize;
@@ -129,10 +137,6 @@ export default function ArchiveSection({
     }, 350);
     return () => window.clearTimeout(handle);
   }, [grouping, groupingMeta, folders.length, selectedFolderId]);
-
-  useEffect(() => {
-    setCarouselIndex(0);
-  }, [selectedFolderId, grouping]);
 
   useEffect(() => {
     if (selectedReportNo == null || !carouselReports.length) return;
