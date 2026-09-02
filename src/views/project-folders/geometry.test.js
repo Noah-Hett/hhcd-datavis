@@ -152,6 +152,18 @@ test("computeCarouselPose features the centre cover and recedes neighbours", () 
   assert.equal(far.featured, false);
 });
 
+test("carousel fan packs on a circular arc instead of stretching at the wings", () => {
+  const count = 17;
+  const inner = computeCarouselPose(1, count);
+  const mid = computeCarouselPose(4, count);
+  const outer = computeCarouselPose(5, count);
+  const stepInner = Math.abs(inner.x);
+  const stepOuter = Math.abs(outer.x) - Math.abs(mid.x);
+  assert.ok(stepOuter < stepInner, "x steps should shrink toward the wings");
+  assert.ok(outer.z < mid.z);
+  assert.ok(mid.z < inner.z);
+});
+
 test("a nine-report folder shows every cover in the carousel", () => {
   const count = 9;
   assert.equal(carouselVisibleRadius(count) * 2 + 1, 9);

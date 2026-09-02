@@ -370,8 +370,8 @@ export const CAROUSEL_WIDTH_SCALE = 1.42;
 /** Cover sits on local −X; +π/2 yaw faces it toward a camera on +Z. */
 export const CAROUSEL_FACE_YAW = Math.PI / 2;
 /** Neighbour tilt stays small enough that cover titles keep facing the camera. */
-export const CAROUSEL_YAW_STEP = 0.08;
-export const CAROUSEL_YAW_CAP = 0.16;
+export const CAROUSEL_YAW_STEP = 0.12;
+export const CAROUSEL_YAW_CAP = 0.42;
 
 /** Rest peek spacing stays tight; selected folders fan wide enough to read titles. */
 export function selectPeekSlot(count) {
@@ -438,6 +438,23 @@ export function carouselSpan(count) {
   return radius * 2 * carouselSpacing(count) + featuredW;
 }
 
+/** Half-angle of the cover-flow arc, in radians. */
+export function carouselArc(count) {
+  const radius = carouselVisibleRadius(count);
+  if (radius <= 2) return 0.46;
+  if (radius <= 4) return 0.64;
+  return 0.82;
+}
+
+/** Ring radius so the wing x matches the previous linear span. */
+export function carouselRing(count) {
+  const slots = carouselVisibleRadius(count);
+  if (slots <= 0) return 1;
+  const half = slots * carouselSpacing(count);
+  const s = Math.sin(carouselArc(count));
+  return s > 0.08 ? half / s : half;
+}
+
 /** Shortest signed turn from `from` to `to`, in (−π, π]. */
 export function shortestAngleDelta(from, to) {
   let delta = to - from;
@@ -448,24 +465,25 @@ export function shortestAngleDelta(from, to) {
 
 /**
  * Local cover-flow pose relative to the carousel origin.
- * Offset 0 is featured (large, facing camera); neighbours recede to the sides.
+ * Offset 0 is featured (large, facing camera); neighbours sit on a circular arc.
  */
 export function computeCarouselPose(offset, count = CAROUSEL_RADIUS * 2 + 1) {
   const abs = Math.abs(offset);
-  const sign = offset === 0 ? 0 : Math.sign(offset);
-  const yawTilt = sign * Math.min(abs * CAROUSEL_YAW_STEP, CAROUSEL_YAW_CAP);
-  const radius = carouselVisibleRadius(count);
-  const spacing = carouselSpacing(count);
-  /** Keep neighbours in front of folder fronts even after selected-folder push. */
+  const slots = carouselVisibleRadius(count);
+  const arc = carouselArc(count);
+  const ring = carouselRing(count);
+  const t = slots <= 0 ? 0 : Math.max(-1, Math.min(1, offset / slots));
+  const theta = t * arc;
+  const yawTilt = Math.sign(theta) * Math.min(Math.abs(theta) * 0.7, CAROUSEL_YAW_CAP);
   const maxRecede = Math.max(0.12, CAROUSEL_FORWARD - FOLDER_D - 0.55);
   return {
-    x: offset * spacing,
+    x: ring * Math.sin(theta),
     y: REPORT_H * 0.5 + (abs === 0 ? 0.22 : 0.08),
-    z: -Math.min(abs * CAROUSEL_RECEDE, maxRecede),
+    z: Math.max(-maxRecede, ring * (Math.cos(theta) - 1)),
     rx: 0,
     ry: CAROUSEL_FACE_YAW - yawTilt,
     scale: abs === 0 ? CAROUSEL_FEATURED_SCALE : Math.max(0.74, 1 - abs * 0.05),
-    visible: abs <= radius,
+    visible: abs <= slots,
     featured: offset === 0,
   };
 }
