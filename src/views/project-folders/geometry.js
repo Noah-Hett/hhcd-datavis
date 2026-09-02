@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { coverColorFor } from "./grouping.js";
 
 export const FOLDER_W = 0.62;
 export const FOLDER_D = 1.48;
@@ -19,6 +18,29 @@ const C_LABEL = "#F4EEE4";
 const C_PAGES = "#F7F3EC";
 const C_RINGS = "#1A120C";
 const C_INK = "#1C140C";
+
+/** Jacket colours — same pool as grouping.js; kept local so layout tests can import this module. */
+const COVER_POOL = [
+  "#F4EFE6",
+  "#F4EFE6",
+  "#F4EFE6",
+  "#F4EFE6",
+  "#F4EFE6",
+  "#F4EFE6",
+  "#E8C4B8",
+  "#C5D4E6",
+  "#D2E3C8",
+  "#EDD99A",
+];
+
+function coverColorFor(reportNo) {
+  const str = String(reportNo);
+  let hash = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return COVER_POOL[Math.abs(hash) % COVER_POOL.length];
+}
 
 function lambert(color, extra = {}) {
   return new THREE.MeshLambertMaterial({
@@ -323,11 +345,21 @@ export function createReportMesh(report, shared) {
   return { group, pickable, texture, coverMat };
 }
 
-export const PEEK_REST = 4;
+export const PEEK_REST = 6;
 export const PEEK_SELECT = 8;
 export const PEEK_RISE = 0.68;
-const PEEK_SLOT = 0.058;
+const PEEK_SLOT = 0.062;
 const ROW_GAP_Z = 2.28;
+export const ARCHIVE_ROWS = 3;
+
+/** Rest peek spacing stays tight; selected folders fan wide enough to read titles. */
+export function selectPeekSlot(count) {
+  const n = Math.max(count, 1);
+  if (n <= 4) return 0.11;
+  if (n <= 8) return 0.14;
+  if (n <= 12) return 0.165;
+  return Math.max(0.125, Math.min(0.2, 2.7 / Math.max(n - 1, 1)));
+}
 
 export function folderSpacing(count) {
   if (count <= 3) return 1.72;
@@ -414,22 +446,24 @@ export function computeLayout(folders, { twoRows = false } = {}) {
     folderPos[folder.id] = { x: grid.x, y: grid.y, z: grid.z, folder };
     const count = folder.reports.length;
     const restN = Math.min(PEEK_REST, count);
-    const selectN = Math.min(PEEK_SELECT, count);
+    const fanSlot = selectPeekSlot(count);
     folder.reports.forEach((report, slotIndex) => {
-      const pack = (shown) =>
+      const u = count <= 1 ? 0 : slotIndex - (count - 1) / 2;
+      const packRest = (shown) =>
         FOLDER_W * 0.5 + (slotIndex - (shown - 1) / 2) * PEEK_SLOT;
       reportPos[report.reportNo] = {
-        x: slotIndex < restN ? pack(restN) : FOLDER_W * 0.5,
-        selectX: slotIndex < selectN ? pack(selectN) : FOLDER_W * 0.5,
+        x: slotIndex < restN ? packRest(restN) : FOLDER_W * 0.5,
+        selectX: FOLDER_W * 0.5 + u * fanSlot,
         y: WALL + REPORT_H * 0.42,
         riseY: WALL + REPORT_H * 0.42 + PEEK_RISE,
         z: WALL + REPORT_D * 0.5 + 0.04,
+        selectZ: WALL + REPORT_D * 0.5 + 0.04 + Math.abs(u) * 0.035,
         rx: 0.04,
         folderId: folder.id,
         slotIndex,
         count,
         visibleAtRest: slotIndex < PEEK_REST,
-        visibleOnSelect: slotIndex < PEEK_SELECT,
+        visibleOnSelect: true,
       };
     });
   });
@@ -439,24 +473,60 @@ export function computeLayout(folders, { twoRows = false } = {}) {
 
 export function computeArchiveLayout(list) {
   const n = list.length;
-  const gap = REPORT_THICK + 0.02;
-  const span = Math.max(n - 1, 1) * gap;
   const reportPos = {};
-  list.forEach((report, index) => {
-    reportPos[report.reportNo] = {
-      x: -span / 2 + index * gap,
-      y: REPORT_H * 0.5,
-      z: ((index % 7) - 3) * 0.038,
-      rx: 0,
-      ry: 0.2,
-    };
-  });
+  if (n === 0) {
+    return { reportPos, span: 1, minX: 0, maxX: 0, minZ: 0, maxZ: 0, rows: ARCHIVE_ROWS };
+  }
+
+  const rows = ARCHIVE_ROWS;
+  const rowCounts = new Array(rows).fill(Math.floor(n / rows));
+  for (let extra = n % rows, i = 0; i < extra; i += 1) {
+    rowCounts[i] += 1;
+  }
+
+  const colGap = REPORT_THICK + 0.052;
+  const rowGap = 0.62;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  let cursor = 0;
+
+  for (let row = 0; row < rows; row += 1) {
+    const count = rowCounts[row];
+    const span = Math.max(count - 1, 0) * colGap;
+    const zBase = (row - (rows - 1) / 2) * rowGap;
+    const stagger = ((row % 2) - 0.5) * colGap * 0.42;
+    for (let col = 0; col < count; col += 1) {
+      const report = list[cursor];
+      cursor += 1;
+      if (!report) continue;
+      const u = count <= 1 ? 0 : col / (count - 1) - 0.5;
+      const x = -span / 2 + col * colGap + stagger;
+      const z = zBase + u * u * 0.78;
+      reportPos[report.reportNo] = {
+        x,
+        y: REPORT_H * 0.5,
+        z,
+        rx: -0.03,
+        ry: 0.18 + u * 0.92,
+        row,
+        col,
+      };
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minZ = Math.min(minZ, z);
+      maxZ = Math.max(maxZ, z);
+    }
+  }
+
   return {
     reportPos,
-    span,
-    minX: -span / 2,
-    maxX: span / 2,
-    minZ: -0.14,
-    maxZ: 0.14,
+    span: Math.max(maxX - minX, 1),
+    minX,
+    maxX,
+    minZ,
+    maxZ,
+    rows,
   };
 }
