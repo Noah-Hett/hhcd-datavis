@@ -16,9 +16,9 @@ const index = buildIndex(reports);
 
 export default function ReportSearch() {
   const { selectedReportNo, openReport } = useSelection();
-  const { search } = useLocation();
+  const { search: locationSearch } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const queryString = search || "";
+  const queryString = locationSearch || "";
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
