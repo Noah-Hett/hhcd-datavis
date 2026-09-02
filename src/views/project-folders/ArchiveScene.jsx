@@ -37,6 +37,8 @@ const EXIT_X = 12;
 const MORPH_MS = 900;
 const CAM_FOV = 22;
 const TAP_SLOP = 18;
+/** Same as `--archive-bg` / `--bg` so the canvas matches the page, not a darker well. */
+const SCENE_CLEAR = "#c9dce0";
 const SELECT_SCALE = 1.06;
 const REST_SCALE = 0.86;
 const SELECT_FORWARD = 0.28;
@@ -186,7 +188,7 @@ export default function ArchiveScene({
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#C9DCE0");
+    scene.background = new THREE.Color(SCENE_CLEAR);
 
     const camera = new THREE.PerspectiveCamera(CAM_FOV, 16 / 9, 0.1, 120);
 
@@ -219,7 +221,7 @@ export default function ArchiveScene({
 
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(48, 48),
-      new THREE.MeshLambertMaterial({ color: "#B9CED3", flatShading: true }),
+      new THREE.ShadowMaterial({ color: "#1c140c", opacity: 0.22 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = 0;
