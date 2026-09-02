@@ -1,6 +1,22 @@
 /* Mobile sheet polish for ReportSidebar. Desktop docking stays in index.css.
    Backdrop and pointer-events that cover the page are mobile-only. */
 
+:root {
+  --sidebar-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sidebar-duration: 320ms;
+}
+
+.report-sidebar-backdrop {
+  opacity: 0;
+  transition: opacity var(--sidebar-duration) ease;
+  pointer-events: none;
+}
+
+.report-sidebar-backdrop.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 @media (max-width: 799px) {
   .report-sidebar-backdrop {
     z-index: 45;
@@ -13,6 +29,9 @@
     max-height: min(82dvh, 680px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     overflow: hidden;
+    transition:
+      transform var(--sidebar-duration) var(--sidebar-ease),
+      visibility 0s linear var(--sidebar-duration);
   }
 
   .report-sidebar.is-closed {
@@ -21,6 +40,9 @@
 
   .report-sidebar.is-open {
     transform: translateY(0);
+    transition:
+      transform var(--sidebar-duration) var(--sidebar-ease),
+      visibility 0s linear 0s;
   }
 
   .report-sidebar-body {
@@ -41,7 +63,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .report-sidebar {
+  :root {
+    --sidebar-duration: 1ms;
+  }
+
+  .report-sidebar,
+  .report-sidebar-backdrop {
     transition: none;
   }
 }

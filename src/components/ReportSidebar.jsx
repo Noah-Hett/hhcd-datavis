@@ -17,6 +17,18 @@ const FIELDS = [
 ];
 
 const SHEET_QUERY = "(max-width: 799px)";
+const SIDEBAR_TRANSITION_MS = 320;
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function sidebarTransitionMs() {
+  return prefersReducedMotion() ? 0 : SIDEBAR_TRANSITION_MS;
+}
 
 function isEmpty(value) {
   if (value == null) return true;
@@ -53,7 +65,14 @@ export default function ReportSidebar() {
   const liveId = useId();
   const report = findReport(selectedReportNo);
   const open = sidebarOpen;
-  const showBack = Boolean(report && selectedFolderId);
+  const snapshotRef = useRef({
+    report: null,
+    selectedFolderId: null,
+  });
+  const [closing, setClosing] = useState(false);
+  const [backdropMounted, setBackdropMounted] = useState(false);
+  const [backdropVisible, setBackdropVisible] = useState(false);
+  const panelActive = open || closing;
   const [sheet, setSheet] = useState(() =>
     typeof window !== "undefined" && window.matchMedia
       ? window.matchMedia(SHEET_QUERY).matches
@@ -75,6 +94,67 @@ export default function ReportSidebar() {
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
   }, []);
+
+  useEffect(() => {
+    if (open) {
+      if (report) snapshotRef.current.report = report;
+      if (selectedFolderId) {
+        snapshotRef.current.selectedFolderId = selectedFolderId;
+      }
+      setClosing(false);
+      return undefined;
+    }
+
+    if (
+      snapshotRef.current.report ||
+      snapshotRef.current.selectedFolderId
+    ) {
+      setClosing(true);
+      const id = window.setTimeout(
+        () => setClosing(false),
+        sidebarTransitionMs(),
+      );
+      return () => window.clearTimeout(id);
+    }
+
+    setClosing(false);
+    return undefined;
+  }, [open, report, selectedFolderId]);
+
+  useEffect(() => {
+    if (!sheet) {
+      setBackdropMounted(false);
+      setBackdropVisible(false);
+      return undefined;
+    }
+
+    if (open) {
+      setBackdropMounted(true);
+      if (sidebarTransitionMs() === 0) {
+        setBackdropVisible(true);
+        return undefined;
+      }
+      const id = window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => setBackdropVisible(true));
+      });
+      return () => window.cancelAnimationFrame(id);
+    }
+
+    setBackdropVisible(false);
+    const id = window.setTimeout(
+      () => setBackdropMounted(false),
+      sidebarTransitionMs(),
+    );
+    return () => window.clearTimeout(id);
+  }, [open, sheet]);
+
+  const displayReport = panelActive
+    ? (report ?? snapshotRef.current.report)
+    : null;
+  const displayFolderId = panelActive
+    ? (selectedFolderId ?? snapshotRef.current.selectedFolderId)
+    : null;
+  const displayShowBack = Boolean(displayReport && displayFolderId);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -116,17 +196,25 @@ export default function ReportSidebar() {
           ? "Report sidebar opened. No report selected."
           : "";
 
-  const kicker = report ? "Report" : selectedFolderId ? "Folders" : "Sidebar";
+  const kicker = displayReport
+    ? "Report"
+    : displayFolderId
+      ? "Folders"
+      : "Sidebar";
 
   return (
     <>
       <div className="sr-only" id={liveId} aria-live="polite" aria-atomic="true">
         {liveText}
       </div>
-      {open && sheet ? (
+      {backdropMounted ? (
         <button
           type="button"
-          className="report-sidebar-backdrop"
+          className={
+            backdropVisible
+              ? "report-sidebar-backdrop is-visible"
+              : "report-sidebar-backdrop"
+          }
           aria-label="Close report sidebar"
           onClick={close}
         />
@@ -139,14 +227,14 @@ export default function ReportSidebar() {
         }
         aria-labelledby={titleId}
         aria-describedby={liveId}
-        aria-hidden={!open}
-        aria-modal={sheet && open ? true : undefined}
-        {...(!open ? { inert: "" } : {})}
+        aria-hidden={!panelActive}
+        aria-modal={sheet && panelActive ? true : undefined}
+        {...(!panelActive ? { inert: "" } : {})}
       >
         <div className="report-sidebar-bar">
           <p className="report-sidebar-kicker">{kicker}</p>
           <div className="report-sidebar-actions">
-            {showBack ? (
+            {displayShowBack ? (
               <button
                 type="button"
                 className="report-sidebar-close"
@@ -161,12 +249,12 @@ export default function ReportSidebar() {
           </div>
         </div>
         <div className="report-sidebar-body">
-          {report ? (
+          {displayReport ? (
             <article aria-labelledby={titleId}>
               <p className="report-sidebar-meta">
-                Report {report.reportNo}
-                {report.year != null ? ` · ${report.year}` : ""}
-                {report.category ? ` · ${report.category}` : ""}
+                Report {displayReport.reportNo}
+                {displayReport.year != null ? ` · ${displayReport.year}` : ""}
+                {displayReport.category ? ` · ${displayReport.category}` : ""}
               </p>
               <h2
                 id={titleId}
@@ -174,28 +262,28 @@ export default function ReportSidebar() {
                 tabIndex={-1}
                 ref={headingRef}
               >
-                {report.title}
+                {displayReport.title}
               </h2>
-              {report.author ? (
-                <p className="report-sidebar-author">{report.author}</p>
+              {displayReport.author ? (
+                <p className="report-sidebar-author">{displayReport.author}</p>
               ) : null}
-              {report.projectType ? (
+              {displayReport.projectType ? (
                 <p className="report-sidebar-type">
-                  Project type: {report.projectType}
+                  Project type: {displayReport.projectType}
                 </p>
               ) : null}
-              {FIELDS.filter((field) => !isEmpty(report[field.key])).map(
+              {FIELDS.filter((field) => !isEmpty(displayReport[field.key])).map(
                 (field) => (
                   <section key={field.key} className="report-sidebar-field">
                     <h3>{field.label}</h3>
-                    <FieldValue value={report[field.key]} />
+                    <FieldValue value={displayReport[field.key]} />
                   </section>
                 ),
               )}
-              {isHttpUrl(report.website) ? (
+              {isHttpUrl(displayReport.website) ? (
                 <p className="report-sidebar-field">
                   <a
-                    href={report.website}
+                    href={displayReport.website}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
@@ -203,10 +291,10 @@ export default function ReportSidebar() {
                   </a>
                 </p>
               ) : null}
-              {isHttpUrl(report.contact) ? (
+              {isHttpUrl(displayReport.contact) ? (
                 <p className="report-sidebar-field">
                   <a
-                    href={report.contact}
+                    href={displayReport.contact}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
@@ -215,8 +303,12 @@ export default function ReportSidebar() {
                 </p>
               ) : null}
             </article>
-          ) : selectedFolderId ? (
-            <ArchiveFolderList titleId={titleId} headingRef={headingRef} />
+          ) : displayFolderId ? (
+            <ArchiveFolderList
+              titleId={titleId}
+              headingRef={headingRef}
+              folderId={displayFolderId}
+            />
           ) : (
             <div>
               <h2

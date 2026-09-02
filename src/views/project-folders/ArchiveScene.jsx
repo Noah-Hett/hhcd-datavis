@@ -38,6 +38,7 @@ const EXIT_X = 12;
 const MORPH_MS = 900;
 const CAM_FOV = 22;
 const TAP_SLOP = 18;
+const RESIZE_SETTLE_MS = 150;
 /** Same as `--archive-bg` / `--bg` so the canvas matches the page, not a darker well. */
 const SCENE_CLEAR = "#c9dce0";
 const SELECT_SCALE = 1.06;
@@ -481,6 +482,7 @@ export default function ArchiveScene({
     let lastW = 0;
     let lastH = 0;
     let resizeRaf = 0;
+    let resizeSettleTimer = 0;
     let sizeDirty = false;
     const applyRowMode = () => {
       twoRows = shouldUseTwoRows(
@@ -507,10 +509,11 @@ export default function ArchiveScene({
       sizeDirty = true;
     };
     const resize = () => {
-      if (resizeRaf) return;
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
       resizeRaf = requestAnimationFrame(() => {
         resizeRaf = 0;
-        applySize();
+        clearTimeout(resizeSettleTimer);
+        resizeSettleTimer = window.setTimeout(applySize, RESIZE_SETTLE_MS);
       });
     };
     const ro = new ResizeObserver(resize);
@@ -870,6 +873,7 @@ export default function ArchiveScene({
     return () => {
       cancelAnimationFrame(raf);
       if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      clearTimeout(resizeSettleTimer);
       ro.disconnect();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);

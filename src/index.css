@@ -441,7 +441,10 @@ select {
   color: var(--text);
   border: 1px solid var(--archive-line);
   box-shadow: 0 16px 48px rgb(28 20 12 / 16%);
-  transition: transform 0.2s ease, visibility 0.2s ease;
+}
+
+.report-sidebar.is-open {
+  visibility: visible;
 }
 
 .report-sidebar.is-closed {
@@ -657,8 +660,25 @@ select {
     pointer-events: auto;
   }
 
+  .report-sidebar.is-open .report-sidebar-body {
+    animation: report-sidebar-body-in var(--sidebar-duration, 320ms)
+      var(--sidebar-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+
   .report-sidebar.is-closed {
     transform: none;
+  }
+}
+
+@keyframes report-sidebar-body-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -717,14 +737,6 @@ select {
   .report-sidebar-bar {
     position: relative;
     padding-top: 18px;
-  }
-
-  .report-sidebar.is-closed {
-    transform: translateY(100%);
-  }
-
-  .report-sidebar.is-open {
-    transform: translateY(0);
   }
 }
 
@@ -820,8 +832,11 @@ select {
 
   .skip-link,
   .report-sidebar,
+  .report-sidebar-backdrop,
+  .report-sidebar.is-open .report-sidebar-body,
   .explore-scroll {
     transition: none;
+    animation: none;
   }
 
   .explore-scroll {
