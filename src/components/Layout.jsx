@@ -1,5 +1,5 @@
 import { Suspense, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import HelpDialog from "./HelpDialog.jsx";
 import ReportSidebar from "./ReportSidebar.jsx";
 import SimpleSearch from "./SimpleSearch.jsx";
@@ -12,6 +12,12 @@ function viewKey(pathname) {
 
 function keepSearch(search) {
   return search || "";
+}
+
+function modeFromLocation(pathname, hash) {
+  if (pathname.startsWith("/search")) return "simple";
+  if (hash.replace(/^#/, "") === "map") return "map";
+  return "folders";
 }
 
 function ChromeIcon({ children }) {
@@ -29,13 +35,62 @@ function ChromeIcon({ children }) {
   );
 }
 
+const MODE_SEGMENTS = [
+  {
+    id: "folders",
+    label: "Folders",
+    to: (query) => ({ pathname: "/", search: query, hash: "archive" }),
+    icon: (
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        d="M2.25 4.75h4.1l1.15 1.4H13.75v6.6H2.25z"
+      />
+    ),
+  },
+  {
+    id: "map",
+    label: "Map",
+    to: (query) => ({ pathname: "/", search: query, hash: "map" }),
+    icon: (
+      <>
+        <circle cx="5" cy="5.25" r="1.15" fill="currentColor" />
+        <circle cx="11.1" cy="6.6" r="1.15" fill="currentColor" />
+        <circle cx="7.4" cy="11.1" r="1.15" fill="currentColor" />
+      </>
+    ),
+  },
+  {
+    id: "simple",
+    label: "Simple",
+    to: (query) => ({ pathname: "/search", search: query }),
+    icon: (
+      <>
+        <path
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          d="M5.5 4.5h7M5.5 8h7M5.5 11.5h7"
+        />
+        <circle cx="3.25" cy="4.5" r="0.9" fill="currentColor" />
+        <circle cx="3.25" cy="8" r="0.9" fill="currentColor" />
+        <circle cx="3.25" cy="11.5" r="0.9" fill="currentColor" />
+      </>
+    ),
+  },
+];
+
 export default function Layout() {
-  const { pathname, search } = useLocation();
+  const { pathname, search, hash } = useLocation();
   const { sidebarOpen, setSidebarOpen } = useSelection();
   const [helpOpen, setHelpOpen] = useState(false);
   const helpButtonRef = useRef(null);
   const fill = !pathname.startsWith("/search");
   const query = keepSearch(search);
+  const mode = modeFromLocation(pathname, hash);
 
   return (
     <div
@@ -67,26 +122,24 @@ export default function Layout() {
           <SimpleSearch />
         </div>
 
-        <div className="app-chrome">
-          <NavLink
-            to={{ pathname: "/search", search: query }}
-            className="chrome-btn"
-          >
-            <ChromeIcon>
-              <path
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                d="M5.5 4.5h7M5.5 8h7M5.5 11.5h7"
-              />
-              <circle cx="3.25" cy="4.5" r="0.9" fill="currentColor" />
-              <circle cx="3.25" cy="8" r="0.9" fill="currentColor" />
-              <circle cx="3.25" cy="11.5" r="0.9" fill="currentColor" />
-            </ChromeIcon>
-            Simple
-          </NavLink>
+        <div className="mode-toggle" role="group" aria-label="View mode">
+          {MODE_SEGMENTS.map((segment) => {
+            const current = mode === segment.id;
+            return (
+              <Link
+                key={segment.id}
+                className="mode-toggle-seg"
+                to={segment.to(query)}
+                aria-current={current ? "true" : undefined}
+              >
+                <ChromeIcon>{segment.icon}</ChromeIcon>
+                {segment.label}
+              </Link>
+            );
+          })}
+        </div>
 
+        <div className="app-chrome">
           <button
             type="button"
             ref={helpButtonRef}
