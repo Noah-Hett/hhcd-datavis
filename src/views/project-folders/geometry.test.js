@@ -14,11 +14,13 @@ import {
   carouselAnnouncement,
   carouselOrigin,
   carouselSignedOffset,
+  carouselVisibleRadius,
   computeArchiveLayout,
   computeCarouselPose,
   computeLayout,
   reportHitAllowed,
   selectPeekSlot,
+  shortestAngleDelta,
   stepCarouselIndex,
 } from "./geometry.js";
 
@@ -144,6 +146,31 @@ test("computeCarouselPose features the centre cover and recedes neighbours", () 
   assert.ok(Math.abs(wing.ry - CAROUSEL_FACE_YAW) <= CAROUSEL_YAW_CAP);
   assert.equal(far.visible, false);
   assert.equal(far.featured, false);
+});
+
+test("a nine-report folder shows every cover in the carousel", () => {
+  const count = 9;
+  assert.equal(carouselVisibleRadius(count) * 2 + 1, 9);
+  for (let i = 0; i < count; i += 1) {
+    const pose = computeCarouselPose(carouselSignedOffset(i, 0, count), count);
+    assert.equal(pose.visible, true);
+  }
+});
+
+test("a large folder still shows more than five covers", () => {
+  const count = 21;
+  const visible = Array.from({ length: count }, (_, i) =>
+    computeCarouselPose(carouselSignedOffset(i, 0, count), count).visible,
+  ).filter(Boolean).length;
+  assert.ok(visible >= 11);
+  assert.ok(visible <= CAROUSEL_RADIUS * 2 + 1);
+});
+
+test("shortestAngleDelta takes the short way around", () => {
+  assert.ok(Math.abs(shortestAngleDelta(0, Math.PI / 2) - Math.PI / 2) < 1e-9);
+  assert.ok(shortestAngleDelta(Math.PI / 2, 0) < 0);
+  assert.ok(shortestAngleDelta(-Math.PI / 2, Math.PI / 2) > 0);
+  assert.ok(Math.abs(shortestAngleDelta(Math.PI - 0.1, -Math.PI + 0.1)) < 0.3);
 });
 
 test("carouselOrigin sits in front of the folder row", () => {

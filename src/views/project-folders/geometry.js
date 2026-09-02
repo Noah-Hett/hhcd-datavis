@@ -92,7 +92,7 @@ export function createSharedResources() {
     REPORT_H * 0.98,
     REPORT_D * 0.96,
   );
-  const coverGeo = new THREE.BoxGeometry(0.008, REPORT_H, REPORT_D);
+  const coverGeo = new THREE.PlaneGeometry(REPORT_D, REPORT_H);
   const reportBackGeo = new THREE.BoxGeometry(0.008, REPORT_H, REPORT_D);
   const ringGeo = new THREE.TorusGeometry(0.036, 0.012, 6, 12);
   const reportHitGeo = new THREE.BoxGeometry(0.16, REPORT_H * 1.08, REPORT_D * 1.04);
@@ -251,30 +251,34 @@ function wrapTitle(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
 export function createCoverTexture(report) {
   const jacket = coverColorFor(report.reportNo);
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 384;
+  canvas.width = 512;
+  canvas.height = 768;
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = jacket;
-  ctx.fillRect(0, 0, 256, 384);
+  ctx.fillRect(0, 0, 512, 768);
 
-  ctx.fillStyle = "rgba(28, 20, 12, 0.1)";
-  ctx.fillRect(0, 0, 256, 48);
+  ctx.fillStyle = "rgba(28, 20, 12, 0.08)";
+  ctx.fillRect(0, 0, 512, 92);
+
+  ctx.strokeStyle = "rgba(28, 20, 12, 0.16)";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(8, 8, 496, 752);
 
   ctx.fillStyle = C_INK;
   ctx.textAlign = "left";
-  ctx.font = "bold 22px ui-sans-serif, system-ui, sans-serif";
-  ctx.fillText(`No. ${report.reportNo}`, 16, 34);
+  ctx.font = "bold 40px ui-sans-serif, system-ui, sans-serif";
+  ctx.fillText(`No. ${report.reportNo}`, 32, 68);
 
-  ctx.font = "bold 24px ui-sans-serif, system-ui, sans-serif";
-  wrapTitle(ctx, report.title, 16, 88, 224, 30, 4);
+  ctx.font = "bold 44px ui-sans-serif, system-ui, sans-serif";
+  wrapTitle(ctx, report.title, 32, 168, 448, 54, 5);
 
-  ctx.font = "16px ui-sans-serif, system-ui, sans-serif";
-  ctx.fillText(String(report.year ?? ""), 16, 356);
+  ctx.font = "28px ui-sans-serif, system-ui, sans-serif";
+  ctx.fillText(String(report.year ?? ""), 32, 712);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -298,13 +302,16 @@ export function createReportMesh(report, shared) {
   group.add(back);
   pickable.push(back);
 
-  const coverMat = lambert("#ffffff");
-  coverMat.map = texture;
-  coverMat.needsUpdate = true;
+  const coverMat = new THREE.MeshBasicMaterial({
+    map: texture,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
   const cover = new THREE.Mesh(shared.coverGeo, coverMat);
-  cover.position.x = -0.024;
-  cover.castShadow = true;
-  cover.receiveShadow = true;
+  cover.rotation.y = -Math.PI / 2;
+  cover.position.x = -0.03;
+  cover.castShadow = false;
+  cover.receiveShadow = false;
   group.add(cover);
   pickable.push(cover);
 
@@ -352,17 +359,17 @@ const PEEK_SLOT = 0.062;
 const ROW_GAP_Z = 2.28;
 export const ARCHIVE_ROWS = 3;
 
-/** Cover-flow when a folder is selected: featured item plus this many neighbours each side. */
-export const CAROUSEL_RADIUS = 2;
-export const CAROUSEL_SPACING = 1.18;
-export const CAROUSEL_FORWARD = 3.1;
-export const CAROUSEL_RECEDE = 0.36;
-export const CAROUSEL_FEATURED_SCALE = 1.22;
+/** Cover-flow: max neighbours each side (13 cards). Smaller folders show every cover. */
+export const CAROUSEL_RADIUS = 6;
+export const CAROUSEL_SPACING = 1.08;
+export const CAROUSEL_FORWARD = 4.4;
+export const CAROUSEL_RECEDE = 0.22;
+export const CAROUSEL_FEATURED_SCALE = 1.38;
 /** Cover sits on local −X; +π/2 yaw faces it toward a camera on +Z. */
 export const CAROUSEL_FACE_YAW = Math.PI / 2;
 /** Neighbour tilt stays small enough that cover titles keep facing the camera. */
-export const CAROUSEL_YAW_STEP = 0.22;
-export const CAROUSEL_YAW_CAP = 0.38;
+export const CAROUSEL_YAW_STEP = 0.1;
+export const CAROUSEL_YAW_CAP = 0.2;
 
 /** Rest peek spacing stays tight; selected folders fan wide enough to read titles. */
 export function selectPeekSlot(count) {
@@ -409,24 +416,53 @@ export function reportHitAllowed({ filed, selectedFolderId, folderId }) {
   return folderId === selectedFolderId;
 }
 
+/** How many cards sit each side of the featured cover for a folder of `count`. */
+export function carouselVisibleRadius(count) {
+  const n = Math.max(1, Number(count) || 1);
+  return Math.min(Math.ceil((n - 1) / 2), CAROUSEL_RADIUS);
+}
+
+export function carouselSpacing(count) {
+  const visible = carouselVisibleRadius(count) * 2 + 1;
+  if (visible <= 5) return 1.32;
+  if (visible <= 9) return 1.1;
+  if (visible <= 13) return 0.94;
+  return 0.82;
+}
+
+export function carouselSpan(count) {
+  const radius = carouselVisibleRadius(count);
+  return radius * 2 * carouselSpacing(count) + REPORT_D;
+}
+
+/** Shortest signed turn from `from` to `to`, in (−π, π]. */
+export function shortestAngleDelta(from, to) {
+  let delta = to - from;
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  return delta;
+}
+
 /**
  * Local cover-flow pose relative to the carousel origin.
  * Offset 0 is featured (large, facing camera); neighbours recede to the sides.
  */
-export function computeCarouselPose(offset) {
+export function computeCarouselPose(offset, count = CAROUSEL_RADIUS * 2 + 1) {
   const abs = Math.abs(offset);
   const sign = offset === 0 ? 0 : Math.sign(offset);
   const yawTilt = sign * Math.min(abs * CAROUSEL_YAW_STEP, CAROUSEL_YAW_CAP);
+  const radius = carouselVisibleRadius(count);
+  const spacing = carouselSpacing(count);
   /** Keep neighbours in front of folder fronts even after selected-folder push. */
   const maxRecede = Math.max(0.12, CAROUSEL_FORWARD - FOLDER_D - 0.55);
   return {
-    x: offset * CAROUSEL_SPACING,
-    y: REPORT_H * 0.5 + (abs === 0 ? 0.28 : 0.1),
+    x: offset * spacing,
+    y: REPORT_H * 0.5 + (abs === 0 ? 0.22 : 0.08),
     z: -Math.min(abs * CAROUSEL_RECEDE, maxRecede),
     rx: 0,
     ry: CAROUSEL_FACE_YAW - yawTilt,
-    scale: abs === 0 ? CAROUSEL_FEATURED_SCALE : Math.max(0.8, 1 - abs * 0.09),
-    visible: abs <= CAROUSEL_RADIUS,
+    scale: abs === 0 ? CAROUSEL_FEATURED_SCALE : Math.max(0.64, 1 - abs * 0.07),
+    visible: abs <= radius,
     featured: offset === 0,
   };
 }

@@ -7,8 +7,10 @@ import {
   FOLDER_D,
   FOLDER_W,
   REPORT_H,
+  CAROUSEL_FEATURED_SCALE,
   carouselOrigin,
   carouselSignedOffset,
+  carouselSpan,
   computeArchiveLayout,
   computeCarouselPose,
   computeLayout,
@@ -18,6 +20,7 @@ import {
   disposeSharedResources,
   layoutExtents,
   reportHitAllowed,
+  shortestAngleDelta,
   shouldUseTwoRows,
 } from "./geometry.js";
 
@@ -34,10 +37,10 @@ const EXIT_X = 12;
 const MORPH_MS = 900;
 const CAM_FOV = 22;
 const TAP_SLOP = 18;
-const SELECT_SCALE = 1.08;
-const REST_SCALE = 0.94;
-const SELECT_FORWARD = 0.55;
-const REST_RECEDE = 0.4;
+const SELECT_SCALE = 1.06;
+const REST_SCALE = 0.86;
+const SELECT_FORWARD = 0.28;
+const REST_RECEDE = 1.05;
 const FOLLOW_SELECTED = 0.07;
 const FOLLOW_FOLDER = 0.06;
 const FOLLOW_CAROUSEL = 0.12;
@@ -68,25 +71,41 @@ function folderTarget(fromLayout, toLayout, id, entry) {
   };
 }
 
-function fitRowCamera(layout, aspect, outPos, outLook, { carousel = false } = {}) {
+function fitRowCamera(layout, aspect, outPos, outLook) {
   const ext = layoutExtents(layout);
-  const padX = carousel ? 1.35 : 1.15;
-  const padZ = carousel ? 2.35 : 0.95;
+  const padX = 1.15;
+  const padZ = 0.95;
   const worldW = ext.width + padX * 2;
-  const worldH = FOLDER_BACK_H + (carousel ? 2.15 : 1.55);
+  const worldH = FOLDER_BACK_H + 1.55;
   const worldD = ext.depth + padZ * 2;
   const fov = CAM_FOV * (Math.PI / 180);
   const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, 0.4));
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 7.2) * (carousel ? 1.14 : 1.08);
+  const dist = Math.max(distX, distY, distZ, 7.2) * 1.08;
 
-  outLook.set(
-    (ext.minX + ext.maxX) / 2,
-    carousel ? 1.42 : 1.18,
-    (ext.minZ + ext.maxZ) / 2 + (carousel ? 0.9 : 0),
-  );
+  outLook.set((ext.minX + ext.maxX) / 2, 1.18, (ext.minZ + ext.maxZ) / 2);
   outPos.set(outLook.x - 0.36 * dist, outLook.y + 0.5 * dist, outLook.z + dist);
+}
+
+function folderReportCount(layout, folderId) {
+  const meta = layout.folderPos[folderId]?.folder;
+  return meta?.count ?? meta?.reports?.length ?? 7;
+}
+
+function fitCarouselCamera(layout, aspect, folderId, outPos, outLook) {
+  const origin = carouselOrigin(layout);
+  const span = carouselSpan(folderReportCount(layout, folderId));
+  const fov = CAM_FOV * (Math.PI / 180);
+  const a = Math.max(aspect, 0.5);
+  const worldW = span * 0.82;
+  const worldH = REPORT_H * CAROUSEL_FEATURED_SCALE + 0.85;
+  const distX = worldW / 2 / (Math.tan(fov / 2) * a);
+  const distY = worldH / 2 / Math.tan(fov / 2);
+  const dist = Math.max(distX, distY, 3.4) * 0.86;
+
+  outLook.set(origin.x, REPORT_H * 0.56, origin.z);
+  outPos.set(origin.x - 0.05 * dist, outLook.y + 0.16 * dist, origin.z + dist);
 }
 
 function fitArchiveCamera(archive, aspect, outPos, outLook) {
@@ -305,6 +324,30 @@ export default function ArchiveScene({
     const destPos = new THREE.Vector3();
     const destLook = new THREE.Vector3();
     const projected = new THREE.Vector3();
+    const parentScratch = new THREE.Vector3();
+
+    const reparentKeepWorldPosition = (obj, parent) => {
+      if (obj.parent === parent) return;
+      obj.updateWorldMatrix(true, false);
+      obj.getWorldPosition(parentScratch);
+      parent.add(obj);
+      parent.updateWorldMatrix(true, false);
+      parent.worldToLocal(parentScratch);
+      obj.position.copy(parentScratch);
+      obj.rotation.x = 0;
+      obj.rotation.z = 0;
+    };
+
+    const followYaw = (obj, target, t) => {
+      obj.rotation.x = 0;
+      obj.rotation.z = 0;
+      const delta = shortestAngleDelta(obj.rotation.y, target);
+      if (Math.abs(delta) > Math.PI / 2) {
+        obj.rotation.y = target;
+        return;
+      }
+      obj.rotation.y += delta * t;
+    };
 
     fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
     fitRowCamera(startLayout, camera.aspect, destPos, destLook);
@@ -472,7 +515,7 @@ export default function ArchiveScene({
           entry.group.rotation.set(pose.rx ?? 0, 0, 0);
           entry.group.scale.setScalar(1);
         } else {
-          folderEntry.group.attach(entry.group);
+          reparentKeepWorldPosition(entry.group, folderEntry.group);
         }
         entry.folderId = folderId;
       }
@@ -516,9 +559,11 @@ export default function ArchiveScene({
       const shelved = filed >= 0.995;
 
       fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
-      fitRowCamera(toLayout, camera.aspect, destPos, destLook, {
-        carousel: Boolean(selectedFolder && shelved && !shuffling),
-      });
+      if (selectedFolder && shelved && !shuffling) {
+        fitCarouselCamera(toLayout, camera.aspect, selectedFolder, destPos, destLook);
+      } else {
+        fitRowCamera(toLayout, camera.aspect, destPos, destLook);
+      }
       if (!shelved) {
         camPos.lerpVectors(introPos, destPos, camT);
         camLook.lerpVectors(introLook, destLook, camT);
@@ -670,7 +715,7 @@ export default function ArchiveScene({
           g.position.y += (ty - g.position.y) * follow;
           g.position.z += (tz - g.position.z) * follow;
           g.rotation.x += (targetRx - g.rotation.x) * follow;
-          g.rotation.y += (targetRy - g.rotation.y) * follow;
+          g.rotation.y += shortestAngleDelta(g.rotation.y, targetRy) * follow;
           g.scale.setScalar(1);
           continue;
         }
@@ -687,14 +732,14 @@ export default function ArchiveScene({
         const g = entry.group;
 
         if (inCarousel) {
-          if (g.parent !== scene) scene.attach(g);
+          reparentKeepWorldPosition(g, scene);
           const origin = stageOrigin ?? carouselOrigin(toLayout);
           const offset = carouselSignedOffset(
             dest.slotIndex,
             carouselIndexRef.current,
             dest.count,
           );
-          const pose = computeCarouselPose(offset);
+          const pose = computeCarouselPose(offset, dest.count);
           if (!pose.visible) {
             g.visible = false;
             continue;
@@ -707,8 +752,7 @@ export default function ArchiveScene({
           g.position.x += (tx - g.position.x) * follow;
           g.position.y += (ty - g.position.y) * follow;
           g.position.z += (tz - g.position.z) * follow;
-          g.rotation.x += (pose.rx - g.rotation.x) * follow;
-          g.rotation.y += (pose.ry - g.rotation.y) * follow;
+          followYaw(g, pose.ry, follow);
           g.scale.setScalar(g.scale.x + (pose.scale - g.scale.x) * follow);
           continue;
         }
@@ -748,7 +792,7 @@ export default function ArchiveScene({
         g.position.y += (targetY - g.position.y) * follow;
         g.position.z += (targetZ - g.position.z) * follow;
         g.rotation.x += (targetRx - g.rotation.x) * follow;
-        g.rotation.y += (0 - g.rotation.y) * follow;
+        g.rotation.y += shortestAngleDelta(g.rotation.y, 0) * follow;
         const s = isReport ? 1.08 : 1;
         g.scale.setScalar(g.scale.x + (s - g.scale.x) * follow);
       }
