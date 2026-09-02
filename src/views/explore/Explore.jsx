@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import ArchiveSection from "./ArchiveSection.jsx";
 import {
+  FROM_MAP_LOCK_MS,
   applyOrganizeDelta,
   isFiled,
+  isPastArchive,
+  shouldParkOnArchive,
+  shouldUnfileTowardIntro,
   waypointFromScroll,
 } from "./archivePhysics.js";
 import MapSection from "./MapSection.jsx";
@@ -113,38 +117,74 @@ export default function Explore() {
       return next;
     };
 
-    const pastArchive = () => {
-      const map = document.getElementById("map");
-      if (!map) return false;
-      return scroller.scrollTop >= map.offsetTop - 12;
-    };
+    const onMap = () =>
+      isPastArchive(
+        scroller.scrollTop,
+        document.getElementById("map")?.offsetTop,
+      );
 
     const lockToIntro = () => {
       if (organizeRef.current >= 1) return;
+      const archive = document.getElementById("archive");
+      if (archive && scroller.scrollTop >= archive.offsetTop - 8) return;
       if (scroller.scrollTop > 1) scroller.scrollTop = 0;
     };
 
-    const onWheel = (event) => {
+    const parkOnArchive = () => {
+      const archive = document.getElementById("archive");
+      if (!archive) return;
+      const top = archive.offsetTop;
+      if (Math.abs(scroller.scrollTop - top) > 2) {
+        scroller.scrollTo({ top, behavior: "auto" });
+      }
+    };
+
+    let fromMapLock = false;
+    let fromMapTimer = 0;
+    const armFromMapLock = () => {
+      fromMapLock = true;
+      window.clearTimeout(fromMapTimer);
+      fromMapTimer = window.setTimeout(() => {
+        fromMapLock = false;
+      }, FROM_MAP_LOCK_MS);
+    };
+
+    const handleDelta = (deltaY, event) => {
       const current = organizeRef.current;
-      const down = event.deltaY > 0;
+      const motion = {
+        deltaY,
+        onMap: onMap(),
+        fromMapLock,
+        organize: current,
+      };
       // Mid-file: consume the wheel so snap cannot skip the archive.
       if (current > 0 && current < 1) {
         event.preventDefault();
-        apply(event.deltaY);
+        apply(deltaY);
         lockToIntro();
         return;
       }
-      if (current <= 0 && down) {
+      if (current <= 0 && deltaY > 0) {
         event.preventDefault();
-        apply(event.deltaY);
+        apply(deltaY);
         lockToIntro();
         return;
       }
-      if (current >= 1 && !down && !pastArchive()) {
+      if (shouldParkOnArchive(motion)) {
         event.preventDefault();
-        apply(event.deltaY);
+        armFromMapLock();
+        parkOnArchive();
+        return;
+      }
+      if (shouldUnfileTowardIntro(motion)) {
+        event.preventDefault();
+        apply(deltaY);
       }
       // Filed + downward wheel is not captured — snap can release to #map.
+    };
+
+    const onWheel = (event) => {
+      handleDelta(event.deltaY, event);
     };
 
     let touchY = null;
@@ -155,21 +195,20 @@ export default function Explore() {
       if (touchY == null) return;
       const y = event.touches[0]?.clientY;
       if (y == null) return;
-      const dy = touchY - y;
-      const current = organizeRef.current;
-      if (current > 0 && current < 1) {
-        event.preventDefault();
-        apply(dy);
-        lockToIntro();
-      } else if (current <= 0 && dy > 0) {
-        event.preventDefault();
-        apply(dy);
-        lockToIntro();
-      } else if (current >= 1 && dy < 0 && !pastArchive()) {
-        event.preventDefault();
-        apply(dy);
-      }
+      handleDelta(touchY - y, event);
       touchY = y;
+    };
+
+    const onKeyDown = (event) => {
+      if (event.defaultPrevented) return;
+      if (event.key !== "PageUp") return;
+      if (event.target?.closest?.("input, textarea, select, [contenteditable='true']")) {
+        return;
+      }
+      if (!onMap() && !fromMapLock) return;
+      event.preventDefault();
+      armFromMapLock();
+      parkOnArchive();
     };
 
     const onScroll = () => {
@@ -179,11 +218,14 @@ export default function Explore() {
     scroller.addEventListener("wheel", onWheel, { passive: false });
     scroller.addEventListener("touchstart", onTouchStart, { passive: true });
     scroller.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("keydown", onKeyDown);
     scroller.addEventListener("scroll", onScroll, { passive: true });
     return () => {
+      window.clearTimeout(fromMapTimer);
       scroller.removeEventListener("wheel", onWheel);
       scroller.removeEventListener("touchstart", onTouchStart);
       scroller.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("keydown", onKeyDown);
       scroller.removeEventListener("scroll", onScroll);
     };
   }, [reduceMotion]);

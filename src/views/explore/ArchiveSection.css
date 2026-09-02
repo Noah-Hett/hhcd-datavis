@@ -78,7 +78,8 @@
   scroll-behavior: auto;
 }
 
-#archive {
+#archive,
+#intro {
   scroll-snap-stop: always;
 }
 

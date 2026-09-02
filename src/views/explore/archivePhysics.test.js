@@ -5,6 +5,9 @@ import {
   applyOrganizeDelta,
   isArchiveFiled,
   isFiled,
+  isPastArchive,
+  shouldParkOnArchive,
+  shouldUnfileTowardIntro,
   waypointFromScroll,
 } from "./archivePhysics.js";
 
@@ -66,4 +69,54 @@ test("waypointFromScroll prefers map, then filed archive, then intro", () => {
     }),
     "map",
   );
+});
+
+test("isPastArchive is true once scroll reaches the map", () => {
+  assert.equal(isPastArchive(1588, 1600), true);
+  assert.equal(isPastArchive(1570, 1600), false);
+  assert.equal(isPastArchive(0, null), false);
+});
+
+test("upward wheel from the map parks on archive instead of unfiling", () => {
+  const fromMap = {
+    deltaY: -80,
+    onMap: true,
+    fromMapLock: false,
+    organize: 1,
+  };
+  assert.equal(shouldParkOnArchive(fromMap), true);
+  assert.equal(shouldUnfileTowardIntro(fromMap), false);
+});
+
+test("trackpad inertia after leaving the map still parks while latched", () => {
+  const latched = {
+    deltaY: -40,
+    onMap: false,
+    fromMapLock: true,
+    organize: 1,
+  };
+  assert.equal(shouldParkOnArchive(latched), true);
+  assert.equal(shouldUnfileTowardIntro(latched), false);
+});
+
+test("a later upward gesture on the archive unfiles toward intro", () => {
+  const settled = {
+    deltaY: -80,
+    onMap: false,
+    fromMapLock: false,
+    organize: 1,
+  };
+  assert.equal(shouldParkOnArchive(settled), false);
+  assert.equal(shouldUnfileTowardIntro(settled), true);
+});
+
+test("downward wheel never parks or unfiles", () => {
+  const down = {
+    deltaY: 80,
+    onMap: true,
+    fromMapLock: true,
+    organize: 1,
+  };
+  assert.equal(shouldParkOnArchive(down), false);
+  assert.equal(shouldUnfileTowardIntro(down), false);
 });

@@ -23,3 +23,41 @@ export function waypointFromScroll({
   }
   return "intro";
 }
+
+/** How long after an upward flick from the map we keep parking on #archive. */
+export const FROM_MAP_LOCK_MS = 520;
+
+export function isPastArchive(scrollTop, mapTop, slop = 12) {
+  if (mapTop == null) return false;
+  return Number(scrollTop) >= Number(mapTop) - slop;
+}
+
+/**
+ * Up from the map — or while the post-map latch is still held — must park
+ * on the filed archive. Do not start unfiling in the same gesture.
+ */
+export function shouldParkOnArchive({
+  deltaY,
+  onMap,
+  fromMapLock,
+  organize,
+}) {
+  if (Number(deltaY) >= 0) return false;
+  if (onMap) return true;
+  return Boolean(fromMapLock) && Number(organize) >= 1;
+}
+
+/** Second, separate upward gesture on the archive unfiles toward the intro. */
+export function shouldUnfileTowardIntro({
+  deltaY,
+  onMap,
+  fromMapLock,
+  organize,
+}) {
+  return (
+    Number(organize) >= 1 &&
+    Number(deltaY) < 0 &&
+    !onMap &&
+    !fromMapLock
+  );
+}

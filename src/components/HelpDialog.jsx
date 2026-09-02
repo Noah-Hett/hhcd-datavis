@@ -65,7 +65,8 @@ export default function HelpDialog({ open, onClose }) {
               <strong>Map</strong> — a year × type scatter, coloured by theme,
               with method pills that grey out when they are not active. On a
               phone, the first tap peeks a map tooltip; the second tap opens
-              the sidebar.
+              the sidebar. Scroll up from the map to stop on the folders;
+              scroll up again after a pause to return to the intro.
             </li>
           </ol>
           <h3>Grouping and methods</h3>
