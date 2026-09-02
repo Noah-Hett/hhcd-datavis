@@ -40,6 +40,7 @@
 .explore-archive-span {
   display: grid;
   grid-template-rows: 1fr 1fr;
+  height: 200%;
 }
 
 .explore-archive-span .archive-section {
@@ -56,32 +57,24 @@
 .explore-archive-span > #intro {
   grid-column: 1;
   grid-row: 1;
-  height: 100%;
-  min-height: 0;
 }
 
 .explore-archive-span > #archive {
   grid-column: 1;
   grid-row: 2;
-  height: 100%;
+}
+
+.explore-archive-span > #intro,
+.explore-archive-span > #archive {
+  height: auto;
   min-height: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .explore-archive-span .archive-section .intro {
   pointer-events: none;
   padding-top: 58px;
-}
-
-/* Hold snap while files are still on show so a wheel tick cannot skip #archive. */
-.explore-scroll.is-filing,
-.explore-scroll.is-parking-archive {
-  scroll-snap-type: none;
-  scroll-behavior: auto;
-}
-
-#archive,
-#intro {
-  scroll-snap-stop: always;
 }
 
 .explore-waypoints-slot {

@@ -57,16 +57,17 @@ export default function HelpDialog({ open, onClose }) {
               sit on show, 2000–2017, not yet filed.
             </li>
             <li>
-              <strong>Archive</strong> — scroll or swipe to file documents into
-              magazine folders. Theme, Year, and Type appear once they are
-              filed. If the 3D scene cannot run, a folder list is the fallback.
+              <strong>Archive</strong> — the middle waypoint. Scroll down from
+              the intro to file documents into magazine folders; scroll up from
+              the map to return here. Theme, Year, and Type appear once they
+              are filed. If the 3D scene cannot run, a folder list is the
+              fallback.
             </li>
             <li>
               <strong>Map</strong> — a year × type scatter, coloured by theme,
               with method pills that grey out when they are not active. On a
               phone, the first tap peeks a map tooltip; the second tap opens
-              the sidebar. Scroll up from the map to stop on the folders;
-              scroll up again after a pause to return to the intro.
+              the sidebar.
             </li>
           </ol>
           <h3>Grouping and methods</h3>

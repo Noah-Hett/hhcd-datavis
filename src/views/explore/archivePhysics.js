@@ -11,53 +11,22 @@ export function isArchiveFiled(organize, reduceMotion = false) {
 /** Scroller alias — Explore treats organize >= 1 (or reduced motion) as filed. */
 export const isFiled = isArchiveFiled;
 
-export function waypointFromScroll({
-  scrollTop,
-  archiveTop,
-  mapTop,
-  filed,
-}) {
-  if (mapTop != null && scrollTop >= mapTop - 40) return "map";
-  if (filed || (archiveTop != null && scrollTop >= archiveTop - 40)) {
+const WAYPOINT_SLOP = 40;
+
+/**
+ * Filing follows how far the scroller has travelled from intro (0) to
+ * archive (1). Past the archive — including the map — stays fully filed.
+ */
+export function organizeFromScroll(scrollTop, archiveTop) {
+  const top = Number(archiveTop);
+  if (!Number.isFinite(top) || top <= 0) return 1;
+  return Math.min(1, Math.max(0, Number(scrollTop) / top));
+}
+
+export function waypointFromScroll({ scrollTop, archiveTop, mapTop }) {
+  if (mapTop != null && scrollTop >= mapTop - WAYPOINT_SLOP) return "map";
+  if (archiveTop != null && scrollTop >= archiveTop - WAYPOINT_SLOP) {
     return "archive";
   }
   return "intro";
-}
-
-/** How long after an upward flick from the map we keep parking on #archive. */
-export const FROM_MAP_LOCK_MS = 520;
-
-export function isPastArchive(scrollTop, mapTop, slop = 12) {
-  if (mapTop == null) return false;
-  return Number(scrollTop) >= Number(mapTop) - slop;
-}
-
-/**
- * Up from the map — or while the post-map latch is still held — must park
- * on the filed archive. Do not start unfiling in the same gesture.
- */
-export function shouldParkOnArchive({
-  deltaY,
-  onMap,
-  fromMapLock,
-  organize,
-}) {
-  if (Number(deltaY) >= 0) return false;
-  if (onMap) return true;
-  return Boolean(fromMapLock) && Number(organize) >= 1;
-}
-
-/** Second, separate upward gesture on the archive unfiles toward the intro. */
-export function shouldUnfileTowardIntro({
-  deltaY,
-  onMap,
-  fromMapLock,
-  organize,
-}) {
-  return (
-    Number(organize) >= 1 &&
-    Number(deltaY) < 0 &&
-    !onMap &&
-    !fromMapLock
-  );
 }
