@@ -25,10 +25,19 @@
   display: none;
 }
 
-.archive-section .report-btn.is-selected,
-.archive-section .report-btn[aria-current="true"] {
-  background: var(--archive-hover);
-  box-shadow: inset 3px 0 0 var(--archive-ink);
+.archive-section .archive-bar .toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.archive-section .archive-bar .toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--archive-ink);
 }
 
 .archive-section :where(a, button, input, [tabindex]):focus-visible,
@@ -112,6 +121,26 @@
 .archive-section .archive.is-filed .intro {
   background: none;
   padding: 0;
+}
+
+@media (max-width: 860px) {
+  .archive-section .stage {
+    flex: 1 1 auto;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .archive-section .stage-visual {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 12rem;
+    max-height: none;
+  }
+
+  .archive-section .archive {
+    overflow: hidden;
+  }
 }
 
 @media (max-width: 640px) {

@@ -18,8 +18,6 @@ import {
 
 export { ORGANIZE_SCALE, applyOrganizeDelta, isArchiveFiled, isFiled };
 
-const STACKED_QUERY = "(max-width: 860px)";
-
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -31,28 +29,24 @@ export default function ArchiveSection({
   onOrganizeDelta,
   captureWheel = true,
 }) {
-  const { selectedReportNo, openReport, clearReport } = useSelection();
+  const {
+    selectedReportNo,
+    selectedFolderId,
+    sidebarOpen,
+    source,
+    openReport,
+    openFolder,
+    clearReport,
+  } = useSelection();
   const stageRef = useRef(null);
   const organizeRef = useRef(0);
-  const listButtonRef = useRef(null);
   const [grouping, setGrouping] = useState("theme");
   const [internalOrganize, setInternalOrganize] = useState(() =>
     prefersReducedMotion() ? 1 : 0,
   );
-  const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
   const [webglFailed, setWebglFailed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
-  const [stacked, setStacked] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia
-      ? window.matchMedia(STACKED_QUERY).matches
-      : false,
-  );
-  const [listOpen, setListOpen] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia
-      ? window.matchMedia(STACKED_QUERY).matches
-      : false,
-  );
 
   const controlled = organizeProp != null;
   const organize = reduceMotion ? 1 : controlled ? organizeProp : internalOrganize;
@@ -85,29 +79,33 @@ export default function ArchiveSection({
   }, []);
 
   useEffect(() => {
-    const media = window.matchMedia(STACKED_QUERY);
-    const onChange = () => {
-      const next = media.matches;
-      setStacked(next);
-      setListOpen(next);
-    };
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  useEffect(() => {
     const next = folderForReport(grouping, selectedReportNo);
     if (selectedReportNo && next) {
-      setSelectedFolderId(next.id);
+      if (next.id !== selectedFolderId) {
+        openReport(selectedReportNo, {
+          folderId: next.id,
+          source: source ?? "archive",
+        });
+      }
       return;
     }
     if (
       selectedFolderId &&
       !folders.some((folder) => folder.id === selectedFolderId)
     ) {
-      setSelectedFolderId(null);
+      if (folders[0] && sidebarOpen) openFolder(folders[0].id);
+      else openFolder(null);
     }
-  }, [grouping, selectedReportNo, folders, selectedFolderId]);
+  }, [
+    grouping,
+    selectedReportNo,
+    selectedFolderId,
+    folders,
+    sidebarOpen,
+    source,
+    openReport,
+    openFolder,
+  ]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -136,7 +134,8 @@ export default function ArchiveSection({
   }, [reduceMotion]);
 
   useEffect(() => {
-    if (webglFailed) setListOpen(true);
+    if (webglFailed && folders[0]) openFolder(folders[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webglFailed]);
 
   useEffect(() => {
@@ -183,23 +182,13 @@ export default function ArchiveSection({
     if (!isFiled) finishIntro();
   };
 
-  const openList = () => setListOpen(true);
-
-  const toggleList = () => {
-    setListOpen((open) => {
-      const next = !open;
-      setAnnouncement(next ? "Folder list shown." : "Folder list hidden.");
-      return next;
-    });
-  };
-
   const selectFolder = (id) => {
     if (!isFiled) finishIntro();
     if (!id || id === selectedFolderId) {
-      setSelectedFolderId(null);
+      openFolder(null);
       return;
     }
-    setSelectedFolderId(id);
+    openFolder(id);
   };
 
   const selectReport = (reportNo, trigger) => {
@@ -209,66 +198,37 @@ export default function ArchiveSection({
       return;
     }
     const folder = folderForReport(grouping, reportNo);
-    setSelectedFolderId(folder?.id ?? null);
-    setListOpen(true);
-    openReport(reportNo, { source: "archive", returnFocus: trigger });
+    openReport(reportNo, {
+      source: "archive",
+      returnFocus: trigger,
+      folderId: folder?.id ?? selectedFolderId,
+    });
+  };
+
+  const skipToFolderList = (event) => {
+    event.preventDefault();
+    finishIntro();
+    const first = folders[0];
+    if (first) openFolder(first.id);
+    window.setTimeout(() => {
+      const list = document.getElementById("archive-list");
+      list?.scrollIntoView();
+      list?.focus?.();
+    }, 50);
   };
 
   const hint = !isFiled
     ? "Scroll or swipe to file the reports into folders, then choose Theme, Year, or Type — or tap a folder."
-    : "Choose Theme, Year, or Type to regroup. Tap a folder to bring it closer; tap a risen report to open it.";
-
-  const panel = (
-    <aside
-      className="panel"
-      id="archive-panel"
-      hidden={!listOpen}
-      aria-label="Folder list"
-    >
-      <div className="panel-scroll">
-        <FolderIndex
-          groupingMeta={groupingMeta}
-          folders={folders}
-          selectedFolderId={selectedFolderId}
-          selectedReportNo={selectedReportNo}
-          onSelectFolder={selectFolder}
-          onSelectReport={selectReport}
-        />
-      </div>
-      <div className="panel-footer">
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={reduceMotion}
-            onChange={(event) => setReduceMotion(event.currentTarget.checked)}
-          />
-          Reduce motion
-        </label>
-      </div>
-    </aside>
-  );
+    : "Choose Theme, Year, or Type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The sidebar list has every report.";
 
   return (
     <div className="view-folders archive-section">
       <div
-        className={`archive ${stacked ? "is-stacked" : "is-wide"} ${listOpen ? "is-list-open" : "is-list-closed"} ${isFiled ? "is-filed" : "is-unfiled"}`}
+        className={`archive is-wide ${isFiled ? "is-filed" : "is-unfiled"}`}
         data-organize={organize}
         data-filed={isFiled ? "true" : "false"}
       >
-        <a
-          className="skip-link"
-          href="#archive-list"
-          onClick={(event) => {
-            event.preventDefault();
-            finishIntro();
-            openList();
-            window.setTimeout(() => {
-              const list = document.getElementById("archive-list");
-              list?.scrollIntoView();
-              list?.focus?.();
-            }, 50);
-          }}
-        >
+        <a className="skip-link" href="#archive-list" onClick={skipToFolderList}>
           Skip 3D scene, browse folders as a list
         </a>
         <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -296,7 +256,7 @@ export default function ArchiveSection({
                 <div className="webgl-fallback" role="status">
                   <p>
                     The 3D archive could not start in this browser. The folder
-                    list on this page has the same reports and grouping.
+                    list in the sidebar has the same reports and grouping.
                   </p>
                 </div>
               ) : (
@@ -345,102 +305,21 @@ export default function ArchiveSection({
                     File into folders
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  className="list-toggle"
-                  ref={listButtonRef}
-                  aria-expanded={listOpen}
-                  aria-controls="archive-panel"
-                  onClick={toggleList}
-                >
-                  {listOpen ? "Hide list" : "Show list"}
-                </button>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={reduceMotion}
+                    onChange={(event) =>
+                      setReduceMotion(event.currentTarget.checked)
+                    }
+                  />
+                  Reduce motion
+                </label>
               </div>
             </header>
           </div>
-          {!stacked ? panel : null}
         </div>
-        {stacked ? panel : null}
       </div>
-    </div>
-  );
-}
-
-function FolderIndex({
-  groupingMeta,
-  folders,
-  selectedFolderId,
-  selectedReportNo,
-  onSelectFolder,
-  onSelectReport,
-}) {
-  return (
-    <div>
-      <h2 className="panel-title">Folder list</h2>
-      <p className="panel-lead">
-        {groupingMeta?.description} The shelves show a peek of documents in
-        each folder — this list is the full set.
-      </p>
-
-      <h2 className="panel-kicker" id="folder-heading">
-        Folders by {groupingMeta?.label?.toLowerCase()}
-      </h2>
-      <ul className="folder-list" id="archive-list" tabIndex={-1}>
-        {folders.map((folder) => {
-          const open = folder.id === selectedFolderId;
-          return (
-            <li key={folder.id}>
-              <button
-                type="button"
-                className={`folder-btn ${open ? "is-open" : ""}`}
-                aria-expanded={open}
-                aria-controls={`folder-reports-${folder.id}`}
-                onClick={() => onSelectFolder(folder.id)}
-              >
-                <span className="folder-btn-label">{folder.label}</span>
-                <span className="folder-btn-count">
-                  {folder.count} {folder.count === 1 ? "report" : "reports"}
-                </span>
-              </button>
-              <ul
-                id={`folder-reports-${folder.id}`}
-                className="report-list"
-                hidden={!open}
-              >
-                {folder.reports.map((report) => (
-                  <li key={report.reportNo}>
-                    <button
-                      type="button"
-                      className={
-                        String(report.reportNo) === String(selectedReportNo)
-                          ? "report-btn is-selected"
-                          : "report-btn"
-                      }
-                      aria-current={
-                        String(report.reportNo) === String(selectedReportNo)
-                          ? "true"
-                          : undefined
-                      }
-                      onClick={(event) =>
-                        onSelectReport(report.reportNo, event.currentTarget)
-                      }
-                    >
-                      <span className="report-btn-meta">
-                        {report.year}
-                        <span aria-hidden="true"> · </span>
-                        <span className="sr-only">Theme: </span>
-                        {report.category}
-                      </span>
-                      <span className="report-btn-title">{report.title}</span>
-                      <span className="report-btn-author">{report.author}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-/* Mobile sheet polish for ReportSidebar. Desktop docking stays in index.css. */
+/* Mobile sheet polish for ReportSidebar. Desktop docking stays in index.css.
+   Backdrop and pointer-events that cover the page are mobile-only. */
 
 @media (max-width: 799px) {
   .report-sidebar-backdrop {
@@ -7,6 +8,7 @@
   }
 
   .report-sidebar {
+    position: fixed;
     z-index: 50;
     max-height: min(82dvh, 680px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -28,6 +30,13 @@
 
   .report-sidebar-title:focus:not(:focus-visible) {
     outline: none;
+  }
+}
+
+@media (min-width: 800px) {
+  .report-sidebar-backdrop {
+    display: none;
+    pointer-events: none;
   }
 }
 
