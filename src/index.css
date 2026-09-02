@@ -25,6 +25,15 @@
   --archive-hover: #eadcc9;
   --archive-focus: #1c140c;
 
+  /* Warm paper surface for chart interiors (map scatter, method carousel). */
+  --chart-surface: #fbf8f2;
+  --chart-grid: #d4c8b8;
+  --map-bg-gradient: linear-gradient(
+    180deg,
+    var(--archive-bg) 0%,
+    var(--chart-surface) 100%
+  );
+
   --app-header-h: 56px;
   --sidebar-w: 22rem;
 }
@@ -323,7 +332,7 @@ select {
 }
 
 .explore-map {
-  background: var(--bg);
+  background: var(--map-bg-gradient);
   min-height: 100%;
   height: 100%;
 }
