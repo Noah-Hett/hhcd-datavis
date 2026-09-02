@@ -149,6 +149,12 @@ test("mapReports keeps city/work and mobility/transport as separate colours", ()
   assert.deepEqual(byId.mobility.categories, ["Mobility and Transport"]);
   assert.deepEqual(byId.transport.categories, ["Transport"]);
 
+  assert.equal(byId.health.color, "#b66474");
+  assert.equal(byId.transport.color, "#977b3f");
+  assert.equal(byId.mobility.color, "#798831");
+  assert.equal(byId.work.color, "#5889a9");
+  assert.equal(byId.city.color, "#9773a1");
+
   assert.notEqual(byId.city.color, byId.work.color);
   assert.notEqual(byId.mobility.color, byId.transport.color);
 

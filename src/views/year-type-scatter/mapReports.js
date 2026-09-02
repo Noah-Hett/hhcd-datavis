@@ -17,36 +17,37 @@ const PROJECT_TYPE_TO_BAND = {
   "media campaign": 4,
 };
 
+/** Dot colours from the Figma theme swatches (left → right). */
 export const COLOR_GROUPS = [
-  {
-    id: "city",
-    label: "City and community",
-    color: "#7c3aed",
-    categories: ["City and community"],
-  },
-  {
-    id: "work",
-    label: "Work and workplace",
-    color: "#1e88e5",
-    categories: ["Work and workplace"],
-  },
   {
     id: "health",
     label: "Health and wellbeing",
-    color: "#e53935",
+    color: "#b66474",
     categories: ["Health and wellbeing"],
-  },
-  {
-    id: "mobility",
-    label: "Mobility and Transport",
-    color: "#ea580c",
-    categories: ["Mobility and Transport"],
   },
   {
     id: "transport",
     label: "Transport",
-    color: "#43a047",
+    color: "#977b3f",
     categories: ["Transport"],
+  },
+  {
+    id: "mobility",
+    label: "Mobility and Transport",
+    color: "#798831",
+    categories: ["Mobility and Transport"],
+  },
+  {
+    id: "work",
+    label: "Work and workplace",
+    color: "#5889a9",
+    categories: ["Work and workplace"],
+  },
+  {
+    id: "city",
+    label: "City and community",
+    color: "#9773a1",
+    categories: ["City and community"],
   },
 ];
 

@@ -33,11 +33,11 @@ export const YEAR_BUCKETS = [
 
 /** Dark cover colours kept for any text UI that still names a theme. */
 export const CATEGORY_PALETTE = [
-  { label: "Health and wellbeing", color: "#8B1A1A", initial: "H" },
-  { label: "Work and workplace", color: "#1E3A8A", initial: "W" },
-  { label: "City and community", color: "#5B21B6", initial: "C" },
-  { label: "Mobility and Transport", color: "#9A3412", initial: "M" },
-  { label: "Transport", color: "#14532D", initial: "T" },
+  { label: "Health and wellbeing", color: "#b66474", initial: "H" },
+  { label: "Transport", color: "#977b3f", initial: "T" },
+  { label: "Mobility and Transport", color: "#798831", initial: "M" },
+  { label: "Work and workplace", color: "#5889a9", initial: "W" },
+  { label: "City and community", color: "#9773a1", initial: "C" },
 ];
 
 /** Jacket colours — mostly paper, with a few tints. Not mapped to theme. */
