@@ -13,9 +13,11 @@
   --accent-bar: #1c140c;
   --focus: #1c140c;
 
-  --theme-city: #1976d2;
-  --theme-health: #d32f2f;
-  --theme-mobility: #2e7d32;
+  --theme-health: #b66474;
+  --theme-transport: #977b3f;
+  --theme-mobility: #798831;
+  --theme-work: #5889a9;
+  --theme-city: #9773a1;
 
   --archive-bg: #c9dce0;
   --archive-panel: #f7f1e8;
