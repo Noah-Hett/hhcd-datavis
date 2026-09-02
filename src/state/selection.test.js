@@ -54,7 +54,7 @@ test("openReport without folderId does not keep a previous folder", () => {
   assert.equal(next.source, "search");
 });
 
-test("openFolder clears the report and keeps the sidebar on that folder", () => {
+test("openFolder selects a folder without opening the sidebar", () => {
   const next = applyOpenFolder(
     {
       selectedReportNo: "11",
@@ -67,12 +67,43 @@ test("openFolder clears the report and keeps the sidebar on that folder", () => 
   assert.deepEqual(next, {
     selectedReportNo: null,
     selectedFolderId: "year:2004-2008",
-    sidebarOpen: true,
+    sidebarOpen: false,
     source: null,
   });
 });
 
-test("openFolder(null) matches clearReport", () => {
+test("openFolder with openSidebar: true opens the folder list", () => {
+  const next = applyOpenFolder(
+    {
+      selectedReportNo: null,
+      selectedFolderId: null,
+      sidebarOpen: false,
+      source: null,
+    },
+    "theme:Health and wellbeing",
+    { openSidebar: true },
+  );
+  assert.equal(next.selectedFolderId, "theme:Health and wellbeing");
+  assert.equal(next.selectedReportNo, null);
+  assert.equal(next.sidebarOpen, true);
+});
+
+test("openFolder(null) deselects the folder without clearing sidebar-uninvolved chrome", () => {
+  const fromOpen = applyOpenFolder(
+    {
+      selectedReportNo: null,
+      selectedFolderId: "theme:Health",
+      sidebarOpen: false,
+      source: null,
+    },
+    null,
+  );
+  assert.equal(fromOpen.selectedFolderId, null);
+  assert.equal(fromOpen.sidebarOpen, false);
+  assert.equal(fromOpen.selectedReportNo, null);
+});
+
+test("openFolder(null) keeps an open report sidebar", () => {
   const fromOpen = applyOpenFolder(
     {
       selectedReportNo: "11",
@@ -82,9 +113,10 @@ test("openFolder(null) matches clearReport", () => {
     },
     null,
   );
-  assert.deepEqual(fromOpen, applyClearReport());
-  assert.equal(fromOpen.sidebarOpen, false);
   assert.equal(fromOpen.selectedFolderId, null);
+  assert.equal(fromOpen.selectedReportNo, "11");
+  assert.equal(fromOpen.sidebarOpen, true);
+  assert.equal(fromOpen.source, "archive");
 });
 
 test("backSidebar drops the report and keeps the folder list open", () => {

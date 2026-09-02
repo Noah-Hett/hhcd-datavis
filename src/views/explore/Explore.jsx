@@ -1,38 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveSection from "./ArchiveSection.jsx";
 import { isFiled, organizeFromScroll } from "./archivePhysics.js";
 import MapSection from "./MapSection.jsx";
 
 const SCROLL_IDS = ["intro", "archive", "map"];
 
-function prefersReducedMotion() {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 export default function Explore() {
   const { hash } = useLocation();
+  const { reduceMotion } = useSelection();
   const scrollRef = useRef(null);
   const organizeRef = useRef(0);
-  const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
-  const [organize, setOrganize] = useState(() =>
-    prefersReducedMotion() ? 1 : 0,
-  );
+  const [organize, setOrganize] = useState(() => (reduceMotion ? 1 : 0));
   const filed = isFiled(organize, reduceMotion);
   organizeRef.current = organize;
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => {
-      const next = media.matches;
-      setReduceMotion(next);
-      if (next) setOrganize(1);
-    };
-    onChange();
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
+    if (reduceMotion) setOrganize(1);
+  }, [reduceMotion]);
 
   useEffect(() => {
     const id = hash.replace(/^#/, "");
@@ -70,7 +56,12 @@ export default function Explore() {
 
   return (
     <div className="view-explore">
-      <div className="explore-scroll" data-filed={filed ? "true" : "false"} ref={scrollRef}>
+      <div
+        className="explore-scroll"
+        data-filed={filed ? "true" : "false"}
+        data-reduce-motion={reduceMotion ? "true" : "false"}
+        ref={scrollRef}
+      >
         <div className="explore-archive-span">
           <ArchiveSection
             organize={organize}

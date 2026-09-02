@@ -33,15 +33,34 @@ export function SelectionProvider({ children }) {
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [sidebarOpen, setSidebarOpenState] = useState(false);
   const [source, setSource] = useState(null);
+  const [osReduceMotion, setOsReduceMotion] = useState(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
+  const [userReduceMotion, setUserReduceMotion] = useState(false);
+  const reduceMotion = osReduceMotion || userReduceMotion;
   const returnFocusRef = useRef(null);
   const selectedRef = useRef(null);
   const selectedFolderRef = useRef(null);
+  const sidebarOpenRef = useRef(false);
+  const sourceRef = useRef(null);
   const searchParamsRef = useRef(searchParams);
   // Ignore the stale ?report= value we just dismissed until the URL drops it.
   const ignoreUrlReportRef = useRef(null);
   selectedRef.current = selectedReportNo;
   selectedFolderRef.current = selectedFolderId;
+  sidebarOpenRef.current = sidebarOpen;
+  sourceRef.current = source;
   searchParamsRef.current = searchParams;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = () => setOsReduceMotion(media.matches);
+    onChange();
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
 
   const applySelection = useCallback((next) => {
     setSelectedReportNo(next.selectedReportNo);
@@ -149,19 +168,24 @@ export function SelectionProvider({ children }) {
   }, [applySelection, rememberDismissedReport, restoreReturnFocus, writeReportParam]);
 
   const openFolder = useCallback(
-    (id) => {
+    (id, options = {}) => {
       const folderId = normalizeFolderId(id);
-      rememberDismissedReport();
+      const current = {
+        selectedReportNo: selectedRef.current,
+        selectedFolderId: selectedFolderRef.current,
+        sidebarOpen: sidebarOpenRef.current,
+        source: sourceRef.current,
+      };
+      const next = applyOpenFolder(current, folderId, options);
       if (!folderId) {
-        applySelection(applyClearReport());
-        writeReportParam(null);
-        restoreReturnFocus();
+        applySelection(next);
         return;
       }
-      applySelection(applyOpenFolder(null, folderId));
+      rememberDismissedReport();
+      applySelection(next);
       writeReportParam(null);
     },
-    [applySelection, rememberDismissedReport, restoreReturnFocus, writeReportParam],
+    [applySelection, rememberDismissedReport, writeReportParam],
   );
 
   const backSidebar = useCallback(() => {
@@ -192,28 +216,36 @@ export function SelectionProvider({ children }) {
     [clearReport],
   );
 
+  const setReduceMotion = useCallback((value) => {
+    setUserReduceMotion(Boolean(value));
+  }, []);
+
   const value = useMemo(
     () => ({
       selectedReportNo,
       selectedFolderId,
       sidebarOpen,
       source,
+      reduceMotion,
       openReport,
       openFolder,
       backSidebar,
       clearReport,
       setSidebarOpen,
+      setReduceMotion,
     }),
     [
       selectedReportNo,
       selectedFolderId,
       sidebarOpen,
       source,
+      reduceMotion,
       openReport,
       openFolder,
       backSidebar,
       clearReport,
       setSidebarOpen,
+      setReduceMotion,
     ],
   );
 

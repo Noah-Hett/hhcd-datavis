@@ -18,11 +18,6 @@ import {
 
 export { ORGANIZE_SCALE, applyOrganizeDelta, isArchiveFiled, isFiled };
 
-function prefersReducedMotion() {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 export default function ArchiveSection({
   organize: organizeProp,
   onOrganizeChange,
@@ -34,6 +29,7 @@ export default function ArchiveSection({
     selectedFolderId,
     sidebarOpen,
     source,
+    reduceMotion,
     openReport,
     openFolder,
     clearReport,
@@ -42,9 +38,8 @@ export default function ArchiveSection({
   const organizeRef = useRef(0);
   const [grouping, setGrouping] = useState("theme");
   const [internalOrganize, setInternalOrganize] = useState(() =>
-    prefersReducedMotion() ? 1 : 0,
+    reduceMotion ? 1 : 0,
   );
-  const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
   const [webglFailed, setWebglFailed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
 
@@ -71,14 +66,6 @@ export default function ArchiveSection({
   const groupingMeta = GROUPINGS.find((item) => item.id === grouping);
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => setReduceMotion(media.matches);
-    onChange();
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  useEffect(() => {
     const next = folderForReport(grouping, selectedReportNo);
     if (selectedReportNo && next) {
       if (next.id !== selectedFolderId) {
@@ -93,8 +80,11 @@ export default function ArchiveSection({
       selectedFolderId &&
       !folders.some((folder) => folder.id === selectedFolderId)
     ) {
-      if (folders[0] && sidebarOpen) openFolder(folders[0].id);
-      else openFolder(null);
+      if (folders[0] && sidebarOpen) {
+        openFolder(folders[0].id, { openSidebar: true });
+      } else {
+        openFolder(null);
+      }
     }
   }, [
     grouping,
@@ -134,7 +124,9 @@ export default function ArchiveSection({
   }, [reduceMotion]);
 
   useEffect(() => {
-    if (webglFailed && folders[0]) openFolder(folders[0].id);
+    if (webglFailed && folders[0]) {
+      openFolder(folders[0].id, { openSidebar: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webglFailed]);
 
@@ -209,17 +201,13 @@ export default function ArchiveSection({
     event.preventDefault();
     finishIntro();
     const first = folders[0];
-    if (first) openFolder(first.id);
+    if (first) openFolder(first.id, { openSidebar: true });
     window.setTimeout(() => {
       const list = document.getElementById("archive-list");
       list?.scrollIntoView();
       list?.focus?.();
     }, 50);
   };
-
-  const hint = !isFiled
-    ? "Scroll or swipe to file the reports into folders, then choose Theme, Year, or Type — or tap a folder."
-    : "Choose Theme, Year, or Type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The sidebar list has every report.";
 
   return (
     <div className="view-folders archive-section">
@@ -271,10 +259,9 @@ export default function ArchiveSection({
                   onWebglError={() => setWebglFailed(true)}
                 />
               )}
-              <p className="scene-hint">{hint}</p>
             </div>
-            <header className="archive-bar">
-              <fieldset className="grouping-tabs" hidden={!isFiled}>
+            {isFiled ? (
+              <fieldset className="grouping-tabs">
                 <legend className="sr-only">Regroup the archive</legend>
                 {GROUPINGS.map((item) => (
                   <label
@@ -292,31 +279,7 @@ export default function ArchiveSection({
                   </label>
                 ))}
               </fieldset>
-              <div className="archive-bar-end">
-                <p className="scene-status">
-                  {reports.length} reports · {folders.length} folders
-                </p>
-                {!isFiled ? (
-                  <button
-                    type="button"
-                    className="list-toggle"
-                    onClick={finishIntro}
-                  >
-                    File into folders
-                  </button>
-                ) : null}
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={reduceMotion}
-                    onChange={(event) =>
-                      setReduceMotion(event.currentTarget.checked)
-                    }
-                  />
-                  Reduce motion
-                </label>
-              </div>
-            </header>
+            ) : null}
           </div>
         </div>
       </div>

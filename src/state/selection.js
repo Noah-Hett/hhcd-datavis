@@ -34,13 +34,20 @@ export function applyOpenReport(state, reportNo, options = {}) {
   };
 }
 
-export function applyOpenFolder(_state, folderId) {
+export function applyOpenFolder(state = {}, folderId, options = {}) {
   const id = normalizeFolderId(folderId);
-  if (!id) return applyClearReport();
+  if (!id) {
+    return {
+      selectedReportNo: state.selectedReportNo ?? null,
+      selectedFolderId: null,
+      sidebarOpen: Boolean(state.sidebarOpen),
+      source: state.source ?? null,
+    };
+  }
   return {
     selectedReportNo: null,
     selectedFolderId: id,
-    sidebarOpen: true,
+    sidebarOpen: options.openSidebar === true,
     source: null,
   };
 }
