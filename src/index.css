@@ -4,7 +4,7 @@
   --surface: #f7f1e8;
   --text: #1c140c;
   --muted: #3d2f22;
-  --border: #b7c8cc;
+  --border: #5e7074;
   --hover: #d7e6e9;
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
@@ -13,15 +13,15 @@
   --accent-bar: #1c140c;
   --focus: #1c140c;
 
-  --theme-city: #1e88e5;
-  --theme-health: #e53935;
-  --theme-mobility: #43a047;
+  --theme-city: #1976d2;
+  --theme-health: #d32f2f;
+  --theme-mobility: #2e7d32;
 
   --archive-bg: #c9dce0;
   --archive-panel: #f7f1e8;
   --archive-ink: #1c140c;
   --archive-muted: #3d2f22;
-  --archive-line: #cbbba6;
+  --archive-line: #7a6a55;
   --archive-hover: #eadcc9;
   --archive-focus: #1c140c;
 
@@ -98,11 +98,15 @@ select {
   transition: top 0.15s ease;
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
   top: 12px;
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
 }
 
-.skip-link-archive:focus {
+.skip-link-archive:focus,
+.skip-link-archive:focus-visible {
   left: 180px;
 }
 
@@ -268,9 +272,9 @@ select {
   display: contents;
 }
 
-:where(a, button, input, [tabindex]):focus-visible {
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 3px solid var(--focus);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 /* --- Explore scroller ------------------------------------------------- */
@@ -581,6 +585,10 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .skip-link,
   .report-sidebar,
   .explore-scroll {
@@ -590,5 +598,11 @@ select {
   .explore-scroll {
     scroll-snap-type: none;
     scroll-behavior: auto;
+  }
+
+  .explore-section,
+  #archive {
+    scroll-snap-align: none;
+    scroll-snap-stop: normal;
   }
 }
