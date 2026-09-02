@@ -77,10 +77,11 @@ export default function ArchiveSection({
 
   const folders = useMemo(() => groupReports(grouping), [grouping]);
   const groupingMeta = GROUPINGS.find((item) => item.id === grouping);
-  const carouselReports = useMemo(() => {
-    if (!selectedFolderId) return [];
-    return folders.find((folder) => folder.id === selectedFolderId)?.reports ?? [];
-  }, [folders, selectedFolderId]);
+  const openFolderMeta = useMemo(
+    () => folders.find((folder) => folder.id === selectedFolderId) ?? null,
+    [folders, selectedFolderId],
+  );
+  const carouselReports = openFolderMeta?.reports ?? [];
   const carouselActive = Boolean(
     isFiled && selectedFolderId && carouselReports.length && !webglFailed,
   );
@@ -328,6 +329,11 @@ export default function ArchiveSection({
                 }
                 onKeyDown={onCarouselKeyDown}
               >
+                {carouselActive && openFolderMeta ? (
+                  <div className="scene-folder-caption" aria-hidden="true">
+                    {openFolderMeta.label} ({openFolderMeta.count})
+                  </div>
+                ) : null}
                 {carouselActive && carouselReports.length > 1 ? (
                   <button
                     type="button"

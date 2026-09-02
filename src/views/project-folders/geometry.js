@@ -355,11 +355,14 @@ export const ARCHIVE_ROWS = 3;
 /** Cover-flow when a folder is selected: featured item plus this many neighbours each side. */
 export const CAROUSEL_RADIUS = 2;
 export const CAROUSEL_SPACING = 1.18;
-export const CAROUSEL_FORWARD = 1.72;
+export const CAROUSEL_FORWARD = 3.1;
 export const CAROUSEL_RECEDE = 0.36;
-export const CAROUSEL_FEATURED_SCALE = 1.12;
+export const CAROUSEL_FEATURED_SCALE = 1.22;
 /** Cover sits on local −X; +π/2 yaw faces it toward a camera on +Z. */
 export const CAROUSEL_FACE_YAW = Math.PI / 2;
+/** Neighbour tilt stays small enough that cover titles keep facing the camera. */
+export const CAROUSEL_YAW_STEP = 0.22;
+export const CAROUSEL_YAW_CAP = 0.38;
 
 /** Rest peek spacing stays tight; selected folders fan wide enough to read titles. */
 export function selectPeekSlot(count) {
@@ -397,18 +400,31 @@ export function carouselAnnouncement(index, count, title) {
 }
 
 /**
+ * Filed folders only pick reports from the open sleeve. Scatter / unfiled
+ * reports stay clickable.
+ */
+export function reportHitAllowed({ filed, selectedFolderId, folderId }) {
+  if (!filed) return true;
+  if (!selectedFolderId) return false;
+  return folderId === selectedFolderId;
+}
+
+/**
  * Local cover-flow pose relative to the carousel origin.
  * Offset 0 is featured (large, facing camera); neighbours recede to the sides.
  */
 export function computeCarouselPose(offset) {
   const abs = Math.abs(offset);
   const sign = offset === 0 ? 0 : Math.sign(offset);
+  const yawTilt = sign * Math.min(abs * CAROUSEL_YAW_STEP, CAROUSEL_YAW_CAP);
+  /** Keep neighbours in front of folder fronts even after selected-folder push. */
+  const maxRecede = Math.max(0.12, CAROUSEL_FORWARD - FOLDER_D - 0.55);
   return {
     x: offset * CAROUSEL_SPACING,
     y: REPORT_H * 0.5 + (abs === 0 ? 0.28 : 0.1),
-    z: -abs * CAROUSEL_RECEDE,
+    z: -Math.min(abs * CAROUSEL_RECEDE, maxRecede),
     rx: 0,
-    ry: CAROUSEL_FACE_YAW - sign * Math.min(abs, 2) * 0.5,
+    ry: CAROUSEL_FACE_YAW - yawTilt,
     scale: abs === 0 ? CAROUSEL_FEATURED_SCALE : Math.max(0.8, 1 - abs * 0.09),
     visible: abs <= CAROUSEL_RADIUS,
     featured: offset === 0,

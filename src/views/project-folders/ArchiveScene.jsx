@@ -17,6 +17,7 @@ import {
   createSharedResources,
   disposeSharedResources,
   layoutExtents,
+  reportHitAllowed,
   shouldUseTwoRows,
 } from "./geometry.js";
 
@@ -33,7 +34,14 @@ const EXIT_X = 12;
 const MORPH_MS = 900;
 const CAM_FOV = 22;
 const TAP_SLOP = 18;
-const SELECT_SCALE = 1.06;
+const SELECT_SCALE = 1.08;
+const REST_SCALE = 0.94;
+const SELECT_FORWARD = 0.55;
+const REST_RECEDE = 0.4;
+const FOLLOW_SELECTED = 0.07;
+const FOLLOW_FOLDER = 0.06;
+const FOLLOW_CAROUSEL = 0.12;
+const FOLLOW_REPORT = 0.2;
 
 function folderTarget(fromLayout, toLayout, id, entry) {
   const from = fromLayout.folderPos[id];
@@ -60,20 +68,24 @@ function folderTarget(fromLayout, toLayout, id, entry) {
   };
 }
 
-function fitRowCamera(layout, aspect, outPos, outLook) {
+function fitRowCamera(layout, aspect, outPos, outLook, { carousel = false } = {}) {
   const ext = layoutExtents(layout);
-  const padX = 1.15;
-  const padZ = 0.95;
+  const padX = carousel ? 1.35 : 1.15;
+  const padZ = carousel ? 2.35 : 0.95;
   const worldW = ext.width + padX * 2;
-  const worldH = FOLDER_BACK_H + 1.55;
+  const worldH = FOLDER_BACK_H + (carousel ? 2.15 : 1.55);
   const worldD = ext.depth + padZ * 2;
   const fov = CAM_FOV * (Math.PI / 180);
   const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, 0.4));
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 7.2) * 1.08;
+  const dist = Math.max(distX, distY, distZ, 7.2) * (carousel ? 1.14 : 1.08);
 
-  outLook.set((ext.minX + ext.maxX) / 2, 1.18, (ext.minZ + ext.maxZ) / 2);
+  outLook.set(
+    (ext.minX + ext.maxX) / 2,
+    carousel ? 1.42 : 1.18,
+    (ext.minZ + ext.maxZ) / 2 + (carousel ? 0.9 : 0),
+  );
   outPos.set(outLook.x - 0.36 * dist, outLook.y + 0.5 * dist, outLook.z + dist);
 }
 
@@ -337,8 +349,18 @@ export default function ArchiveScene({
           const pose = layouts[transTo][twoRows ? "two" : "single"].reportPos[
             data.reportNo
           ];
-          if (organizeRef.current < 0.95 && !reduceRef.current) return hit;
+          const filed = organizeRef.current >= 0.95 || reduceRef.current;
+          if (!filed) return hit;
           if (!pose) continue;
+          if (
+            !reportHitAllowed({
+              filed,
+              selectedFolderId: selectedFolderRef.current,
+              folderId: pose.folderId,
+            })
+          ) {
+            continue;
+          }
           return hit;
         }
         if (data.kind === "folder") {
@@ -494,7 +516,9 @@ export default function ArchiveScene({
       const shelved = filed >= 0.995;
 
       fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
-      fitRowCamera(toLayout, camera.aspect, destPos, destLook);
+      fitRowCamera(toLayout, camera.aspect, destPos, destLook, {
+        carousel: Boolean(selectedFolder && shelved && !shuffling),
+      });
       if (!shelved) {
         camPos.lerpVectors(introPos, destPos, camT);
         camLook.lerpVectors(introLook, destLook, camT);
@@ -527,15 +551,25 @@ export default function ArchiveScene({
         const label = labelNodes.get(id);
         const selected =
           shelved && id === selectedFolder && slide.onStage && !shuffling;
+        const rowBackground =
+          shelved && Boolean(selectedFolder) && !selected && slide.onStage && !shuffling;
         let targetX = slide.x;
         const targetY = 0;
-        const targetZ = slide.z;
+        const targetZ = selected
+          ? slide.z + SELECT_FORWARD
+          : rowBackground
+            ? slide.z - REST_RECEDE
+            : slide.z;
         const targetYaw = 0;
-        const targetScale = selected ? SELECT_SCALE : 1;
+        const targetScale = selected
+          ? SELECT_SCALE
+          : rowBackground
+            ? REST_SCALE
+            : 1;
         if (!shelved && slide.onStage) {
           targetX = slide.x + sideSign(slide.x || 1) * EXIT_X * (1 - enter);
         }
-        const follow = reduce ? 1 : selected ? 0.12 : 0.09;
+        const follow = reduce ? 1 : selected ? FOLLOW_SELECTED : FOLLOW_FOLDER;
         const onStage = slide.onStage && (shelved || enter > 0);
 
         if (onStage) {
@@ -583,7 +617,11 @@ export default function ArchiveScene({
           onStage &&
           Math.abs(entry.group.position.x - targetX) < 0.55 &&
           Math.abs(entry.group.position.z - targetZ) < 0.55;
-        const showLabel = shelved && entry.group.visible && nearRest;
+        const showLabel =
+          shelved &&
+          entry.group.visible &&
+          nearRest &&
+          !selectedFolder;
         if (!showLabel) {
           label.style.opacity = "0";
           continue;
@@ -627,7 +665,7 @@ export default function ArchiveScene({
           const tz = THREE.MathUtils.lerp(az, bz, enter);
           const targetRx = THREE.MathUtils.lerp(loose?.rx ?? 0, dest?.rx ?? 0, enter);
           const targetRy = THREE.MathUtils.lerp(loose?.ry ?? 0, 0, enter);
-          const follow = reduce ? 1 : 0.2;
+          const follow = reduce ? 1 : FOLLOW_REPORT;
           g.position.x += (tx - g.position.x) * follow;
           g.position.y += (ty - g.position.y) * follow;
           g.position.z += (tz - g.position.z) * follow;
@@ -665,7 +703,7 @@ export default function ArchiveScene({
           const tx = origin.x + pose.x;
           const ty = origin.y + pose.y;
           const tz = origin.z + pose.z;
-          const follow = reduce ? 1 : 0.2;
+          const follow = reduce ? 1 : FOLLOW_CAROUSEL;
           g.position.x += (tx - g.position.x) * follow;
           g.position.y += (ty - g.position.y) * follow;
           g.position.z += (tz - g.position.z) * follow;
@@ -705,7 +743,7 @@ export default function ArchiveScene({
           g.scale.setScalar(1);
           continue;
         }
-        const follow = reduce ? 1 : 0.2;
+        const follow = reduce ? 1 : FOLLOW_REPORT;
         g.position.x += (targetX - g.position.x) * follow;
         g.position.y += (targetY - g.position.y) * follow;
         g.position.z += (targetZ - g.position.z) * follow;

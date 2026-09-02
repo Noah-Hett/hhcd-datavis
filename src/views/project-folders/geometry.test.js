@@ -6,6 +6,9 @@ import {
   CAROUSEL_FEATURED_SCALE,
   CAROUSEL_FORWARD,
   CAROUSEL_RADIUS,
+  CAROUSEL_RECEDE,
+  CAROUSEL_YAW_CAP,
+  FOLDER_D,
   PEEK_REST,
   PEEK_SELECT,
   carouselAnnouncement,
@@ -14,6 +17,7 @@ import {
   computeArchiveLayout,
   computeCarouselPose,
   computeLayout,
+  reportHitAllowed,
   selectPeekSlot,
   stepCarouselIndex,
 } from "./geometry.js";
@@ -123,6 +127,7 @@ test("computeCarouselPose features the centre cover and recedes neighbours", () 
   const left = computeCarouselPose(-1);
   const right = computeCarouselPose(1);
   const far = computeCarouselPose(CAROUSEL_RADIUS + 1);
+  const wing = computeCarouselPose(CAROUSEL_RADIUS);
 
   assert.equal(featured.featured, true);
   assert.equal(featured.visible, true);
@@ -134,6 +139,9 @@ test("computeCarouselPose features the centre cover and recedes neighbours", () 
   assert.ok(left.x < 0 && right.x > 0);
   assert.ok(left.ry > featured.ry);
   assert.ok(right.ry < featured.ry);
+  assert.ok(Math.abs(left.ry - CAROUSEL_FACE_YAW) <= CAROUSEL_YAW_CAP);
+  assert.ok(Math.abs(right.ry - CAROUSEL_FACE_YAW) <= CAROUSEL_YAW_CAP);
+  assert.ok(Math.abs(wing.ry - CAROUSEL_FACE_YAW) <= CAROUSEL_YAW_CAP);
   assert.equal(far.visible, false);
   assert.equal(far.featured, false);
 });
@@ -142,8 +150,17 @@ test("carouselOrigin sits in front of the folder row", () => {
   const layout = computeLayout(fakeFolders([4, 4, 4]));
   const origin = carouselOrigin(layout);
   const zs = Object.values(layout.folderPos).map((pos) => pos.z);
+  const folderFront = Math.max(
+    ...Object.values(layout.folderPos).map((pos) => pos.z + FOLDER_D),
+  );
+  const neighbourZ = origin.z + computeCarouselPose(CAROUSEL_RADIUS).z;
   assert.ok(origin.z > Math.max(...zs));
   assert.ok(origin.z >= CAROUSEL_FORWARD);
+  assert.ok(
+    neighbourZ > folderFront,
+    "side cards stay in front of folder fronts",
+  );
+  assert.ok(origin.z - CAROUSEL_RADIUS * CAROUSEL_RECEDE > folderFront);
 });
 
 test("carouselAnnouncement names the featured report", () => {
@@ -152,4 +169,39 @@ test("carouselAnnouncement names the featured report", () => {
     "Report 4 of 17, Work and workplace",
   );
   assert.equal(carouselAnnouncement(0, 0, "Nope"), "No reports in this folder");
+});
+
+test("reportHitAllowed only picks reports from the open folder when filed", () => {
+  assert.equal(
+    reportHitAllowed({
+      filed: false,
+      selectedFolderId: null,
+      folderId: "a",
+    }),
+    true,
+  );
+  assert.equal(
+    reportHitAllowed({
+      filed: true,
+      selectedFolderId: null,
+      folderId: "a",
+    }),
+    false,
+  );
+  assert.equal(
+    reportHitAllowed({
+      filed: true,
+      selectedFolderId: "a",
+      folderId: "a",
+    }),
+    true,
+  );
+  assert.equal(
+    reportHitAllowed({
+      filed: true,
+      selectedFolderId: "a",
+      folderId: "b",
+    }),
+    false,
+  );
 });
