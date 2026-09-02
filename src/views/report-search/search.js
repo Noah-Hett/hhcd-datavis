@@ -54,6 +54,8 @@ const METHOD_SYNONYMS = [
   ["co-design workshops", "Co-Design"],
   ["co-design", "Co-Design"],
   ["codesign", "Co-Design"],
+  ["cultural probes", "Cultural Probes"],
+  ["cultural probe", "Cultural Probes"],
   ["personas", "Personas"],
   ["persona", "Personas"],
   ["role playing", "Role Playing"],
