@@ -1,14 +1,21 @@
 export const ORGANIZE_SCALE = 900;
 
+/**
+ * CSS snap can land on `#archive` a few pixels early, so organize never quite
+ * reaches 1 on the downward intro → folders pass. Treat anything at or above
+ * this fraction as fully filed so grouping radios replace the intro chrome.
+ */
+export const FILED_THRESHOLD = 0.92;
+
 export function applyOrganizeDelta(current, deltaY, scale = ORGANIZE_SCALE) {
   return Math.min(1, Math.max(0, current + deltaY / scale));
 }
 
 export function isArchiveFiled(organize, reduceMotion = false) {
-  return Boolean(reduceMotion) || Number(organize) >= 1;
+  return Boolean(reduceMotion) || Number(organize) >= FILED_THRESHOLD;
 }
 
-/** Scroller alias — Explore treats organize >= 1 (or reduced motion) as filed. */
+/** Scroller alias — Explore treats organize >= FILED_THRESHOLD (or reduced motion) as filed. */
 export const isFiled = isArchiveFiled;
 
 const WAYPOINT_SLOP = 40;
@@ -20,7 +27,8 @@ const WAYPOINT_SLOP = 40;
 export function organizeFromScroll(scrollTop, archiveTop) {
   const top = Number(archiveTop);
   if (!Number.isFinite(top) || top <= 0) return 1;
-  return Math.min(1, Math.max(0, Number(scrollTop) / top));
+  const progress = Math.min(1, Math.max(0, Number(scrollTop) / top));
+  return progress >= FILED_THRESHOLD ? 1 : progress;
 }
 
 export function waypointFromScroll({ scrollTop, archiveTop, mapTop }) {

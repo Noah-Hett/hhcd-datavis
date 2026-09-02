@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  FILED_THRESHOLD,
   ORGANIZE_SCALE,
   applyOrganizeDelta,
   isArchiveFiled,
@@ -23,7 +24,9 @@ test("applyOrganizeDelta advances organize on downward wheel", () => {
 
 test("isFiled / isArchiveFiled treat reduced motion as already filed", () => {
   assert.equal(isArchiveFiled(0), false);
-  assert.equal(isArchiveFiled(0.99), false);
+  assert.equal(isArchiveFiled(0.91), false);
+  assert.equal(isArchiveFiled(FILED_THRESHOLD), true);
+  assert.equal(isArchiveFiled(0.92), true);
   assert.equal(isArchiveFiled(1), true);
   assert.equal(isArchiveFiled(0, true), true);
   assert.equal(isFiled(1), true);
@@ -33,6 +36,7 @@ test("isFiled / isArchiveFiled treat reduced motion as already filed", () => {
 test("organizeFromScroll files in proportion between intro and archive", () => {
   assert.equal(organizeFromScroll(0, 800), 0);
   assert.equal(organizeFromScroll(400, 800), 0.5);
+  assert.equal(organizeFromScroll(736, 800), 1);
   assert.equal(organizeFromScroll(800, 800), 1);
   assert.equal(organizeFromScroll(1600, 800), 1);
   assert.equal(organizeFromScroll(100, 0), 1);
