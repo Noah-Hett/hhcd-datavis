@@ -109,10 +109,14 @@ export default function MethodCarousel({
     const el = scrollerRef.current;
     if (!el) return;
     const amount = Math.max(el.clientWidth * 0.65, 180);
+    // Instant paging while looping avoids mid-animation recenter fights.
+    const behavior =
+      looping || prefersReducedMotion() ? "auto" : "smooth";
     el.scrollBy({
       left: dir * amount,
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      behavior,
     });
+    if (looping) normalizeScroll(el);
   }
 
   function handleListKeyDown(event) {
