@@ -502,10 +502,14 @@ function folderGridPosition(index, n, twoRows) {
   };
 }
 
-export function shouldUseTwoRows(width, height) {
+export function shouldUseTwoRows(width, height, previous = false) {
   const w = Math.max(width, 1);
   const h = Math.max(height, 1);
-  return w < 700 || w / h < 1.15;
+  const ratio = w / h;
+  if (previous) {
+    return w < 760 || ratio < 1.28;
+  }
+  return w < 700 || ratio < 1.15;
 }
 
 export function layoutExtents(layout) {

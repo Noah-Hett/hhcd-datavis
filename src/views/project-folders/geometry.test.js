@@ -21,6 +21,7 @@ import {
   reportHitAllowed,
   selectPeekSlot,
   shortestAngleDelta,
+  shouldUseTwoRows,
   stepCarouselIndex,
 } from "./geometry.js";
 
@@ -164,6 +165,15 @@ test("a large folder still shows more than five covers", () => {
   ).filter(Boolean).length;
   assert.ok(visible >= 11);
   assert.ok(visible <= CAROUSEL_RADIUS * 2 + 1);
+});
+
+test("shouldUseTwoRows ignores a sidebar-sized squeeze and holds through a resize band", () => {
+  assert.equal(shouldUseTwoRows(1440, 900), false);
+  assert.equal(shouldUseTwoRows(864, 844), true, "a squeezed canvas would have been two rows");
+  assert.equal(shouldUseTwoRows(1440, 900, true), false);
+  assert.equal(shouldUseTwoRows(720, 800, false), true);
+  assert.equal(shouldUseTwoRows(740, 800, true), true);
+  assert.equal(shouldUseTwoRows(1100, 800, true), false);
 });
 
 test("shortestAngleDelta takes the short way around", () => {

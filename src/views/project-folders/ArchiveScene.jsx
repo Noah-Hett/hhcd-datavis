@@ -362,7 +362,10 @@ export default function ArchiveScene({
     let downX = 0;
     let downY = 0;
     let raf = 0;
-    let twoRows = shouldUseTwoRows(mount.clientWidth, mount.clientHeight);
+    let twoRows = shouldUseTwoRows(
+      window.innerWidth,
+      window.innerHeight,
+    );
     let transFrom = "theme";
     let transTo = "theme";
     let transStart = 0;
@@ -477,18 +480,30 @@ export default function ArchiveScene({
     let lastW = 0;
     let lastH = 0;
     let resizeRaf = 0;
+    let sizeDirty = false;
+    const applyRowMode = () => {
+      twoRows = shouldUseTwoRows(
+        window.innerWidth,
+        window.innerHeight,
+        twoRows,
+      );
+    };
     const applySize = () => {
       const w = Math.round(mount.clientWidth);
       const h = Math.round(mount.clientHeight);
+      applyRowMode();
       if (w < 48 || h < 48) return;
       if (w === lastW && h === lastH) return;
       lastW = w;
       lastH = h;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      if (renderer.getPixelRatio() !== pixelRatio) {
+        renderer.setPixelRatio(pixelRatio);
+      }
       renderer.setSize(w, h, false);
-      twoRows = shouldUseTwoRows(w, h);
+      sizeDirty = true;
     };
     const resize = () => {
       if (resizeRaf) return;
@@ -499,6 +514,7 @@ export default function ArchiveScene({
     };
     const ro = new ResizeObserver(resize);
     ro.observe(mount);
+    window.addEventListener("resize", resize);
     applySize();
 
     const onContextLost = (event) => {
@@ -574,13 +590,14 @@ export default function ArchiveScene({
       } else {
         camPos.copy(destPos);
         camLook.copy(destLook);
-        if (reduce) {
+        if (reduce || sizeDirty) {
           camera.position.copy(camPos);
         } else {
           camera.position.lerp(camPos, 0.08);
         }
         camera.lookAt(camLook);
       }
+      sizeDirty = false;
 
       const shadowKey = `${transTo}:${rowKey}:${toLayout.count}:${selectedFolder ?? ""}`;
       if (shadowKey !== lastShadowKey) {
@@ -847,6 +864,7 @@ export default function ArchiveScene({
       cancelAnimationFrame(raf);
       if (resizeRaf) cancelAnimationFrame(resizeRaf);
       ro.disconnect();
+      window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
