@@ -17,6 +17,10 @@
   min-height: 12rem;
 }
 
+.archive-section .scene-stage {
+  min-height: 100%;
+}
+
 .archive-section .grouping-tabs {
   position: absolute;
   left: 12px;

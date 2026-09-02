@@ -7,6 +7,10 @@ import {
   folderForReport,
   groupReports,
 } from "../project-folders/grouping.js";
+import {
+  carouselAnnouncement,
+  stepCarouselIndex,
+} from "../project-folders/geometry.js";
 import "../project-folders/styles.css";
 import "./ArchiveSection.css";
 import {
@@ -42,6 +46,15 @@ export default function ArchiveSection({
   );
   const [webglFailed, setWebglFailed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselKey, setCarouselKey] = useState(
+    () => `${grouping}:${selectedFolderId ?? ""}`,
+  );
+  const nextCarouselKey = `${grouping}:${selectedFolderId ?? ""}`;
+  if (nextCarouselKey !== carouselKey) {
+    setCarouselKey(nextCarouselKey);
+    setCarouselIndex(0);
+  }
 
   const controlled = organizeProp != null;
   const organize = reduceMotion ? 1 : controlled ? organizeProp : internalOrganize;
@@ -64,6 +77,14 @@ export default function ArchiveSection({
 
   const folders = useMemo(() => groupReports(grouping), [grouping]);
   const groupingMeta = GROUPINGS.find((item) => item.id === grouping);
+  const carouselReports = useMemo(() => {
+    if (!selectedFolderId) return [];
+    return folders.find((folder) => folder.id === selectedFolderId)?.reports ?? [];
+  }, [folders, selectedFolderId]);
+  const carouselActive = Boolean(
+    isFiled && selectedFolderId && carouselReports.length && !webglFailed,
+  );
+  const featuredReport = carouselReports[carouselIndex] ?? null;
 
   useEffect(() => {
     const next = folderForReport(grouping, selectedReportNo);
@@ -98,13 +119,41 @@ export default function ArchiveSection({
   ]);
 
   useEffect(() => {
+    if (selectedFolderId) return undefined;
     const handle = window.setTimeout(() => {
       setAnnouncement(
         `Shelves regrouped by ${groupingMeta?.label ?? grouping}. ${folders.length} folders, ${reports.length} reports.`,
       );
     }, 350);
     return () => window.clearTimeout(handle);
-  }, [grouping, groupingMeta, folders.length]);
+  }, [grouping, groupingMeta, folders.length, selectedFolderId]);
+
+  useEffect(() => {
+    if (selectedReportNo == null || !carouselReports.length) return;
+    const fromOpen = carouselReports.findIndex(
+      (report) => report.reportNo === selectedReportNo,
+    );
+    if (fromOpen >= 0) setCarouselIndex(fromOpen);
+  }, [selectedReportNo, carouselReports]);
+
+  useEffect(() => {
+    if (!carouselActive || !featuredReport) return undefined;
+    const handle = window.setTimeout(() => {
+      setAnnouncement(
+        carouselAnnouncement(
+          carouselIndex,
+          carouselReports.length,
+          featuredReport.title,
+        ),
+      );
+    }, 40);
+    return () => window.clearTimeout(handle);
+  }, [
+    carouselActive,
+    carouselIndex,
+    carouselReports.length,
+    featuredReport,
+  ]);
 
   useEffect(() => {
     if (!onOrganizeDelta) return;
@@ -209,6 +258,34 @@ export default function ArchiveSection({
     }, 50);
   };
 
+  const stepCarousel = (delta) => {
+    if (!carouselReports.length) return;
+    setCarouselIndex((current) =>
+      stepCarouselIndex(current, delta, carouselReports.length),
+    );
+  };
+
+  const onCarouselKeyDown = (event) => {
+    if (!carouselActive) return;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      stepCarousel(-1);
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      stepCarousel(1);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      if (event.target.closest?.(".carousel-btn")) return;
+      const report = carouselReports[carouselIndex];
+      if (!report) return;
+      event.preventDefault();
+      selectReport(report.reportNo, event.currentTarget);
+    }
+  };
+
   return (
     <div className="view-folders archive-section">
       <div
@@ -240,25 +317,59 @@ export default function ArchiveSection({
               )}
             </section>
             <div className="scene-frame">
-              {webglFailed ? (
-                <div className="webgl-fallback" role="status">
-                  <p>
-                    The 3D archive could not start in this browser. The folder
-                    list in the sidebar has the same reports and grouping.
-                  </p>
-                </div>
-              ) : (
-                <ArchiveScene
-                  grouping={grouping}
-                  organize={organize}
-                  reduceMotion={reduceMotion}
-                  selectedFolderId={selectedFolderId}
-                  selectedReportNo={selectedReportNo}
-                  onSelectFolder={(id) => selectFolder(id)}
-                  onSelectReport={(reportNo) => selectReport(reportNo)}
-                  onWebglError={() => setWebglFailed(true)}
-                />
-              )}
+              <div
+                className="scene-stage"
+                tabIndex={carouselActive ? 0 : undefined}
+                role={carouselActive ? "group" : undefined}
+                aria-label={
+                  carouselActive && featuredReport
+                    ? `Report carousel, ${featuredReport.title}`
+                    : undefined
+                }
+                onKeyDown={onCarouselKeyDown}
+              >
+                {carouselActive && carouselReports.length > 1 ? (
+                  <button
+                    type="button"
+                    className="carousel-btn is-prev"
+                    aria-label="Previous report"
+                    onClick={() => stepCarousel(-1)}
+                  >
+                    ‹
+                  </button>
+                ) : null}
+                {webglFailed ? (
+                  <div className="webgl-fallback" role="status">
+                    <p>
+                      The 3D archive could not start in this browser. The folder
+                      list in the sidebar has the same reports and grouping.
+                    </p>
+                  </div>
+                ) : (
+                  <ArchiveScene
+                    grouping={grouping}
+                    organize={organize}
+                    reduceMotion={reduceMotion}
+                    selectedFolderId={selectedFolderId}
+                    selectedReportNo={selectedReportNo}
+                    carouselIndex={carouselIndex}
+                    onSelectFolder={(id) => selectFolder(id)}
+                    onSelectReport={(reportNo) => selectReport(reportNo)}
+                    onCarouselIndexChange={setCarouselIndex}
+                    onWebglError={() => setWebglFailed(true)}
+                  />
+                )}
+                {carouselActive && carouselReports.length > 1 ? (
+                  <button
+                    type="button"
+                    className="carousel-btn is-next"
+                    aria-label="Next report"
+                    onClick={() => stepCarousel(1)}
+                  >
+                    ›
+                  </button>
+                ) : null}
+              </div>
             </div>
             {isFiled ? (
               <fieldset className="grouping-tabs">

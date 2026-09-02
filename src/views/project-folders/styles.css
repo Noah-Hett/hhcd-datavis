@@ -69,6 +69,7 @@
 .grouping-tabs label:focus-visible,
 .folder-btn:focus-visible,
 .report-btn:focus-visible,
+.carousel-btn:focus-visible,
 .toggle:focus-within {
   outline: 3px solid var(--archive-focus);
   outline-offset: 2px;
@@ -98,6 +99,53 @@
   position: relative;
   flex: 1;
   min-height: 16rem;
+}
+
+.scene-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.scene-stage:focus {
+  outline: none;
+}
+
+.scene-stage:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--archive-focus);
+}
+
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  z-index: 6;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--archive-line);
+  background: rgba(247, 241, 232, 0.94);
+  color: var(--archive-ink);
+  font: inherit;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.carousel-btn.is-prev {
+  left: 12px;
+}
+
+.carousel-btn.is-next {
+  right: 12px;
+}
+
+.carousel-btn:focus-visible {
+  outline: 3px solid var(--archive-focus);
+  outline-offset: 2px;
 }
 
 .scene {
@@ -141,13 +189,14 @@
 }
 
 .scene-label.is-report {
-  max-width: 10.5rem;
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-size: 11px;
-  line-height: 1.25;
-  text-align: left;
-  background: rgba(28, 20, 12, 0.8);
+  max-width: 14rem;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: center;
+  background: rgba(28, 20, 12, 0.88);
 }
 
 .grouping-tabs {
@@ -504,7 +553,8 @@
 
 @media (forced-colors: active) {
   .scene,
-  .scene-labels {
+  .scene-labels,
+  .carousel-btn {
     display: none;
   }
 

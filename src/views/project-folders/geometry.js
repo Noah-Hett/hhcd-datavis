@@ -352,6 +352,15 @@ const PEEK_SLOT = 0.062;
 const ROW_GAP_Z = 2.28;
 export const ARCHIVE_ROWS = 3;
 
+/** Cover-flow when a folder is selected: featured item plus this many neighbours each side. */
+export const CAROUSEL_RADIUS = 2;
+export const CAROUSEL_SPACING = 1.18;
+export const CAROUSEL_FORWARD = 1.72;
+export const CAROUSEL_RECEDE = 0.36;
+export const CAROUSEL_FEATURED_SCALE = 1.12;
+/** Cover sits on local −X; +π/2 yaw faces it toward a camera on +Z. */
+export const CAROUSEL_FACE_YAW = Math.PI / 2;
+
 /** Rest peek spacing stays tight; selected folders fan wide enough to read titles. */
 export function selectPeekSlot(count) {
   const n = Math.max(count, 1);
@@ -359,6 +368,51 @@ export function selectPeekSlot(count) {
   if (n <= 8) return 0.14;
   if (n <= 12) return 0.165;
   return Math.max(0.125, Math.min(0.2, 2.7 / Math.max(n - 1, 1)));
+}
+
+/** Shortest signed slot distance on a ring of `count` items. */
+export function carouselSignedOffset(slotIndex, featuredIndex, count) {
+  if (count <= 0) return 0;
+  let delta = slotIndex - featuredIndex;
+  const half = count / 2;
+  if (delta > half) delta -= count;
+  if (delta <= -half) delta += count;
+  return delta;
+}
+
+export function stepCarouselIndex(index, delta, count, { wrap = true } = {}) {
+  if (count <= 0) return 0;
+  const current = ((Number(index) || 0) % count + count) % count;
+  if (!wrap) {
+    return Math.min(count - 1, Math.max(0, current + delta));
+  }
+  return ((current + delta) % count + count) % count;
+}
+
+export function carouselAnnouncement(index, count, title) {
+  const n = Math.max(0, count);
+  if (n === 0) return "No reports in this folder";
+  const i = Math.min(n, Math.max(1, index + 1));
+  return `Report ${i} of ${n}, ${title || "Untitled"}`;
+}
+
+/**
+ * Local cover-flow pose relative to the carousel origin.
+ * Offset 0 is featured (large, facing camera); neighbours recede to the sides.
+ */
+export function computeCarouselPose(offset) {
+  const abs = Math.abs(offset);
+  const sign = offset === 0 ? 0 : Math.sign(offset);
+  return {
+    x: offset * CAROUSEL_SPACING,
+    y: REPORT_H * 0.5 + (abs === 0 ? 0.28 : 0.1),
+    z: -abs * CAROUSEL_RECEDE,
+    rx: 0,
+    ry: CAROUSEL_FACE_YAW - sign * Math.min(abs, 2) * 0.5,
+    scale: abs === 0 ? CAROUSEL_FEATURED_SCALE : Math.max(0.8, 1 - abs * 0.09),
+    visible: abs <= CAROUSEL_RADIUS,
+    featured: offset === 0,
+  };
 }
 
 export function folderSpacing(count) {
@@ -431,6 +485,16 @@ export function layoutExtents(layout) {
     maxZ,
     width: maxX - minX,
     depth: maxZ - minZ,
+  };
+}
+
+/** World-space origin for the selected-folder carousel, in front of the folder row. */
+export function carouselOrigin(layout) {
+  const ext = layoutExtents(layout);
+  return {
+    x: (ext.minX + ext.maxX) / 2,
+    y: 0,
+    z: (ext.minZ + ext.maxZ) / 2 + CAROUSEL_FORWARD,
   };
 }
 
