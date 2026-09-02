@@ -104,7 +104,7 @@ function AxisArrowMarker({ id }) {
       orient="auto"
       markerUnits="userSpaceOnUse"
     >
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111" />
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text)" />
     </marker>
   );
 }
@@ -118,6 +118,7 @@ export default function ScatterPlot({
   onHover,
   onLeave,
   onSelect,
+  onActivate,
   onDotRef,
 }) {
   const { frameRef, scrollRef, size } = usePlotSize();
@@ -125,9 +126,14 @@ export default function ScatterPlot({
   const ready = size.viewportWidth > 1 && size.height > 1;
 
   function handleKeyDown(event, cluster) {
-    if (event.key === "Enter" || event.key === " ") {
+    if (event.key === "Enter") {
       event.preventDefault();
-      onSelect(cluster);
+      (onActivate ?? onSelect)(cluster, event);
+      return;
+    }
+    if (event.key === " ") {
+      event.preventDefault();
+      onSelect(cluster, event);
     }
   }
 
@@ -253,24 +259,32 @@ export default function ScatterPlot({
                 const cx =
                   xForYear(cluster.year, yearMin, yearMax, layout) + cluster.dx;
                 const cy = yForBand(cluster.yBand, layout) + cluster.dy;
-                const active =
-                  hoveredKey === cluster.key || selectedKey === cluster.key;
+                const selected = selectedKey === cluster.key;
+                const active = hoveredKey === cluster.key || selected;
                 return (
                   <g
                     key={cluster.key}
-                    className={active ? "dot active" : "dot"}
+                    className={
+                      [
+                        "dot",
+                        active ? "active" : "",
+                        selected ? "is-selected" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")
+                    }
                     transform={`translate(${cx} ${cy})`}
                     tabIndex={0}
                     role="button"
                     aria-label={clusterAriaLabel(cluster)}
-                    aria-pressed={selectedKey === cluster.key}
-                    ref={(node) => onDotRef(cluster.key, node)}
+                    aria-pressed={selected}
+                    ref={(node) => onDotRef?.(cluster.key, node)}
                     onMouseEnter={(event) => onHover(cluster, event)}
                     onMouseMove={(event) => onHover(cluster, event)}
                     onMouseLeave={onLeave}
                     onFocus={(event) => onHover(cluster, event)}
                     onBlur={onLeave}
-                    onClick={() => onSelect(cluster)}
+                    onClick={(event) => onSelect(cluster, event)}
                     onKeyDown={(event) => handleKeyDown(event, cluster)}
                   >
                     <circle
@@ -282,7 +296,7 @@ export default function ScatterPlot({
                       className="dot-mark"
                       r={cluster.r}
                       fill={cluster.color}
-                      stroke="#111"
+                      stroke="var(--text)"
                       strokeWidth={active ? 1.6 : 1}
                     />
                     <circle className="dot-focus" r={cluster.r + 3.5} />
