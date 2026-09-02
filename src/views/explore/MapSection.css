@@ -9,11 +9,36 @@
   background: var(--map-bg-gradient);
 }
 
+/* Let the workspace gradient show through the chart stack. */
+.map-section .chart-wrap,
+.map-section .scatter-frame,
+.map-section .scatter-y-col,
+.map-section .scatter-scroll,
+.map-section .method-carousel,
+.map-section .map-methods-mobile {
+  background: transparent;
+}
+
+.map-section .method-carousel-frame.is-overflow:not(.is-start)::before {
+  background: linear-gradient(to right, var(--archive-bg), transparent);
+}
+
+.map-section .method-carousel-frame.is-overflow:not(.is-end)::after {
+  background: linear-gradient(to left, var(--chart-surface), transparent);
+}
+
+.map-section .scatter-frame.is-scrollable::after {
+  background: linear-gradient(to right, transparent, var(--chart-surface));
+}
+
+.map-section .scatter-scroll {
+  scrollbar-color: var(--archive-line) transparent;
+}
+
 .map-methods-mobile {
   flex-shrink: 0;
   padding: 10px 12px 14px;
   border-top: 1px solid var(--border);
-  background: var(--chart-surface);
 }
 
 .map-methods-launch {
