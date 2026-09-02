@@ -61,21 +61,22 @@ export default function MethodCarousel({
     const maxScroll = el.scrollWidth - el.clientWidth;
     const atStart = el.scrollLeft <= 1;
     const atEnd = el.scrollLeft >= maxScroll - 1;
-    const behavior = prefersReducedMotion() ? "auto" : "smooth";
 
+    // Jump instantly when wrapping the full list; smooth full-length
+    // scrolls race with follow-up clicks and are hard to follow.
     if (dir > 0 && atEnd) {
-      el.scrollTo({ left: 0, behavior });
+      el.scrollTo({ left: 0, behavior: "auto" });
       return;
     }
     if (dir < 0 && atStart) {
-      el.scrollTo({ left: maxScroll, behavior });
+      el.scrollTo({ left: maxScroll, behavior: "auto" });
       return;
     }
 
     const amount = Math.max(el.clientWidth * 0.65, 180);
     el.scrollBy({
       left: dir * amount,
-      behavior,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
   }
 
