@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import { appliedChips, buildIndex, buildVocab, search } from "./search.js";
@@ -16,9 +16,7 @@ const index = buildIndex(reports);
 
 export default function ReportSearch() {
   const { selectedReportNo, openReport } = useSelection();
-  const { search: locationSearch } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const queryString = locationSearch || "";
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
@@ -30,6 +28,10 @@ export default function ReportSearch() {
   );
   const chips = result.chips.length ? result.chips : appliedChips(result.filters);
   const rows = result.all;
+  const urlQuery = searchParams.get("q") ?? "";
+  const listLabel = result.idle
+    ? "All reports"
+    : `Search results, ${rows.length} reports`;
 
   useEffect(() => {
     const fromUrl = searchParams.get("q") ?? "";
@@ -143,27 +145,8 @@ export default function ReportSearch() {
 
   return (
     <div className="view-search">
-      <div className="search-waypoints-slot">
-        <nav className="explore-waypoints" aria-label="Explore waypoints">
-          <Link to={{ pathname: "/", search: queryString, hash: "archive" }}>
-            Folders
-          </Link>
-          <Link to={{ pathname: "/", search: queryString, hash: "map" }}>
-            Map
-          </Link>
-          <Link
-            to={{ pathname: "/search", search: queryString }}
-            aria-current="true"
-          >
-            Simple
-          </Link>
-        </nav>
-      </div>
       <div className="search-page">
         <header className="search-page-head">
-          {result.idle ? null : (
-            <p className="search-page-eyebrow">{rows.length} reports</p>
-          )}
           <h1>Simple view</h1>
           <p className="search-page-lede">
             A keyboard-first list of every report — no 3D archive, no graph.
@@ -182,7 +165,7 @@ export default function ReportSearch() {
               autoComplete="off"
               spellCheck="false"
               enterKeyHint="search"
-              autoFocus
+              autoFocus={Boolean(urlQuery.trim())}
               aria-controls="search-report-list"
               aria-keyshortcuts="/"
             />
@@ -209,16 +192,16 @@ export default function ReportSearch() {
           ) : null}
         </header>
 
-        <p className="search-count" aria-live="polite">
-          {result.idle
-            ? `${rows.length} reports`
-            : `${result.pops.length} close matches · ${rows.length} in the list`}
-        </p>
+        {result.idle ? null : (
+          <p className="search-count" aria-live="polite">
+            {result.pops.length} close matches · {rows.length} in the list
+          </p>
+        )}
 
         <ul
           id="search-report-list"
           className="search-list"
-          aria-label="All reports"
+          aria-label={listLabel}
         >
           {rows.map((item, i) => {
             const report = item.report;
@@ -247,7 +230,6 @@ export default function ReportSearch() {
                   tabIndex={i === active ? 0 : -1}
                   aria-current={current ? "true" : undefined}
                   aria-label={`${report.title}, ${author}, ${year}, theme ${theme}, type ${type}`}
-                  onMouseEnter={() => setActive(i)}
                   onFocus={() => setActive(i)}
                   onClick={(event) =>
                     openRow(item, event.currentTarget)

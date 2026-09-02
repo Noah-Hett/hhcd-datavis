@@ -17,31 +17,33 @@
   min-height: 12rem;
 }
 
-.archive-section .archive.is-unfiled .grouping-tabs {
-  visibility: hidden;
+.archive-section .scene-stage {
+  min-height: 100%;
 }
 
-.archive-section .archive.is-unfiled .archive-bar[hidden] {
+.archive-section .grouping-tabs {
+  position: absolute;
+  left: 12px;
+  top: 22%;
+  z-index: 6;
+  flex-direction: column;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  pointer-events: auto;
+  border-radius: 16px;
+}
+
+.archive-section .grouping-tabs[hidden] {
   display: none;
 }
 
-.archive-section .archive-bar .toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  min-height: 48px;
-  cursor: pointer;
+.archive-section .grouping-tabs label {
+  min-height: 44px;
+  font-size: 14px;
+  padding: 0 12px;
 }
 
-.archive-section .archive-bar .toggle input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--archive-ink);
-}
-
-.archive-section :where(a, button, input, [tabindex]):focus-visible,
-.explore-waypoints a:focus-visible {
+.archive-section :where(a, button, input, [tabindex]):focus-visible {
   outline: 3px solid var(--archive-focus, var(--focus, #1c140c));
   outline-offset: 2px;
 }
@@ -83,24 +85,6 @@
 
 .explore-archive-span .archive-section .intro {
   pointer-events: none;
-  padding-top: 58px;
-}
-
-.explore-waypoints-slot {
-  position: sticky;
-  top: 0;
-  height: 0;
-  z-index: 12;
-  pointer-events: none;
-}
-
-.explore-waypoints {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 12;
-  pointer-events: auto;
 }
 
 .archive:has(.webgl-fallback) .intro {
@@ -116,6 +100,21 @@
     scroll-snap-type: none;
     scroll-behavior: auto;
   }
+}
+
+.explore-scroll[data-reduce-motion="true"],
+.explore-scroll[data-reduce-motion="true"].is-filing,
+.explore-scroll[data-reduce-motion="true"].is-filed {
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+
+.explore-scroll[data-reduce-motion="true"] .explore-section,
+.explore-scroll[data-reduce-motion="true"] #intro,
+.explore-scroll[data-reduce-motion="true"] #archive,
+.explore-scroll[data-reduce-motion="true"] #map {
+  scroll-snap-align: none;
+  scroll-snap-stop: normal;
 }
 
 .archive-section .archive.is-filed .intro {
@@ -140,21 +139,5 @@
 
   .archive-section .archive {
     overflow: hidden;
-  }
-}
-
-@media (max-width: 640px) {
-  .explore-waypoints {
-    left: 50%;
-    top: 8px;
-  }
-
-  .explore-waypoints a {
-    padding: 0 10px;
-    font-size: 12px;
-  }
-
-  .explore-archive-span .archive-section .intro {
-    padding-top: 52px;
   }
 }

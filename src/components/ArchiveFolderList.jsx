@@ -38,7 +38,9 @@ export default function ArchiveFolderList({ titleId, headingRef }) {
                 aria-expanded={open}
                 aria-controls={`folder-reports-${folder.id}`}
                 onClick={() =>
-                  openFolder(folder.id === selectedFolderId ? null : folder.id)
+                  folder.id === selectedFolderId
+                    ? openFolder(null)
+                    : openFolder(folder.id, { openSidebar: true })
                 }
               >
                 <span className="folder-btn-label">{folder.label}</span>

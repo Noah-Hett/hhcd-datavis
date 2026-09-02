@@ -7,6 +7,10 @@ import {
   folderForReport,
   groupReports,
 } from "../project-folders/grouping.js";
+import {
+  carouselAnnouncement,
+  stepCarouselIndex,
+} from "../project-folders/geometry.js";
 import "../project-folders/styles.css";
 import "./ArchiveSection.css";
 import {
@@ -17,11 +21,6 @@ import {
 } from "./archivePhysics.js";
 
 export { ORGANIZE_SCALE, applyOrganizeDelta, isArchiveFiled, isFiled };
-
-function prefersReducedMotion() {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 export default function ArchiveSection({
   organize: organizeProp,
@@ -34,6 +33,7 @@ export default function ArchiveSection({
     selectedFolderId,
     sidebarOpen,
     source,
+    reduceMotion,
     openReport,
     openFolder,
     clearReport,
@@ -42,11 +42,19 @@ export default function ArchiveSection({
   const organizeRef = useRef(0);
   const [grouping, setGrouping] = useState("theme");
   const [internalOrganize, setInternalOrganize] = useState(() =>
-    prefersReducedMotion() ? 1 : 0,
+    reduceMotion ? 1 : 0,
   );
-  const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
   const [webglFailed, setWebglFailed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselKey, setCarouselKey] = useState(
+    () => `${grouping}:${selectedFolderId ?? ""}`,
+  );
+  const nextCarouselKey = `${grouping}:${selectedFolderId ?? ""}`;
+  if (nextCarouselKey !== carouselKey) {
+    setCarouselKey(nextCarouselKey);
+    setCarouselIndex(0);
+  }
 
   const controlled = organizeProp != null;
   const organize = reduceMotion ? 1 : controlled ? organizeProp : internalOrganize;
@@ -69,14 +77,15 @@ export default function ArchiveSection({
 
   const folders = useMemo(() => groupReports(grouping), [grouping]);
   const groupingMeta = GROUPINGS.find((item) => item.id === grouping);
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => setReduceMotion(media.matches);
-    onChange();
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
+  const openFolderMeta = useMemo(
+    () => folders.find((folder) => folder.id === selectedFolderId) ?? null,
+    [folders, selectedFolderId],
+  );
+  const carouselReports = openFolderMeta?.reports ?? [];
+  const carouselActive = Boolean(
+    isFiled && selectedFolderId && carouselReports.length && !webglFailed,
+  );
+  const featuredReport = carouselReports[carouselIndex] ?? null;
 
   useEffect(() => {
     const next = folderForReport(grouping, selectedReportNo);
@@ -93,8 +102,11 @@ export default function ArchiveSection({
       selectedFolderId &&
       !folders.some((folder) => folder.id === selectedFolderId)
     ) {
-      if (folders[0] && sidebarOpen) openFolder(folders[0].id);
-      else openFolder(null);
+      if (folders[0] && sidebarOpen) {
+        openFolder(folders[0].id, { openSidebar: true });
+      } else {
+        openFolder(null);
+      }
     }
   }, [
     grouping,
@@ -108,13 +120,41 @@ export default function ArchiveSection({
   ]);
 
   useEffect(() => {
+    if (selectedFolderId) return undefined;
     const handle = window.setTimeout(() => {
       setAnnouncement(
         `Shelves regrouped by ${groupingMeta?.label ?? grouping}. ${folders.length} folders, ${reports.length} reports.`,
       );
     }, 350);
     return () => window.clearTimeout(handle);
-  }, [grouping, groupingMeta, folders.length]);
+  }, [grouping, groupingMeta, folders.length, selectedFolderId]);
+
+  useEffect(() => {
+    if (selectedReportNo == null || !carouselReports.length) return;
+    const fromOpen = carouselReports.findIndex(
+      (report) => report.reportNo === selectedReportNo,
+    );
+    if (fromOpen >= 0) setCarouselIndex(fromOpen);
+  }, [selectedReportNo, carouselReports]);
+
+  useEffect(() => {
+    if (!carouselActive || !featuredReport) return undefined;
+    const handle = window.setTimeout(() => {
+      setAnnouncement(
+        carouselAnnouncement(
+          carouselIndex,
+          carouselReports.length,
+          featuredReport.title,
+        ),
+      );
+    }, 40);
+    return () => window.clearTimeout(handle);
+  }, [
+    carouselActive,
+    carouselIndex,
+    carouselReports.length,
+    featuredReport,
+  ]);
 
   useEffect(() => {
     if (!onOrganizeDelta) return;
@@ -134,7 +174,9 @@ export default function ArchiveSection({
   }, [reduceMotion]);
 
   useEffect(() => {
-    if (webglFailed && folders[0]) openFolder(folders[0].id);
+    if (webglFailed && folders[0]) {
+      openFolder(folders[0].id, { openSidebar: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webglFailed]);
 
@@ -209,7 +251,7 @@ export default function ArchiveSection({
     event.preventDefault();
     finishIntro();
     const first = folders[0];
-    if (first) openFolder(first.id);
+    if (first) openFolder(first.id, { openSidebar: true });
     window.setTimeout(() => {
       const list = document.getElementById("archive-list");
       list?.scrollIntoView();
@@ -217,9 +259,33 @@ export default function ArchiveSection({
     }, 50);
   };
 
-  const hint = !isFiled
-    ? "Scroll or swipe to file the reports into folders, then choose Theme, Year, or Type — or tap a folder."
-    : "Choose Theme, Year, or Type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The sidebar list has every report.";
+  const stepCarousel = (delta) => {
+    if (!carouselReports.length) return;
+    setCarouselIndex((current) =>
+      stepCarouselIndex(current, delta, carouselReports.length),
+    );
+  };
+
+  const onCarouselKeyDown = (event) => {
+    if (!carouselActive) return;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      stepCarousel(-1);
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      stepCarousel(1);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      if (event.target.closest?.(".carousel-btn")) return;
+      const report = carouselReports[carouselIndex];
+      if (!report) return;
+      event.preventDefault();
+      selectReport(report.reportNo, event.currentTarget);
+    }
+  };
 
   return (
     <div className="view-folders archive-section">
@@ -252,29 +318,67 @@ export default function ArchiveSection({
               )}
             </section>
             <div className="scene-frame">
-              {webglFailed ? (
-                <div className="webgl-fallback" role="status">
-                  <p>
-                    The 3D archive could not start in this browser. The folder
-                    list in the sidebar has the same reports and grouping.
-                  </p>
-                </div>
-              ) : (
-                <ArchiveScene
-                  grouping={grouping}
-                  organize={organize}
-                  reduceMotion={reduceMotion}
-                  selectedFolderId={selectedFolderId}
-                  selectedReportNo={selectedReportNo}
-                  onSelectFolder={(id) => selectFolder(id)}
-                  onSelectReport={(reportNo) => selectReport(reportNo)}
-                  onWebglError={() => setWebglFailed(true)}
-                />
-              )}
-              <p className="scene-hint">{hint}</p>
+              <div
+                className="scene-stage"
+                tabIndex={carouselActive ? 0 : undefined}
+                role={carouselActive ? "group" : undefined}
+                aria-label={
+                  carouselActive && featuredReport
+                    ? `Report carousel, ${featuredReport.title}`
+                    : undefined
+                }
+                onKeyDown={onCarouselKeyDown}
+              >
+                {carouselActive && openFolderMeta ? (
+                  <div className="scene-folder-caption" aria-hidden="true">
+                    {openFolderMeta.label} ({openFolderMeta.count})
+                  </div>
+                ) : null}
+                {carouselActive && carouselReports.length > 1 ? (
+                  <button
+                    type="button"
+                    className="carousel-btn is-prev"
+                    aria-label="Previous report"
+                    onClick={() => stepCarousel(-1)}
+                  >
+                    ‹
+                  </button>
+                ) : null}
+                {webglFailed ? (
+                  <div className="webgl-fallback" role="status">
+                    <p>
+                      The 3D archive could not start in this browser. The folder
+                      list in the sidebar has the same reports and grouping.
+                    </p>
+                  </div>
+                ) : (
+                  <ArchiveScene
+                    grouping={grouping}
+                    organize={organize}
+                    reduceMotion={reduceMotion}
+                    selectedFolderId={selectedFolderId}
+                    selectedReportNo={selectedReportNo}
+                    carouselIndex={carouselIndex}
+                    onSelectFolder={(id) => selectFolder(id)}
+                    onSelectReport={(reportNo) => selectReport(reportNo)}
+                    onCarouselIndexChange={setCarouselIndex}
+                    onWebglError={() => setWebglFailed(true)}
+                  />
+                )}
+                {carouselActive && carouselReports.length > 1 ? (
+                  <button
+                    type="button"
+                    className="carousel-btn is-next"
+                    aria-label="Next report"
+                    onClick={() => stepCarousel(1)}
+                  >
+                    ›
+                  </button>
+                ) : null}
+              </div>
             </div>
-            <header className="archive-bar">
-              <fieldset className="grouping-tabs" hidden={!isFiled}>
+            {isFiled ? (
+              <fieldset className="grouping-tabs">
                 <legend className="sr-only">Regroup the archive</legend>
                 {GROUPINGS.map((item) => (
                   <label
@@ -292,31 +396,7 @@ export default function ArchiveSection({
                   </label>
                 ))}
               </fieldset>
-              <div className="archive-bar-end">
-                <p className="scene-status">
-                  {reports.length} reports · {folders.length} folders
-                </p>
-                {!isFiled ? (
-                  <button
-                    type="button"
-                    className="list-toggle"
-                    onClick={finishIntro}
-                  >
-                    File into folders
-                  </button>
-                ) : null}
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={reduceMotion}
-                    onChange={(event) =>
-                      setReduceMotion(event.currentTarget.checked)
-                    }
-                  />
-                  Reduce motion
-                </label>
-              </div>
-            </header>
+            ) : null}
           </div>
         </div>
       </div>

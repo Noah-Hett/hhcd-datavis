@@ -92,7 +92,7 @@ export function createSharedResources() {
     REPORT_H * 0.98,
     REPORT_D * 0.96,
   );
-  const coverGeo = new THREE.BoxGeometry(0.008, REPORT_H, REPORT_D);
+  const coverGeo = new THREE.PlaneGeometry(REPORT_D, REPORT_H);
   const reportBackGeo = new THREE.BoxGeometry(0.008, REPORT_H, REPORT_D);
   const ringGeo = new THREE.TorusGeometry(0.036, 0.012, 6, 12);
   const reportHitGeo = new THREE.BoxGeometry(0.16, REPORT_H * 1.08, REPORT_D * 1.04);
@@ -251,30 +251,34 @@ function wrapTitle(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
 export function createCoverTexture(report) {
   const jacket = coverColorFor(report.reportNo);
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 384;
+  canvas.width = 512;
+  canvas.height = 768;
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = jacket;
-  ctx.fillRect(0, 0, 256, 384);
+  ctx.fillRect(0, 0, 512, 768);
 
-  ctx.fillStyle = "rgba(28, 20, 12, 0.1)";
-  ctx.fillRect(0, 0, 256, 48);
+  ctx.fillStyle = "rgba(28, 20, 12, 0.08)";
+  ctx.fillRect(0, 0, 512, 92);
+
+  ctx.strokeStyle = "rgba(28, 20, 12, 0.16)";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(8, 8, 496, 752);
 
   ctx.fillStyle = C_INK;
   ctx.textAlign = "left";
-  ctx.font = "bold 22px ui-sans-serif, system-ui, sans-serif";
-  ctx.fillText(`No. ${report.reportNo}`, 16, 34);
+  ctx.font = "bold 40px ui-sans-serif, system-ui, sans-serif";
+  ctx.fillText(`No. ${report.reportNo}`, 32, 68);
 
-  ctx.font = "bold 24px ui-sans-serif, system-ui, sans-serif";
-  wrapTitle(ctx, report.title, 16, 88, 224, 30, 4);
+  ctx.font = "bold 44px ui-sans-serif, system-ui, sans-serif";
+  wrapTitle(ctx, report.title, 32, 168, 448, 54, 5);
 
-  ctx.font = "16px ui-sans-serif, system-ui, sans-serif";
-  ctx.fillText(String(report.year ?? ""), 16, 356);
+  ctx.font = "28px ui-sans-serif, system-ui, sans-serif";
+  ctx.fillText(String(report.year ?? ""), 32, 712);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -298,13 +302,16 @@ export function createReportMesh(report, shared) {
   group.add(back);
   pickable.push(back);
 
-  const coverMat = lambert("#ffffff");
-  coverMat.map = texture;
-  coverMat.needsUpdate = true;
+  const coverMat = new THREE.MeshBasicMaterial({
+    map: texture,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
   const cover = new THREE.Mesh(shared.coverGeo, coverMat);
-  cover.position.x = -0.024;
-  cover.castShadow = true;
-  cover.receiveShadow = true;
+  cover.rotation.y = -Math.PI / 2;
+  cover.position.x = -0.03;
+  cover.castShadow = false;
+  cover.receiveShadow = false;
   group.add(cover);
   pickable.push(cover);
 
@@ -352,6 +359,20 @@ const PEEK_SLOT = 0.062;
 const ROW_GAP_Z = 2.28;
 export const ARCHIVE_ROWS = 3;
 
+/** Cover-flow: max neighbours each side (13 cards). Smaller folders show every cover. */
+export const CAROUSEL_RADIUS = 6;
+export const CAROUSEL_SPACING = 0.72;
+export const CAROUSEL_FORWARD = 4.4;
+export const CAROUSEL_RECEDE = 0.18;
+export const CAROUSEL_FEATURED_SCALE = 1.28;
+/** Stretch the jacket on screen (local Z after face-yaw) so covers read as pages, not needles. */
+export const CAROUSEL_WIDTH_SCALE = 1.42;
+/** Cover sits on local −X; +π/2 yaw faces it toward a camera on +Z. */
+export const CAROUSEL_FACE_YAW = Math.PI / 2;
+/** Neighbour tilt stays small enough that cover titles keep facing the camera. */
+export const CAROUSEL_YAW_STEP = 0.12;
+export const CAROUSEL_YAW_CAP = 0.42;
+
 /** Rest peek spacing stays tight; selected folders fan wide enough to read titles. */
 export function selectPeekSlot(count) {
   const n = Math.max(count, 1);
@@ -359,6 +380,112 @@ export function selectPeekSlot(count) {
   if (n <= 8) return 0.14;
   if (n <= 12) return 0.165;
   return Math.max(0.125, Math.min(0.2, 2.7 / Math.max(n - 1, 1)));
+}
+
+/** Shortest signed slot distance on a ring of `count` items. */
+export function carouselSignedOffset(slotIndex, featuredIndex, count) {
+  if (count <= 0) return 0;
+  let delta = slotIndex - featuredIndex;
+  const half = count / 2;
+  if (delta > half) delta -= count;
+  if (delta <= -half) delta += count;
+  return delta;
+}
+
+export function stepCarouselIndex(index, delta, count, { wrap = true } = {}) {
+  if (count <= 0) return 0;
+  const current = ((Number(index) || 0) % count + count) % count;
+  if (!wrap) {
+    return Math.min(count - 1, Math.max(0, current + delta));
+  }
+  return ((current + delta) % count + count) % count;
+}
+
+export function carouselAnnouncement(index, count, title) {
+  const n = Math.max(0, count);
+  if (n === 0) return "No reports in this folder";
+  const i = Math.min(n, Math.max(1, index + 1));
+  return `Report ${i} of ${n}, ${title || "Untitled"}`;
+}
+
+/**
+ * Filed folders only pick reports from the open sleeve. Scatter / unfiled
+ * reports stay clickable.
+ */
+export function reportHitAllowed({ filed, selectedFolderId, folderId }) {
+  if (!filed) return true;
+  if (!selectedFolderId) return false;
+  return folderId === selectedFolderId;
+}
+
+/** How many cards sit each side of the featured cover for a folder of `count`. */
+export function carouselVisibleRadius(count) {
+  const n = Math.max(1, Number(count) || 1);
+  return Math.min(Math.ceil((n - 1) / 2), CAROUSEL_RADIUS);
+}
+
+export function carouselSpacing(count) {
+  const visible = carouselVisibleRadius(count) * 2 + 1;
+  const face = REPORT_D * CAROUSEL_WIDTH_SCALE;
+  if (visible <= 5) return face * 0.7;
+  if (visible <= 9) return face * 0.52;
+  return face * 0.42;
+}
+
+export function carouselSpan(count) {
+  const radius = carouselVisibleRadius(count);
+  const featuredW = REPORT_D * CAROUSEL_WIDTH_SCALE * CAROUSEL_FEATURED_SCALE;
+  return radius * 2 * carouselSpacing(count) + featuredW;
+}
+
+/** Half-angle of the cover-flow arc, in radians. */
+export function carouselArc(count) {
+  const radius = carouselVisibleRadius(count);
+  if (radius <= 2) return 0.46;
+  if (radius <= 4) return 0.64;
+  return 0.82;
+}
+
+/** Ring radius so the wing x matches the previous linear span. */
+export function carouselRing(count) {
+  const slots = carouselVisibleRadius(count);
+  if (slots <= 0) return 1;
+  const half = slots * carouselSpacing(count);
+  const s = Math.sin(carouselArc(count));
+  return s > 0.08 ? half / s : half;
+}
+
+/** Shortest signed turn from `from` to `to`, in (−π, π]. */
+export function shortestAngleDelta(from, to) {
+  let delta = to - from;
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  return delta;
+}
+
+/**
+ * Local cover-flow pose relative to the carousel origin.
+ * Offset 0 is featured (large, facing camera); neighbours sit on a circular arc.
+ */
+export function computeCarouselPose(offset, count = CAROUSEL_RADIUS * 2 + 1) {
+  const abs = Math.abs(offset);
+  const slots = carouselVisibleRadius(count);
+  const arc = carouselArc(count);
+  const ring = carouselRing(count);
+  const t = slots <= 0 ? 0 : Math.max(-1, Math.min(1, offset / slots));
+  const theta = t * arc;
+  const yawTilt = Math.sign(theta) * Math.min(Math.abs(theta) * 0.7, CAROUSEL_YAW_CAP);
+  const maxRecede = Math.max(0.12, CAROUSEL_FORWARD - FOLDER_D - 0.55);
+  return {
+    x: ring * Math.sin(theta),
+    y: REPORT_H * 0.5 + (abs === 0 ? 0.22 : 0.08),
+    z: Math.max(-maxRecede, ring * (Math.cos(theta) - 1)),
+    rx: 0,
+    ry: CAROUSEL_FACE_YAW - yawTilt,
+    scale: abs === 0 ? CAROUSEL_FEATURED_SCALE : Math.max(0.74, 1 - abs * 0.05),
+    visible: abs <= slots,
+    featured: offset === 0,
+  };
 }
 
 export function folderSpacing(count) {
@@ -396,10 +523,14 @@ function folderGridPosition(index, n, twoRows) {
   };
 }
 
-export function shouldUseTwoRows(width, height) {
+export function shouldUseTwoRows(width, height, previous = false) {
   const w = Math.max(width, 1);
   const h = Math.max(height, 1);
-  return w < 700 || w / h < 1.15;
+  const ratio = w / h;
+  if (previous) {
+    return w < 760 || ratio < 1.28;
+  }
+  return w < 700 || ratio < 1.15;
 }
 
 export function layoutExtents(layout) {
@@ -431,6 +562,16 @@ export function layoutExtents(layout) {
     maxZ,
     width: maxX - minX,
     depth: maxZ - minZ,
+  };
+}
+
+/** World-space origin for the selected-folder carousel, in front of the folder row. */
+export function carouselOrigin(layout) {
+  const ext = layoutExtents(layout);
+  return {
+    x: (ext.minX + ext.maxX) / 2,
+    y: 0,
+    z: (ext.minZ + ext.maxZ) / 2 + CAROUSEL_FORWARD,
   };
 }
 
