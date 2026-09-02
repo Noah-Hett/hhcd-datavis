@@ -7,7 +7,7 @@ import {
   reportsMatchingMethods,
   uniqueMethods,
 } from "./mapFilters.js";
-import { clusterAriaLabel, mapReports } from "./mapReports.js";
+import { COLOR_GROUPS, clusterAriaLabel, mapReports } from "./mapReports.js";
 import { contrastRatio, shouldPeekFirst } from "./mapInteraction.js";
 import { METHOD_PILL_THEME as theme } from "./methodPillTheme.js";
 import { readFile } from "node:fs/promises";
@@ -139,6 +139,55 @@ test("mapReports still plots the catalogue with theme groups", async () => {
   );
   assert.ok(mapped.plottedCount > 0);
   assert.ok(mapped.clusters.every((cluster) => cluster.color));
+});
+
+test("mapReports keeps city/work and mobility/transport as separate colours", () => {
+  const byId = Object.fromEntries(COLOR_GROUPS.map((group) => [group.id, group]));
+
+  assert.deepEqual(byId.city.categories, ["City and community"]);
+  assert.deepEqual(byId.work.categories, ["Work and workplace"]);
+  assert.deepEqual(byId.mobility.categories, ["Mobility and Transport"]);
+  assert.deepEqual(byId.transport.categories, ["Transport"]);
+
+  assert.notEqual(byId.city.color, byId.work.color);
+  assert.notEqual(byId.mobility.color, byId.transport.color);
+
+  const colors = COLOR_GROUPS.map((group) => group.color);
+  assert.equal(new Set(colors).size, COLOR_GROUPS.length);
+
+  const sample = mapReports([
+    {
+      reportNo: 1,
+      year: 2010,
+      projectType: "design concepts",
+      category: "City and community",
+    },
+    {
+      reportNo: 2,
+      year: 2010,
+      projectType: "design concepts",
+      category: "Work and workplace",
+    },
+    {
+      reportNo: 3,
+      year: 2010,
+      projectType: "design concepts",
+      category: "Mobility and Transport",
+    },
+    {
+      reportNo: 4,
+      year: 2010,
+      projectType: "design concepts",
+      category: "Transport",
+    },
+  ]);
+  const colorByNo = Object.fromEntries(
+    sample.clusters.map((cluster) => [cluster.key, cluster.color]),
+  );
+  assert.equal(colorByNo[1], byId.city.color);
+  assert.equal(colorByNo[2], byId.work.color);
+  assert.equal(colorByNo[3], byId.mobility.color);
+  assert.equal(colorByNo[4], byId.transport.color);
 });
 
 test("method pill swatches meet 3:1 UI and 4.5:1 text contrast", () => {

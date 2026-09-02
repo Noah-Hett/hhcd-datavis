@@ -19,10 +19,16 @@ const PROJECT_TYPE_TO_BAND = {
 
 export const COLOR_GROUPS = [
   {
-    id: "city-work",
-    label: "City and community / Work and workplace",
+    id: "city",
+    label: "City and community",
+    color: "#7c3aed",
+    categories: ["City and community"],
+  },
+  {
+    id: "work",
+    label: "Work and workplace",
     color: "#1e88e5",
-    categories: ["City and community", "Work and workplace"],
+    categories: ["Work and workplace"],
   },
   {
     id: "health",
@@ -32,9 +38,15 @@ export const COLOR_GROUPS = [
   },
   {
     id: "mobility",
-    label: "Mobility and transport",
+    label: "Mobility and Transport",
+    color: "#ea580c",
+    categories: ["Mobility and Transport"],
+  },
+  {
+    id: "transport",
+    label: "Transport",
     color: "#43a047",
-    categories: ["Mobility and Transport", "Transport"],
+    categories: ["Transport"],
   },
 ];
 
