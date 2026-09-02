@@ -101,14 +101,14 @@ function fitCarouselCamera(layout, aspect, folderId, outPos, outLook) {
   const span = carouselSpan(folderReportCount(layout, folderId));
   const fov = CAM_FOV * (Math.PI / 180);
   const a = Math.max(aspect, 0.5);
-  const worldW = span * 1.16;
-  const worldH = REPORT_H * CAROUSEL_FEATURED_SCALE + 0.85;
+  const worldW = span * 1.02;
+  const worldH = REPORT_H * CAROUSEL_FEATURED_SCALE + 0.5;
   const distX = worldW / 2 / (Math.tan(fov / 2) * a);
   const distY = worldH / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, 3.4) * 0.9;
+  const dist = Math.max(distX, distY, 3.2) * 0.8;
 
   outLook.set(origin.x, REPORT_H * 0.56, origin.z);
-  outPos.set(origin.x - 0.05 * dist, outLook.y + 0.16 * dist, origin.z + dist);
+  outPos.set(origin.x - 0.04 * dist, outLook.y + 0.12 * dist, origin.z + dist);
 }
 
 function fitArchiveCamera(archive, aspect, outPos, outLook) {
