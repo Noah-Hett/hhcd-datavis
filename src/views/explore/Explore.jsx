@@ -133,10 +133,12 @@ export default function Explore() {
     const parkOnArchive = () => {
       const archive = document.getElementById("archive");
       if (!archive) return;
-      const top = archive.offsetTop;
-      if (Math.abs(scroller.scrollTop - top) > 2) {
-        scroller.scrollTo({ top, behavior: "auto" });
-      }
+      scroller.classList.add("is-parking-archive");
+      scroller.scrollTop = archive.offsetTop;
+      window.requestAnimationFrame(() => {
+        const node = document.getElementById("archive");
+        if (node) scroller.scrollTop = node.offsetTop;
+      });
     };
 
     let fromMapLock = false;
@@ -146,6 +148,7 @@ export default function Explore() {
       window.clearTimeout(fromMapTimer);
       fromMapTimer = window.setTimeout(() => {
         fromMapLock = false;
+        scroller.classList.remove("is-parking-archive");
       }, FROM_MAP_LOCK_MS);
     };
 

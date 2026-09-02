@@ -73,7 +73,8 @@
 }
 
 /* Hold snap while files are still on show so a wheel tick cannot skip #archive. */
-.explore-scroll.is-filing {
+.explore-scroll.is-filing,
+.explore-scroll.is-parking-archive {
   scroll-snap-type: none;
   scroll-behavior: auto;
 }
