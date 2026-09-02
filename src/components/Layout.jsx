@@ -23,7 +23,11 @@ export default function Layout() {
   const query = keepSearch(search);
 
   return (
-    <div className="app" data-view={viewKey(pathname)}>
+    <div
+      className="app"
+      data-view={viewKey(pathname)}
+      data-sidebar-open={sidebarOpen ? "true" : "false"}
+    >
       <a className="skip-link" href="#main">
         Skip to main content
       </a>
@@ -89,18 +93,20 @@ export default function Layout() {
           helpButtonRef.current?.focus();
         }}
       />
-      <main id="main" className={fill ? "app-main is-fill" : "app-main is-scroll"}>
-        <Suspense
-          fallback={
-            <p className="app-loading" role="status">
-              Loading…
-            </p>
-          }
-        >
-          <Outlet />
-        </Suspense>
-      </main>
-      <ReportSidebar />
+      <div className="app-body">
+        <main id="main" className={fill ? "app-main is-fill" : "app-main is-scroll"}>
+          <Suspense
+            fallback={
+              <p className="app-loading" role="status">
+                Loading…
+              </p>
+            }
+          >
+            <Outlet />
+          </Suspense>
+        </main>
+        <ReportSidebar />
+      </div>
     </div>
   );
 }
