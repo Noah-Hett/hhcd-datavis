@@ -20,12 +20,12 @@ test("tooltipAnchorAboveDot centers the tip above the dot", () => {
 
 test("tooltipAnchorAboveDot uses the shared gap by default", () => {
   const pos = tooltipAnchorAboveDot({
-    dot: { left: 40, top: 180, width: 12, height: 12 },
+    dot: { left: 200, top: 180, width: 12, height: 12 },
     tipWidth: 100,
     tipHeight: 50,
     viewport: { width: 800, height: 600 },
   });
-  assert.equal(pos.x, 40 + 12 / 2 - 100 / 2);
+  assert.equal(pos.x, 200 + 12 / 2 - 100 / 2);
   assert.equal(pos.y, 180 - 50 - TOOLTIP_GAP);
 });
 
