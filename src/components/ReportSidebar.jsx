@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useSelection } from "../state/SelectionContext.jsx";
 import { reports } from "../data/index.js";
+import ArchiveFolderList from "./ArchiveFolderList.jsx";
 import "./report-sidebar-sheet.css";
 
 const FIELDS = [
@@ -39,13 +40,20 @@ function findReport(reportNo) {
 }
 
 export default function ReportSidebar() {
-  const { selectedReportNo, sidebarOpen, setSidebarOpen } = useSelection();
+  const {
+    selectedReportNo,
+    selectedFolderId,
+    sidebarOpen,
+    setSidebarOpen,
+    backSidebar,
+  } = useSelection();
   const headingRef = useRef(null);
   const asideRef = useRef(null);
   const titleId = useId();
   const liveId = useId();
   const report = findReport(selectedReportNo);
   const open = sidebarOpen;
+  const showBack = Boolean(report && selectedFolderId);
   const [sheet, setSheet] = useState(() =>
     typeof window !== "undefined" && window.matchMedia
       ? window.matchMedia(SHEET_QUERY).matches
@@ -69,10 +77,20 @@ export default function ReportSidebar() {
   }, []);
 
   useEffect(() => {
-    if (!open || !report) return undefined;
-    const id = window.setTimeout(() => headingRef.current?.focus(), 40);
+    if (!open) return undefined;
+    const id = window.setTimeout(() => {
+      if (report) {
+        headingRef.current?.focus();
+        return;
+      }
+      if (selectedFolderId) {
+        document.getElementById("archive-list")?.focus?.();
+        return;
+      }
+      headingRef.current?.focus();
+    }, 40);
     return () => window.clearTimeout(id);
-  }, [open, report, selectedReportNo]);
+  }, [open, report, selectedReportNo, selectedFolderId]);
 
   useEffect(() => {
     const onKey = (event) => {
@@ -87,20 +105,25 @@ export default function ReportSidebar() {
     return () => window.removeEventListener("keydown", onKey, true);
   }, []);
 
-  const liveText = open && report
-    ? `Opened ${report.title} by ${report.author ?? "unknown author"}${
-        report.year != null ? `, ${report.year}` : ""
-      }.`
-    : open
-      ? "Report sidebar opened. No report selected."
-      : "";
+  const liveText =
+    open && report
+      ? `Opened ${report.title} by ${report.author ?? "unknown author"}${
+          report.year != null ? `, ${report.year}` : ""
+        }.`
+      : open && selectedFolderId
+        ? "Opened folder list."
+        : open
+          ? "Report sidebar opened. No report selected."
+          : "";
+
+  const kicker = report ? "Report" : selectedFolderId ? "Folders" : "Sidebar";
 
   return (
     <>
       <div className="sr-only" id={liveId} aria-live="polite" aria-atomic="true">
         {liveText}
       </div>
-      {open ? (
+      {open && sheet ? (
         <button
           type="button"
           className="report-sidebar-backdrop"
@@ -121,10 +144,21 @@ export default function ReportSidebar() {
         {...(!open ? { inert: "" } : {})}
       >
         <div className="report-sidebar-bar">
-          <p className="report-sidebar-kicker">Report</p>
-          <button type="button" className="report-sidebar-close" onClick={close}>
-            Close
-          </button>
+          <p className="report-sidebar-kicker">{kicker}</p>
+          <div className="report-sidebar-actions">
+            {showBack ? (
+              <button
+                type="button"
+                className="report-sidebar-close"
+                onClick={backSidebar}
+              >
+                Back
+              </button>
+            ) : null}
+            <button type="button" className="report-sidebar-close" onClick={close}>
+              Close
+            </button>
+          </div>
         </div>
         <div className="report-sidebar-body">
           {report ? (
@@ -181,6 +215,8 @@ export default function ReportSidebar() {
                 </p>
               ) : null}
             </article>
+          ) : selectedFolderId ? (
+            <ArchiveFolderList titleId={titleId} headingRef={headingRef} />
           ) : (
             <div>
               <h2

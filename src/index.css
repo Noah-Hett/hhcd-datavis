@@ -241,8 +241,19 @@ select {
   background: var(--theme-health);
 }
 
+.app-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
 .app-main {
   flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
 }
 
 .app-main.is-fill {
@@ -250,12 +261,13 @@ select {
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
 .app-main.is-scroll {
   display: block;
+  overflow: auto;
 }
 
 .app-loading {
@@ -328,6 +340,10 @@ select {
 
 /* --- Report sidebar --------------------------------------------------- */
 
+.app.is-sidebar-open {
+  --sidebar-w: 40%;
+}
+
 .report-sidebar-backdrop {
   position: fixed;
   inset: 0;
@@ -343,6 +359,7 @@ select {
   z-index: 50;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--archive-line);
@@ -363,6 +380,12 @@ select {
   padding: 12px 16px;
   border-bottom: 1px solid var(--archive-line);
   box-shadow: inset 0 3px 0 var(--accent-bar);
+}
+
+.report-sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .report-sidebar-kicker {
@@ -390,6 +413,8 @@ select {
 
 .report-sidebar-body {
   overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 16px 18px 28px;
 }
 
@@ -432,22 +457,131 @@ select {
   font-weight: 650;
 }
 
+.report-sidebar .folder-list,
+.report-sidebar .report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.report-sidebar .folder-btn,
+.report-sidebar .report-btn {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.report-sidebar .folder-btn {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--archive-line);
+}
+
+.report-sidebar .folder-btn.is-open,
+.report-sidebar .folder-btn:hover {
+  background: var(--archive-hover);
+}
+
+.report-sidebar .folder-btn.is-open {
+  border-left-color: var(--text);
+  font-weight: 700;
+}
+
+.report-sidebar .folder-btn-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.report-sidebar .report-list {
+  background: #fffdf8;
+  border-bottom: 1px solid var(--archive-line);
+}
+
+.report-sidebar .report-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 48px;
+  padding: 12px 12px 12px 22px;
+}
+
+.report-sidebar .report-btn:hover,
+.report-sidebar .report-btn:focus-visible,
+.report-sidebar .report-btn.is-selected,
+.report-sidebar .report-btn[aria-current="true"] {
+  background: var(--archive-hover);
+}
+
+.report-sidebar .report-btn.is-selected,
+.report-sidebar .report-btn[aria-current="true"] {
+  box-shadow: inset 3px 0 0 var(--text);
+}
+
+.report-sidebar .report-btn-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.report-sidebar .report-btn-title {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.report-sidebar .report-btn-author {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 @media (min-width: 800px) {
+  .app.is-sidebar-open .app-main {
+    flex: 1 1 60%;
+    width: 60%;
+    max-width: 60%;
+  }
+
   .report-sidebar {
-    top: calc(var(--app-header-h) + 8px);
-    right: 12px;
-    bottom: 12px;
-    width: var(--sidebar-w);
-    max-width: calc(100vw - 24px);
-    border-radius: 16px;
+    position: relative;
+    inset: auto;
+    z-index: 2;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    flex: 0 0 0;
+    width: 0;
+    max-width: none;
+    height: auto;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+    transform: none;
+  }
+
+  .report-sidebar.is-open {
+    flex: 0 0 40%;
+    width: var(--sidebar-w, 40%);
+    max-width: 40%;
+    border-left: 1px solid var(--archive-line);
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .report-sidebar.is-closed {
-    transform: translateX(12px);
-  }
-
-  .report-sidebar-backdrop {
-    display: none;
+    transform: none;
   }
 }
 

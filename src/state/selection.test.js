@@ -1,0 +1,113 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import {
+  applyBackSidebar,
+  applyClearReport,
+  applyOpenFolder,
+  applyOpenReport,
+  groupingIdFromFolderId,
+  normalizeFolderId,
+  normalizeReportId,
+} from "./selection.js";
+
+test("normalize ids stringify and drop empties", () => {
+  assert.equal(normalizeReportId(11), "11");
+  assert.equal(normalizeReportId(""), null);
+  assert.equal(normalizeFolderId("theme:Health"), "theme:Health");
+  assert.equal(normalizeFolderId(null), null);
+});
+
+test("groupingIdFromFolderId reads the grouping prefix", () => {
+  assert.equal(groupingIdFromFolderId("theme:Health and wellbeing"), "theme");
+  assert.equal(groupingIdFromFolderId("year:2004-2008"), "year");
+  assert.equal(groupingIdFromFolderId("type:Prototype"), "type");
+  assert.equal(groupingIdFromFolderId("nope"), null);
+  assert.equal(groupingIdFromFolderId(null), null);
+});
+
+test("openReport sets the report, optional folder, and opens the sidebar", () => {
+  const next = applyOpenReport(
+    { selectedReportNo: null, selectedFolderId: null, sidebarOpen: false, source: null },
+    "11",
+    { folderId: "theme:Health and wellbeing", source: "archive" },
+  );
+  assert.deepEqual(next, {
+    selectedReportNo: "11",
+    selectedFolderId: "theme:Health and wellbeing",
+    sidebarOpen: true,
+    source: "archive",
+  });
+});
+
+test("openReport without folderId does not keep a previous folder", () => {
+  const next = applyOpenReport(
+    {
+      selectedReportNo: null,
+      selectedFolderId: "theme:Health and wellbeing",
+      sidebarOpen: true,
+      source: "archive",
+    },
+    "86",
+    { source: "search" },
+  );
+  assert.equal(next.selectedFolderId, null);
+  assert.equal(next.source, "search");
+});
+
+test("openFolder clears the report and keeps the sidebar on that folder", () => {
+  const next = applyOpenFolder(
+    {
+      selectedReportNo: "11",
+      selectedFolderId: "theme:Health and wellbeing",
+      sidebarOpen: true,
+      source: "archive",
+    },
+    "year:2004-2008",
+  );
+  assert.deepEqual(next, {
+    selectedReportNo: null,
+    selectedFolderId: "year:2004-2008",
+    sidebarOpen: true,
+    source: null,
+  });
+});
+
+test("openFolder(null) matches clearReport", () => {
+  const fromOpen = applyOpenFolder(
+    {
+      selectedReportNo: "11",
+      selectedFolderId: "theme:Health",
+      sidebarOpen: true,
+      source: "archive",
+    },
+    null,
+  );
+  assert.deepEqual(fromOpen, applyClearReport());
+  assert.equal(fromOpen.sidebarOpen, false);
+  assert.equal(fromOpen.selectedFolderId, null);
+});
+
+test("backSidebar drops the report and keeps the folder list open", () => {
+  const next = applyBackSidebar({
+    selectedReportNo: "11",
+    selectedFolderId: "theme:Health and wellbeing",
+    sidebarOpen: true,
+    source: "archive",
+  });
+  assert.deepEqual(next, {
+    selectedReportNo: null,
+    selectedFolderId: "theme:Health and wellbeing",
+    sidebarOpen: true,
+    source: "archive",
+  });
+});
+
+test("backSidebar without a folder clears like Escape", () => {
+  const next = applyBackSidebar({
+    selectedReportNo: "11",
+    selectedFolderId: null,
+    sidebarOpen: true,
+    source: "url",
+  });
+  assert.deepEqual(next, applyClearReport());
+});
