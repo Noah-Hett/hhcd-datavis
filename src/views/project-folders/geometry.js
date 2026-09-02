@@ -361,15 +361,17 @@ export const ARCHIVE_ROWS = 3;
 
 /** Cover-flow: max neighbours each side (13 cards). Smaller folders show every cover. */
 export const CAROUSEL_RADIUS = 6;
-export const CAROUSEL_SPACING = 1.08;
+export const CAROUSEL_SPACING = 0.72;
 export const CAROUSEL_FORWARD = 4.4;
-export const CAROUSEL_RECEDE = 0.22;
-export const CAROUSEL_FEATURED_SCALE = 1.38;
+export const CAROUSEL_RECEDE = 0.18;
+export const CAROUSEL_FEATURED_SCALE = 1.28;
+/** Stretch the jacket on screen (local Z after face-yaw) so covers read as pages, not needles. */
+export const CAROUSEL_WIDTH_SCALE = 1.42;
 /** Cover sits on local −X; +π/2 yaw faces it toward a camera on +Z. */
 export const CAROUSEL_FACE_YAW = Math.PI / 2;
 /** Neighbour tilt stays small enough that cover titles keep facing the camera. */
-export const CAROUSEL_YAW_STEP = 0.1;
-export const CAROUSEL_YAW_CAP = 0.2;
+export const CAROUSEL_YAW_STEP = 0.08;
+export const CAROUSEL_YAW_CAP = 0.16;
 
 /** Rest peek spacing stays tight; selected folders fan wide enough to read titles. */
 export function selectPeekSlot(count) {
@@ -424,15 +426,16 @@ export function carouselVisibleRadius(count) {
 
 export function carouselSpacing(count) {
   const visible = carouselVisibleRadius(count) * 2 + 1;
-  if (visible <= 5) return 1.32;
-  if (visible <= 9) return 1.1;
-  if (visible <= 13) return 0.94;
-  return 0.82;
+  const face = REPORT_D * CAROUSEL_WIDTH_SCALE;
+  if (visible <= 5) return face * 0.7;
+  if (visible <= 9) return face * 0.52;
+  return face * 0.42;
 }
 
 export function carouselSpan(count) {
   const radius = carouselVisibleRadius(count);
-  return radius * 2 * carouselSpacing(count) + REPORT_D;
+  const featuredW = REPORT_D * CAROUSEL_WIDTH_SCALE * CAROUSEL_FEATURED_SCALE;
+  return radius * 2 * carouselSpacing(count) + featuredW;
 }
 
 /** Shortest signed turn from `from` to `to`, in (−π, π]. */
@@ -461,7 +464,7 @@ export function computeCarouselPose(offset, count = CAROUSEL_RADIUS * 2 + 1) {
     z: -Math.min(abs * CAROUSEL_RECEDE, maxRecede),
     rx: 0,
     ry: CAROUSEL_FACE_YAW - yawTilt,
-    scale: abs === 0 ? CAROUSEL_FEATURED_SCALE : Math.max(0.64, 1 - abs * 0.07),
+    scale: abs === 0 ? CAROUSEL_FEATURED_SCALE : Math.max(0.74, 1 - abs * 0.05),
     visible: abs <= radius,
     featured: offset === 0,
   };

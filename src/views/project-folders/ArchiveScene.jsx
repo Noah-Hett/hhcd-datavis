@@ -8,6 +8,7 @@ import {
   FOLDER_W,
   REPORT_H,
   CAROUSEL_FEATURED_SCALE,
+  CAROUSEL_WIDTH_SCALE,
   carouselOrigin,
   carouselSignedOffset,
   carouselSpan,
@@ -100,11 +101,11 @@ function fitCarouselCamera(layout, aspect, folderId, outPos, outLook) {
   const span = carouselSpan(folderReportCount(layout, folderId));
   const fov = CAM_FOV * (Math.PI / 180);
   const a = Math.max(aspect, 0.5);
-  const worldW = span * 0.82;
+  const worldW = span * 1.16;
   const worldH = REPORT_H * CAROUSEL_FEATURED_SCALE + 0.85;
   const distX = worldW / 2 / (Math.tan(fov / 2) * a);
   const distY = worldH / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, 3.4) * 0.86;
+  const dist = Math.max(distX, distY, 3.4) * 0.9;
 
   outLook.set(origin.x, REPORT_H * 0.56, origin.z);
   outPos.set(origin.x - 0.05 * dist, outLook.y + 0.16 * dist, origin.z + dist);
@@ -772,7 +773,11 @@ export default function ArchiveScene({
           g.position.y += (ty - g.position.y) * follow;
           g.position.z += (tz - g.position.z) * follow;
           followYaw(g, pose.ry, follow);
-          g.scale.setScalar(g.scale.x + (pose.scale - g.scale.x) * follow);
+          const sx = pose.scale;
+          const sz = pose.scale * CAROUSEL_WIDTH_SCALE;
+          g.scale.x += (sx - g.scale.x) * follow;
+          g.scale.y += (sx - g.scale.y) * follow;
+          g.scale.z += (sz - g.scale.z) * follow;
           continue;
         }
 
@@ -813,7 +818,9 @@ export default function ArchiveScene({
         g.rotation.x += (targetRx - g.rotation.x) * follow;
         g.rotation.y += shortestAngleDelta(g.rotation.y, 0) * follow;
         const s = isReport ? 1.08 : 1;
-        g.scale.setScalar(g.scale.x + (s - g.scale.x) * follow);
+        g.scale.x += (s - g.scale.x) * follow;
+        g.scale.y += (s - g.scale.y) * follow;
+        g.scale.z += (s - g.scale.z) * follow;
       }
 
       {

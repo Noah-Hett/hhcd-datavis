@@ -7,13 +7,16 @@ import {
   CAROUSEL_FORWARD,
   CAROUSEL_RADIUS,
   CAROUSEL_RECEDE,
+  CAROUSEL_WIDTH_SCALE,
   CAROUSEL_YAW_CAP,
   FOLDER_D,
   PEEK_REST,
   PEEK_SELECT,
+  REPORT_D,
   carouselAnnouncement,
   carouselOrigin,
   carouselSignedOffset,
+  carouselSpacing,
   carouselVisibleRadius,
   computeArchiveLayout,
   computeCarouselPose,
@@ -165,6 +168,14 @@ test("a large folder still shows more than five covers", () => {
   ).filter(Boolean).length;
   assert.ok(visible >= 11);
   assert.ok(visible <= CAROUSEL_RADIUS * 2 + 1);
+});
+
+test("carousel spacing overlaps jackets so the fan stays on the page", () => {
+  const face = REPORT_D * CAROUSEL_WIDTH_SCALE;
+  assert.ok(carouselSpacing(5) < face);
+  assert.ok(carouselSpacing(9) < face);
+  assert.ok(carouselSpacing(17) < carouselSpacing(9));
+  assert.ok(CAROUSEL_WIDTH_SCALE > 1);
 });
 
 test("shouldUseTwoRows ignores a sidebar-sized squeeze and holds through a resize band", () => {
