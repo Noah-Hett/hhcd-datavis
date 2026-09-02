@@ -1,3 +1,8 @@
+export const TOOLTIP_GAP = 10;
+export const TOOLTIP_PAD = 12;
+export const TOOLTIP_WIDTH = 340;
+export const TOOLTIP_ESTIMATED_HEIGHT = 148;
+
 export function shouldPeekFirst({
   keyboard,
   coarsePointer,
@@ -7,6 +12,39 @@ export function shouldPeekFirst({
   if (keyboard) return false;
   if (!coarsePointer) return false;
   return lastTapKey !== clusterKey;
+}
+
+export function tooltipAnchorAboveDot({
+  dot,
+  tipWidth,
+  tipHeight,
+  gap = TOOLTIP_GAP,
+  pad = TOOLTIP_PAD,
+  viewport,
+  allowShift = false,
+}) {
+  const width = Math.max(0, tipWidth);
+  const height = Math.max(0, tipHeight);
+  let x = dot.left + dot.width / 2 - width / 2;
+  let y = dot.top - height - gap;
+
+  const maxX = viewport.width - width - pad;
+  x = maxX < pad ? pad : Math.min(Math.max(pad, x), maxX);
+
+  if (y < pad) {
+    if (allowShift) {
+      const below = dot.top + (dot.height ?? 0) + gap;
+      if (below + height <= viewport.height - pad) {
+        y = below;
+      } else {
+        y = pad;
+      }
+    } else {
+      y = Math.max(y, pad);
+    }
+  }
+
+  return { x, y };
 }
 
 export function contrastRatio(hexA, hexB) {

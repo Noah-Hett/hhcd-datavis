@@ -1,11 +1,47 @@
-export default function Tooltip({ cluster, x, y }) {
+import { forwardRef } from "react";
+import { createPortal } from "react-dom";
+
+const Tooltip = forwardRef(function Tooltip(
+  {
+    cluster,
+    x,
+    y,
+    interactive = false,
+    peeked = false,
+    onActivate,
+    onPointerEnter,
+    onPointerLeave,
+  },
+  ref,
+) {
   if (!cluster) return null;
 
-  return (
-    <div
-      className="tooltip"
+  const className = [
+    "tooltip",
+    interactive ? "is-interactive" : "",
+    peeked ? "is-peek" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const title = cluster.reports[0]?.title ?? "report";
+
+  function handleActivate(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    onActivate?.(event);
+  }
+
+  const node = (
+    <button
+      ref={ref}
+      type="button"
+      className={className}
       style={{ left: x, top: y }}
-      role="tooltip"
+      aria-label={`Open report: ${title}`}
+      onClick={handleActivate}
+      onPointerDown={(event) => event.stopPropagation()}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
     >
       {cluster.reports.map((report) => (
         <div key={report.reportNo} className="tooltip-item">
@@ -16,6 +52,11 @@ export default function Tooltip({ cluster, x, y }) {
           </span>
         </div>
       ))}
-    </div>
+    </button>
   );
-}
+
+  if (typeof document === "undefined") return node;
+  return createPortal(node, document.body);
+});
+
+export default Tooltip;
