@@ -7,12 +7,14 @@ import {
   CAROUSEL_FORWARD,
   CAROUSEL_RADIUS,
   CAROUSEL_RECEDE,
-  CAROUSEL_WIDTH_SCALE,
   CAROUSEL_YAW_CAP,
+  COVER_CANVAS_H,
+  COVER_CANVAS_W,
+  COVER_W,
   FOLDER_D,
   PEEK_REST,
   PEEK_SELECT,
-  REPORT_D,
+  REPORT_H,
   carouselAnnouncement,
   carouselOrigin,
   carouselSignedOffset,
@@ -183,11 +185,13 @@ test("a large folder still shows more than five covers", () => {
 });
 
 test("carousel spacing overlaps jackets so the fan stays on the page", () => {
-  const face = REPORT_D * CAROUSEL_WIDTH_SCALE;
-  assert.ok(carouselSpacing(5) < face);
-  assert.ok(carouselSpacing(9) < face);
+  assert.ok(carouselSpacing(5) < COVER_W);
+  assert.ok(carouselSpacing(9) < COVER_W);
   assert.ok(carouselSpacing(17) < carouselSpacing(9));
-  assert.ok(CAROUSEL_WIDTH_SCALE > 1);
+});
+
+test("cover plane matches the jacket canvas so type is not stretched", () => {
+  assert.equal(COVER_CANVAS_W / COVER_CANVAS_H, COVER_W / REPORT_H);
 });
 
 test("shouldUseTwoRows ignores a sidebar-sized squeeze and holds through a resize band", () => {
