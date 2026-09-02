@@ -1,6 +1,7 @@
 import { Suspense, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import HelpDialog from "./HelpDialog.jsx";
+import ReportSidebar from "./ReportSidebar.jsx";
 import SimpleSearch from "./SimpleSearch.jsx";
 import { useSelection } from "../state/SelectionContext.jsx";
 
@@ -99,6 +100,7 @@ export default function Layout() {
           <Outlet />
         </Suspense>
       </main>
+      <ReportSidebar />
     </div>
   );
 }

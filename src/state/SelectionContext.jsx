@@ -26,22 +26,46 @@ export function SelectionProvider({ children }) {
   const [sidebarOpen, setSidebarOpenState] = useState(false);
   const [source, setSource] = useState(null);
   const returnFocusRef = useRef(null);
+  const selectedRef = useRef(null);
+  const searchParamsRef = useRef(searchParams);
+  // Ignore the stale ?report= value we just dismissed until the URL drops it.
+  const ignoreUrlReportRef = useRef(null);
+  selectedRef.current = selectedReportNo;
+  searchParamsRef.current = searchParams;
 
   const applyUrlReport = useCallback((rawId) => {
     if (!reportExists(rawId)) return false;
     const id = String(rawId);
     setSelectedReportNo(id);
     setSidebarOpenState(true);
-    setSource("url");
+    setSource((current) => current ?? "url");
     return true;
   }, []);
 
+  // Sync URL → selection only when searchParams change. Depending on
+  // selectedReportNo is the Escape/?report= race: clearReport nulls the id
+  // before setSearchParams flushes, so the effect would re-apply the stale
+  // param and reopen the sidebar.
   useEffect(() => {
     const fromUrl = searchParams.get("report");
-    if (!fromUrl) return;
-    if (String(fromUrl) === String(selectedReportNo)) return;
+    const ignored = ignoreUrlReportRef.current;
+    if (ignored != null) {
+      if (!fromUrl || String(fromUrl) === String(ignored)) {
+        if (!fromUrl) ignoreUrlReportRef.current = null;
+        return;
+      }
+      ignoreUrlReportRef.current = null;
+    }
+    if (!fromUrl) {
+      if (selectedRef.current != null) {
+        setSelectedReportNo(null);
+        setSidebarOpenState(false);
+        setSource(null);
+      }
+      return;
+    }
     applyUrlReport(fromUrl);
-  }, [searchParams, selectedReportNo, applyUrlReport]);
+  }, [searchParams, applyUrlReport]);
 
   const writeReportParam = useCallback(
     (reportNo) => {
@@ -50,6 +74,7 @@ export function SelectionProvider({ children }) {
           const next = new URLSearchParams(current);
           if (reportNo) next.set("report", String(reportNo));
           else next.delete("report");
+          if (next.toString() === current.toString()) return current;
           return next;
         },
         { replace: true },
@@ -68,6 +93,7 @@ export function SelectionProvider({ children }) {
       } else if (typeof document !== "undefined") {
         returnFocusRef.current = document.activeElement;
       }
+      ignoreUrlReportRef.current = null;
       setSelectedReportNo(id);
       setSidebarOpenState(true);
       setSource(nextSource);
@@ -77,6 +103,9 @@ export function SelectionProvider({ children }) {
   );
 
   const clearReport = useCallback(() => {
+    const dismissed =
+      selectedRef.current ?? searchParamsRef.current.get("report");
+    if (dismissed) ignoreUrlReportRef.current = String(dismissed);
     setSelectedReportNo(null);
     setSidebarOpenState(false);
     setSource(null);
@@ -90,16 +119,15 @@ export function SelectionProvider({ children }) {
 
   const setSidebarOpen = useCallback(
     (open) => {
-      const next = Boolean(open);
-      setSidebarOpenState(next);
-      if (!next && selectedReportNo) {
-        const node = returnFocusRef.current;
-        if (node && typeof node.focus === "function") {
-          window.setTimeout(() => node.focus(), 0);
-        }
+      if (!open) {
+        // Closing the panel also drops selectedReportNo and ?report= so
+        // the URL effect cannot reopen it.
+        clearReport();
+        return;
       }
+      setSidebarOpenState(true);
     },
-    [selectedReportNo],
+    [clearReport],
   );
 
   const value = useMemo(
