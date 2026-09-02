@@ -17,27 +17,26 @@
   min-height: 12rem;
 }
 
-.archive-section .archive.is-unfiled .grouping-tabs {
-  visibility: hidden;
+.archive-section .grouping-tabs {
+  position: absolute;
+  left: 12px;
+  top: 22%;
+  z-index: 6;
+  flex-direction: column;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  pointer-events: auto;
+  border-radius: 16px;
 }
 
-.archive-section .archive.is-unfiled .archive-bar[hidden] {
+.archive-section .grouping-tabs[hidden] {
   display: none;
 }
 
-.archive-section .archive-bar .toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  min-height: 48px;
-  cursor: pointer;
-}
-
-.archive-section .archive-bar .toggle input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--archive-ink);
+.archive-section .grouping-tabs label {
+  min-height: 44px;
+  font-size: 14px;
+  padding: 0 12px;
 }
 
 .archive-section :where(a, button, input, [tabindex]):focus-visible,
@@ -116,6 +115,21 @@
     scroll-snap-type: none;
     scroll-behavior: auto;
   }
+}
+
+.explore-scroll[data-reduce-motion="true"],
+.explore-scroll[data-reduce-motion="true"].is-filing,
+.explore-scroll[data-reduce-motion="true"].is-filed {
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+
+.explore-scroll[data-reduce-motion="true"] .explore-section,
+.explore-scroll[data-reduce-motion="true"] #intro,
+.explore-scroll[data-reduce-motion="true"] #archive,
+.explore-scroll[data-reduce-motion="true"] #map {
+  scroll-snap-align: none;
+  scroll-snap-stop: normal;
 }
 
 .archive-section .archive.is-filed .intro {

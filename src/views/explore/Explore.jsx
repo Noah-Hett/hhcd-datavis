@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveSection from "./ArchiveSection.jsx";
 import {
   isFiled,
@@ -20,22 +21,15 @@ function keepSearch(search) {
   return search || "";
 }
 
-function prefersReducedMotion() {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 export { waypointFromScroll };
 
 export default function Explore() {
   const { hash, search } = useLocation();
+  const { reduceMotion } = useSelection();
   const query = keepSearch(search);
   const scrollRef = useRef(null);
   const organizeRef = useRef(0);
-  const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
-  const [organize, setOrganize] = useState(() =>
-    prefersReducedMotion() ? 1 : 0,
-  );
+  const [organize, setOrganize] = useState(() => (reduceMotion ? 1 : 0));
   const [waypoint, setWaypoint] = useState(() => {
     const id = hash.replace(/^#/, "");
     return SCROLL_IDS.includes(id) ? id : "intro";
@@ -44,16 +38,8 @@ export default function Explore() {
   organizeRef.current = organize;
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => {
-      const next = media.matches;
-      setReduceMotion(next);
-      if (next) setOrganize(1);
-    };
-    onChange();
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
+    if (reduceMotion) setOrganize(1);
+  }, [reduceMotion]);
 
   useEffect(() => {
     const id = hash.replace(/^#/, "");
@@ -103,7 +89,12 @@ export default function Explore() {
 
   return (
     <div className="view-explore">
-      <div className="explore-scroll" data-filed={filed ? "true" : "false"} ref={scrollRef}>
+      <div
+        className="explore-scroll"
+        data-filed={filed ? "true" : "false"}
+        data-reduce-motion={reduceMotion ? "true" : "false"}
+        ref={scrollRef}
+      >
         <div className="explore-waypoints-slot">
           <nav className="explore-waypoints" aria-label="Explore waypoints">
             {WAYPOINTS.map((item) => {

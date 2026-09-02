@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef } from "react";
+import { useSelection } from "../state/SelectionContext.jsx";
 import "./help-dialog.css";
 
 export default function HelpDialog({ open, onClose }) {
   const dialogRef = useRef(null);
   const titleId = useId();
   const closeRef = useRef(null);
+  const { reduceMotion, setReduceMotion } = useSelection();
 
   useEffect(() => {
     const node = dialogRef.current;
@@ -111,6 +113,23 @@ export default function HelpDialog({ open, onClose }) {
               folder list fallback
             </li>
           </ul>
+          <h3>Motion</h3>
+          <label className="help-reduce-motion">
+            <input
+              type="checkbox"
+              checked={reduceMotion}
+              onChange={(event) =>
+                setReduceMotion(event.currentTarget.checked)
+              }
+            />
+            <span>
+              Reduce motion
+              <span className="help-reduce-motion-copy">
+                Skip Explore scroll-snap and the archive filing animation.
+                Your system’s reduced-motion setting still applies.
+              </span>
+            </span>
+          </label>
         </div>
       </div>
     </dialog>
