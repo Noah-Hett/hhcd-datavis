@@ -6,7 +6,6 @@ import {
   FOLDER_BACK_H,
   FOLDER_D,
   FOLDER_W,
-  PEEK_SELECT,
   REPORT_H,
   computeArchiveLayout,
   computeLayout,
@@ -31,11 +30,11 @@ const EXIT_X = 12;
 const MORPH_MS = 900;
 const CAM_FOV = 22;
 const TAP_SLOP = 18;
-const FOCUS_Z = 3.05;
+const FOCUS_Z = 3.22;
 const FOCUS_X = -0.42;
 const FOCUS_Y = 0.14;
 const FOCUS_YAW = 0.68;
-const FOCUS_SCALE = 1.28;
+const FOCUS_SCALE = 1.38;
 
 function folderTarget(fromLayout, toLayout, id, entry) {
   const from = fromLayout.folderPos[id];
@@ -73,7 +72,7 @@ function fitRowCamera(layout, aspect, outPos, outLook) {
   const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, 0.4));
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 7.2) * 1.18;
+  const dist = Math.max(distX, distY, distZ, 7.2) * 1.08;
 
   outLook.set((ext.minX + ext.maxX) / 2, 1.18, (ext.minZ + ext.maxZ) / 2);
   outPos.set(outLook.x - 0.36 * dist, outLook.y + 0.5 * dist, outLook.z + dist);
@@ -81,14 +80,18 @@ function fitRowCamera(layout, aspect, outPos, outLook) {
 
 function fitArchiveCamera(archive, aspect, outPos, outLook) {
   const a = Math.min(2.15, Math.max(0.72, Number.isFinite(aspect) && aspect > 0 ? aspect : 1.6));
-  outLook.set(0, REPORT_H * 0.5, 0.02);
+  const lookX = ((archive.minX ?? 0) + (archive.maxX ?? 0)) / 2;
+  const lookZ = ((archive.minZ ?? 0) + (archive.maxZ ?? 0)) / 2;
+  outLook.set(lookX, REPORT_H * 0.48, lookZ);
   const fov = CAM_FOV * (Math.PI / 180);
-  const worldW = archive.span + 2.4;
-  const worldH = REPORT_H + 0.85;
+  const worldW = (archive.span ?? 1) + 1.8;
+  const worldH = REPORT_H + 0.7;
+  const worldD = (archive.maxZ ?? 0) - (archive.minZ ?? 0) + 1.15;
   const distX = worldW / 2 / (Math.tan(fov / 2) * a);
   const distY = worldH / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, 10.5) * 1.14;
-  outPos.set(archive.span * 0.04, REPORT_H * 0.56, dist);
+  const distZ = worldD / 2 / Math.tan(fov / 2);
+  const dist = Math.max(distX, distY, distZ, 7.6) * 1.1;
+  outPos.set(lookX - 0.18 * dist, REPORT_H * 0.72 + 0.28 * dist, lookZ + dist);
 }
 
 function fitShadow(sun, layout) {
@@ -152,7 +155,7 @@ export default function ArchiveScene({
     const camera = new THREE.PerspectiveCamera(CAM_FOV, 16 / 9, 0.1, 120);
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setSize(Math.max(1, mount.clientWidth), Math.max(1, mount.clientHeight), false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.BasicShadowMap;
@@ -169,7 +172,7 @@ export default function ArchiveScene({
     const sun = new THREE.DirectionalLight("#ffffff", 1.85);
     sun.position.set(-8, 14, 6);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(4096, 4096);
+    sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.near = 1;
     sun.shadow.camera.far = 42;
     sun.shadow.bias = -0.0008;
@@ -205,6 +208,7 @@ export default function ArchiveScene({
     const shared = createSharedResources();
     const folders = new Map();
     const labelNodes = new Map();
+    const reportLabelNodes = new Map();
     for (const id of allFolderIds) {
       const { group, pickable } = createFolderMesh(id, shared);
       scene.add(group);
@@ -257,6 +261,13 @@ export default function ArchiveScene({
         id: report.reportNo,
         folderId: startLayout.reportPos[report.reportNo]?.folderId ?? null,
       });
+
+      const reportLabel = document.createElement("div");
+      reportLabel.className = "scene-label is-report";
+      reportLabel.setAttribute("aria-hidden", "true");
+      reportLabel.textContent = report.title || `No. ${report.reportNo}`;
+      labelRoot.appendChild(reportLabel);
+      reportLabelNodes.set(report.reportNo, reportLabel);
     }
 
     for (const [id, entry] of folders) {
@@ -303,7 +314,7 @@ export default function ArchiveScene({
       pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     };
 
-    const hitTest = (selectedFolder) => {
+    const hitTest = () => {
       raycaster.setFromCamera(pointer, camera);
       const hits = raycaster.intersectObjects(pickables, false);
       for (const hit of hits) {
@@ -315,7 +326,6 @@ export default function ArchiveScene({
           ];
           if (organizeRef.current < 0.95 && !reduceRef.current) return hit;
           if (!pose) continue;
-          if (selectedFolder && pose.folderId !== selectedFolder) continue;
           return hit;
         }
         if (data.kind === "folder") {
@@ -341,7 +351,7 @@ export default function ArchiveScene({
         dragging = true;
       }
       setPointer(event);
-      const hit = hitTest(selectedFolderRef.current);
+      const hit = hitTest();
       const next = hit?.object.userData ?? null;
       hovered = next;
       const over =
@@ -358,7 +368,7 @@ export default function ArchiveScene({
         return;
       }
       setPointer(event);
-      const hit = hitTest(selectedFolderRef.current);
+      const hit = hitTest();
       const data = hit?.object.userData;
       if (data?.kind === "report") {
         onReportRef.current(data.reportNo);
@@ -373,18 +383,32 @@ export default function ArchiveScene({
     renderer.domElement.addEventListener("pointermove", onPointerMove);
     renderer.domElement.addEventListener("pointerup", onPointerUp);
 
-    const resize = () => {
-      const w = mount.clientWidth;
-      const h = mount.clientHeight;
+    let lastW = 0;
+    let lastH = 0;
+    let resizeRaf = 0;
+    const applySize = () => {
+      const w = Math.round(mount.clientWidth);
+      const h = Math.round(mount.clientHeight);
       if (w < 48 || h < 48) return;
+      if (w === lastW && h === lastH) return;
+      lastW = w;
+      lastH = h;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(w, h, false);
       twoRows = shouldUseTwoRows(w, h);
+    };
+    const resize = () => {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0;
+        applySize();
+      });
     };
     const ro = new ResizeObserver(resize);
     ro.observe(mount);
-    resize();
+    applySize();
 
     const onContextLost = (event) => {
       event.preventDefault();
@@ -560,23 +584,26 @@ export default function ArchiveScene({
         }
         if (!shelved) {
           if (entry.group.parent !== scene) scene.add(entry.group);
-          const folderEntry = dest ? folders.get(dest.folderId) : null;
-          const fp = folderEntry?.group.position ?? { x: 0, y: 0, z: 0 };
+          const destFolder = dest ? toLayout.folderPos[dest.folderId] : null;
           const ax = loose?.x ?? 0;
           const ay = loose?.y ?? REPORT_H * 0.5;
           const az = loose?.z ?? 0;
-          const bx = fp.x + (dest?.x ?? 0);
-          const by = fp.y + (dest?.y ?? ay);
-          const bz = fp.z + (dest?.z ?? 0);
+          const bx = (destFolder?.x ?? 0) + (dest?.x ?? 0);
+          const by = (destFolder?.y ?? 0) + (dest?.y ?? ay);
+          const bz = (destFolder?.z ?? 0) + (dest?.z ?? 0);
           const g = entry.group;
           g.visible = true;
-          g.position.set(
-            THREE.MathUtils.lerp(ax, bx, filed),
-            THREE.MathUtils.lerp(ay, by, filed),
-            THREE.MathUtils.lerp(az, bz, filed),
-          );
-          g.rotation.x = THREE.MathUtils.lerp(loose?.rx ?? 0, dest?.rx ?? 0, filed);
-          g.rotation.y = THREE.MathUtils.lerp(loose?.ry ?? 0, 0, filed);
+          const tx = THREE.MathUtils.lerp(ax, bx, enter);
+          const ty = THREE.MathUtils.lerp(ay, by, enter);
+          const tz = THREE.MathUtils.lerp(az, bz, enter);
+          const targetRx = THREE.MathUtils.lerp(loose?.rx ?? 0, dest?.rx ?? 0, enter);
+          const targetRy = THREE.MathUtils.lerp(loose?.ry ?? 0, 0, enter);
+          const follow = reduce ? 1 : 0.2;
+          g.position.x += (tx - g.position.x) * follow;
+          g.position.y += (ty - g.position.y) * follow;
+          g.position.z += (tz - g.position.z) * follow;
+          g.rotation.x += (targetRx - g.rotation.x) * follow;
+          g.rotation.y += (targetRy - g.rotation.y) * follow;
           g.scale.setScalar(1);
           continue;
         }
@@ -604,13 +631,8 @@ export default function ArchiveScene({
             (inSelected ? dest.visibleOnSelect : dest.visibleAtRest));
         entry.group.visible = show;
 
-        const shown = Math.min(PEEK_SELECT, dest.count);
-        const fanX =
-          inSelected && dest.visibleOnSelect
-            ? (dest.slotIndex - (shown - 1) / 2) * 0.07
-            : 0;
         const risen = inSelected;
-        const targetX = (inSelected ? dest.selectX : dest.x) + fanX;
+        const targetX = inSelected ? dest.selectX : dest.x;
         const restY = dest.y;
         const highY = dest.riseY + (isReport ? 0.22 : 0) + (isHover && show ? 0.06 : 0);
         const targetY = risen
@@ -618,7 +640,7 @@ export default function ArchiveScene({
           : arriving
             ? restY - 0.35
             : restY;
-        const targetZ = dest.z;
+        const targetZ = inSelected ? (dest.selectZ ?? dest.z) : dest.z;
         const targetRx = isReport ? 0.02 : dest.rx;
         const g = entry.group;
         if (!show) {
@@ -627,13 +649,42 @@ export default function ArchiveScene({
           g.scale.setScalar(1);
           continue;
         }
-        const follow = reduce ? 1 : 0.16;
+        const follow = reduce ? 1 : 0.2;
         g.position.x += (targetX - g.position.x) * follow;
         g.position.y += (targetY - g.position.y) * follow;
         g.position.z += (targetZ - g.position.z) * follow;
         g.rotation.x += (targetRx - g.rotation.x) * follow;
         const s = isReport ? 1.08 : inSelected ? 1.04 : 1;
         g.scale.setScalar(g.scale.x + (s - g.scale.x) * follow);
+      }
+
+      for (const entry of reportEntries) {
+        const label = reportLabelNodes.get(entry.id);
+        if (!label) continue;
+        const dest = toLayout.reportPos[entry.id];
+        const inSelected =
+          shelved &&
+          Boolean(dest) &&
+          dest.folderId === selectedFolder &&
+          !shuffling &&
+          entry.group.visible;
+        if (!inSelected) {
+          label.style.opacity = "0";
+          continue;
+        }
+        label.classList.toggle("is-selected", entry.id === selectedReport);
+        const band = dest.slotIndex % 3;
+        entry.group.getWorldPosition(projected);
+        projected.y += REPORT_H * 0.5 + band * 0.28;
+        projected.project(camera);
+        if (projected.z > 1) {
+          label.style.opacity = "0";
+          continue;
+        }
+        const lx = (projected.x * 0.5 + 0.5) * mount.clientWidth;
+        const ly = (-projected.y * 0.5 + 0.5) * mount.clientHeight;
+        label.style.opacity = "1";
+        label.style.transform = `translate(-50%, -100%) translate(${lx}px, ${ly}px)`;
       }
 
       renderer.render(scene, camera);
@@ -643,6 +694,7 @@ export default function ArchiveScene({
 
     return () => {
       cancelAnimationFrame(raf);
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
       ro.disconnect();
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);

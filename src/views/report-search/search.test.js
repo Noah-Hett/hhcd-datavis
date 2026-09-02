@@ -106,6 +106,19 @@ test("aging vertical city finds the new 2017 report", () => {
   assert.ok(pops.some((item) => item.report.reportNo === "204"));
 });
 
+test("cultural probes is a preset method filter", () => {
+  const parsed = parseQuery("cultural probes", vocab);
+  assert.deepEqual(parsed.filters.methods, ["Cultural Probes"]);
+  const { pops } = run("cultural probes");
+  assert.ok(
+    pops.some(
+      (item) =>
+        item.report.reportNo === "204" &&
+        (item.report.methodsPrimary ?? []).includes("Cultural Probes"),
+    ),
+  );
+});
+
 test("highlight wraps matching terms", () => {
   const parts = highlightParts("Taxi drivers; taxi passengers", ["taxi"]);
   assert.ok(parts.some((part) => part.hit && part.text.toLowerCase() === "taxi"));

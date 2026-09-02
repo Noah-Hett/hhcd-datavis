@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { reports, yearRange } from "../../data/index.js";
+import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveScene from "../project-folders/ArchiveScene.jsx";
 import {
@@ -218,8 +218,8 @@ export default function ArchiveSection({
   };
 
   const hint = !isFiled
-    ? "Scroll or swipe the archive to file the reports into magazine folders. Theme, Year, and Type regroup the shelves after that."
-    : "Use Theme, Year, or Type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The sidebar list has every report.";
+    ? "Scroll or swipe to file the reports into folders, then choose Theme, Year, or Type — or tap a folder."
+    : "Choose Theme, Year, or Type to regroup. Tap a folder to bring it closer; tap a risen report to open it. The sidebar list has every report.";
 
   return (
     <div className="view-folders archive-section">
@@ -238,15 +238,18 @@ export default function ArchiveSection({
         <div className="stage">
           <div className="stage-visual" ref={stageRef}>
             <section className="intro" aria-labelledby="archive-intro-title">
-              <h1 id="archive-intro-title" className="intro-title">
-                HHCD graduate and associate research reports
+              <h1
+                id="archive-intro-title"
+                className={isFiled ? "intro-title sr-only" : "intro-title"}
+              >
+                HHCD Graduate and Associate Research Reports
               </h1>
-              <p className="intro-lead">
-                {reports.length} reports, {yearRange.min}–{yearRange.max}.{" "}
-                {!isFiled
-                  ? "These documents are on show — not yet divided into folders. Scroll, swipe, or file them by theme, year, or type."
-                  : "The reports are filed in magazine folders. Theme, year, and type regroup the shelves."}
-              </p>
+              {isFiled ? null : (
+                <p className="intro-lead">
+                  Scroll to file the reports, then choose Theme, Year, or Type —
+                  or tap a folder.
+                </p>
+              )}
             </section>
             <div className="scene-frame">
               {webglFailed ? (

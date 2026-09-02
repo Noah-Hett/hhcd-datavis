@@ -50,7 +50,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid #111;
+  border: 1px solid var(--text);
   flex-shrink: 0;
 }
 
@@ -68,7 +68,7 @@
   min-width: 0;
   min-height: 0;
   width: 100%;
-  background: #fff;
+  background: var(--chart-surface);
 }
 
 .plot-stage {
@@ -85,7 +85,7 @@
   flex-shrink: 0;
   padding: 10px 16px 14px;
   border-top: 1px solid var(--border);
-  background: #fff;
+  background: var(--chart-surface);
 }
 
 .method-carousel-meta {
@@ -119,7 +119,7 @@
 }
 
 .method-clear:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -158,12 +158,12 @@
 
 .method-carousel-frame.is-overflow:not(.is-start)::before {
   left: 0;
-  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+  background: linear-gradient(to right, var(--chart-surface), transparent);
 }
 
 .method-carousel-frame.is-overflow:not(.is-end)::after {
   right: 0;
-  background: linear-gradient(to left, #fff, rgba(255, 255, 255, 0));
+  background: linear-gradient(to left, var(--chart-surface), transparent);
 }
 
 .method-nav {
@@ -174,9 +174,9 @@
   height: 28px;
   margin: 0;
   padding: 0;
-  border: 1px solid #5c5348;
+  border: 1px solid var(--archive-line);
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   font-size: 18px;
   line-height: 1;
@@ -190,7 +190,7 @@
 }
 
 .method-nav:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -201,7 +201,7 @@
 
 .method-nav:disabled:hover,
 .method-nav:disabled:focus-visible {
-  background: #fff;
+  background: var(--surface);
 }
 
 .method-nav-prev {
@@ -230,10 +230,10 @@
   flex-shrink: 0;
   margin: 0;
   padding: 6px 12px;
-  border: 1px solid #5c5348;
+  border: 1px solid var(--archive-line);
   border-radius: 999px;
-  background: #fff;
-  color: #1c140c;
+  background: var(--surface);
+  color: var(--text);
   font-size: 12px;
   line-height: 1.2;
   white-space: nowrap;
@@ -246,20 +246,20 @@
 }
 
 .method-pill:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
 .method-pill.is-selected {
-  background: #111;
-  border-color: #111;
-  color: #fff;
+  background: var(--accent-bar);
+  border-color: var(--accent-bar);
+  color: var(--surface);
 }
 
 .method-pill.is-selected:hover,
 .method-pill.is-selected:focus-visible {
-  background: #333;
-  border-color: #333;
+  background: var(--archive-ink);
+  border-color: var(--archive-ink);
 }
 
 .method-pill.is-inactive {
@@ -303,7 +303,7 @@
   align-items: stretch;
   min-width: 0;
   min-height: 0;
-  background: #fff;
+  background: var(--chart-surface);
 }
 
 .scatter-y-col {
@@ -312,7 +312,7 @@
   width: 168px;
   height: 100%;
   z-index: 1;
-  background: #fff;
+  background: var(--chart-surface);
 }
 
 .scatter-y {
@@ -329,7 +329,7 @@
   text-align: right;
   font-size: 11px;
   line-height: 1.25;
-  color: #111;
+  color: var(--text);
   font-family: var(--font);
 }
 
@@ -342,12 +342,12 @@
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
-  scrollbar-color: #bbb #fff;
-  background: #fff;
+  scrollbar-color: var(--archive-line) var(--chart-surface);
+  background: var(--chart-surface);
 }
 
 .scatter-scroll:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -368,26 +368,26 @@
   width: 40px;
   height: 100%;
   pointer-events: none;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0), #fff);
+  background: linear-gradient(to right, transparent, var(--chart-surface));
 }
 
 .band-track {
   fill: none;
-  stroke: #d8d8d8;
+  stroke: var(--chart-grid);
   stroke-width: 1;
   pointer-events: none;
 }
 
 .axis-line {
   fill: none;
-  stroke: #111;
+  stroke: var(--text);
   stroke-width: 1.5;
   stroke-linecap: square;
   pointer-events: none;
 }
 
 .x-end {
-  fill: #111;
+  fill: var(--text);
   font-size: 12px;
   font-family: var(--font);
 }
@@ -404,7 +404,7 @@
 }
 
 .dot:focus-visible .dot-focus {
-  stroke: #111;
+  stroke: var(--text);
   stroke-width: 2;
 }
 
@@ -417,42 +417,80 @@
 }
 
 .dot.is-selected .dot-focus {
-  stroke: #111;
+  stroke: var(--text);
   stroke-width: 2;
 }
 
 .tooltip {
   position: fixed;
-  z-index: 4;
-  max-width: 280px;
-  padding: 8px 10px;
+  z-index: 20;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 24px));
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid #5c5348;
+  border-radius: 12px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  font-size: 12px;
-  line-height: 1.35;
+  color: var(--text);
+  box-shadow: 0 10px 28px rgb(28 20 12 / 12%);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
   pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: manipulation;
+}
+
+.tooltip.is-interactive {
+  pointer-events: auto;
+}
+
+.tooltip.is-peek {
+  pointer-events: auto;
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 100%;
+  height: 12px;
+}
+
+.tooltip:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
 }
 
 .tooltip-item + .tooltip-item {
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid var(--border);
 }
 
 .tooltip-item strong {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
 }
 
 .tooltip-item span {
   display: block;
+  margin-top: 3px;
   color: var(--muted);
+  font-size: 13px;
 }
 
 .tooltip-meta {
-  margin-top: 2px;
+  margin-top: 6px;
+  font-size: 12px;
 }
 
 .panel {
@@ -498,7 +536,7 @@
 }
 
 .panel-close:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
