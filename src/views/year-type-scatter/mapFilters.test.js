@@ -45,7 +45,7 @@ test("MapSection opens the shared sidebar from the map source", async () => {
   assert.match(source, /event\.key !== "Escape"/);
 });
 
-test("ScatterPlot raises hovered dots and keeps hit targets close to the mark", async () => {
+test("ScatterPlot hovers the nearest dot and raises the active mark", async () => {
   const source = await readFile(
     new URL("./ScatterPlot.jsx", import.meta.url),
     "utf8",
