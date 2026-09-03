@@ -357,7 +357,33 @@ export const PEEK_SELECT = 8;
 export const PEEK_RISE = 0.68;
 const PEEK_SLOT = 0.062;
 const ROW_GAP_Z = 2.28;
-export const ARCHIVE_ROWS = 3;
+
+/** Desk-height for a report lying cover-up (rz ≈ −π/2). */
+const FLAT_GROUND_Y = 0.042;
+const STACK_LAYER = REPORT_THICK + 0.014;
+
+/**
+ * Unfiled intro: a slightly messy library table with uneven, differently
+ * turned stacks — plus one slumped heap and a few strays like the first pass.
+ * Weights sum to 64 (the catalogue size).
+ */
+export const ARCHIVE_PILE_RECIPE = [
+  { type: "stack", weight: 16, x: -2.82, z: -1.22, yaw: 0.2 },
+  { type: "stack", weight: 6, x: -0.35, z: -1.68, yaw: 0.92 },
+  { type: "stack", weight: 10, x: 2.48, z: -1.05, yaw: -0.7 },
+  { type: "stack", weight: 7, x: -2.38, z: 1.22, yaw: 0.52 },
+  { type: "stack", weight: 4, x: 2.95, z: 1.58, yaw: -1.08 },
+  { type: "heap", weight: 16, x: 0.22, z: 0.95, yaw: 0.3 },
+  { type: "fallen", weight: 5, x: 0, z: 0, yaw: 0 },
+];
+
+const FALLEN_SPOTS = [
+  { x: -1.18, z: 0.08, yaw: 0.88 },
+  { x: 1.22, z: -0.22, yaw: -0.72 },
+  { x: -1.05, z: 1.82, yaw: 0.38 },
+  { x: 1.28, z: 1.72, yaw: -1.12 },
+  { x: 0.58, z: -0.58, yaw: 1.18 },
+];
 
 /** Cover-flow: max neighbours each side (13 cards). Smaller folders show every cover. */
 export const CAROUSEL_RADIUS = 6;
@@ -612,62 +638,171 @@ export function computeLayout(folders, { twoRows = false } = {}) {
   return { folderPos, reportPos, folders, spacing, count: n, twoRows };
 }
 
+function reportSeed(reportNo) {
+  const str = String(reportNo);
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i += 1) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function unitNoise(seed, salt) {
+  const n = Math.imul(seed ^ Math.imul(salt + 1, 0x9e3779b9), 1597334677);
+  return ((n >>> 0) % 10000) / 10000;
+}
+
+function signedNoise(seed, salt) {
+  return unitNoise(seed, salt) * 2 - 1;
+}
+
+function pileCountsFor(n) {
+  const recipe = ARCHIVE_PILE_RECIPE;
+  const total = recipe.reduce((sum, pile) => sum + pile.weight, 0);
+  const counts = recipe.map((pile) =>
+    n <= 0 || total <= 0 ? 0 : Math.floor((n * pile.weight) / total),
+  );
+  let used = counts.reduce((sum, count) => sum + count, 0);
+  for (let i = 0; used < n; i += 1) {
+    counts[i % counts.length] += 1;
+    used += 1;
+  }
+  return counts;
+}
+
+function absorbArchivePose(pose, bounds) {
+  const flat = Math.abs(Math.abs(pose.rz) - Math.PI / 2) < 0.55;
+  const hx = flat ? REPORT_H * 0.42 : 0.22;
+  const hz = REPORT_D * 0.48;
+  const y0 = pose.y - (flat ? 0.05 : REPORT_H * 0.5);
+  const y1 = pose.y + (flat ? 0.08 : REPORT_H * 0.5);
+  bounds.minX = Math.min(bounds.minX, pose.x - hx);
+  bounds.maxX = Math.max(bounds.maxX, pose.x + hx);
+  bounds.minZ = Math.min(bounds.minZ, pose.z - hz);
+  bounds.maxZ = Math.max(bounds.maxZ, pose.z + hz);
+  bounds.minY = Math.min(bounds.minY, y0);
+  bounds.maxY = Math.max(bounds.maxY, y1);
+}
+
+function poseStack(report, pile, slot) {
+  const seed = reportSeed(report.reportNo);
+  const twist = signedNoise(seed, 1) * 0.06;
+  const ox = signedNoise(seed, 2) * 0.05;
+  const oz = signedNoise(seed, 3) * 0.042;
+  return {
+    x: pile.x + ox,
+    y: FLAT_GROUND_Y + slot * STACK_LAYER,
+    z: pile.z + oz,
+    rx: signedNoise(seed, 4) * 0.012,
+    ry: pile.yaw + twist,
+    rz: -Math.PI / 2 + signedNoise(seed, 5) * 0.012,
+    pileType: pile.type,
+    pileIndex: pile.index,
+    slot,
+  };
+}
+
+function poseHeap(report, pile, slot, count) {
+  const seed = reportSeed(report.reportNo);
+  const mid = (count - 1) / 2;
+  const u = slot - mid;
+  const twist = u * 0.032 + signedNoise(seed, 1) * 0.08;
+  const slip = (slot % 3 === 2 ? 0.13 : 0.045) * signedNoise(seed, 2);
+  const collapse = slot * 0.02;
+  const yaw = pile.yaw + twist;
+  const leanX = Math.sin(pile.yaw + 0.35);
+  const leanZ = Math.cos(pile.yaw - 0.18);
+  return {
+    x: pile.x + leanX * collapse + Math.cos(yaw) * slip,
+    y: FLAT_GROUND_Y + slot * STACK_LAYER,
+    z: pile.z + leanZ * collapse + Math.sin(yaw) * slip * 0.85,
+    rx: signedNoise(seed, 3) * 0.025,
+    ry: yaw,
+    rz: -Math.PI / 2 + signedNoise(seed, 4) * 0.025,
+    pileType: pile.type,
+    pileIndex: pile.index,
+    slot,
+  };
+}
+
+function poseFallen(report, pile, slot) {
+  const seed = reportSeed(report.reportNo);
+  const spot = FALLEN_SPOTS[slot % FALLEN_SPOTS.length];
+  return {
+    x: spot.x + signedNoise(seed, 1) * 0.12,
+    y: FLAT_GROUND_Y,
+    z: spot.z + signedNoise(seed, 2) * 0.1,
+    rx: signedNoise(seed, 3) * 0.06,
+    ry: spot.yaw + signedNoise(seed, 4) * 0.14,
+    rz: -Math.PI / 2 + signedNoise(seed, 5) * 0.1,
+    pileType: pile.type,
+    pileIndex: pile.index,
+    slot,
+  };
+}
+
+function poseForPile(report, pile, slot, count) {
+  if (pile.type === "heap") return poseHeap(report, pile, slot, count);
+  if (pile.type === "fallen") return poseFallen(report, pile, slot);
+  return poseStack(report, pile, slot);
+}
+
 export function computeArchiveLayout(list) {
   const n = list.length;
   const reportPos = {};
-  if (n === 0) {
-    return { reportPos, span: 1, minX: 0, maxX: 0, minZ: 0, maxZ: 0, rows: ARCHIVE_ROWS };
-  }
+  const empty = {
+    reportPos,
+    span: 1,
+    minX: 0,
+    maxX: 0,
+    minZ: 0,
+    maxZ: 0,
+    minY: 0,
+    maxY: REPORT_H,
+    pileCount: 0,
+  };
+  if (n === 0) return empty;
 
-  const rows = ARCHIVE_ROWS;
-  const rowCounts = new Array(rows).fill(Math.floor(n / rows));
-  for (let extra = n % rows, i = 0; i < extra; i += 1) {
-    rowCounts[i] += 1;
-  }
-
-  const colGap = REPORT_THICK + 0.052;
-  const rowGap = 0.62;
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minZ = Infinity;
-  let maxZ = -Infinity;
+  const counts = pileCountsFor(n);
+  const bounds = {
+    minX: Infinity,
+    maxX: -Infinity,
+    minZ: Infinity,
+    maxZ: -Infinity,
+    minY: Infinity,
+    maxY: -Infinity,
+  };
   let cursor = 0;
+  let usedPiles = 0;
 
-  for (let row = 0; row < rows; row += 1) {
-    const count = rowCounts[row];
-    const span = Math.max(count - 1, 0) * colGap;
-    const zBase = (row - (rows - 1) / 2) * rowGap;
-    const stagger = ((row % 2) - 0.5) * colGap * 0.42;
-    for (let col = 0; col < count; col += 1) {
+  for (let pileIndex = 0; pileIndex < ARCHIVE_PILE_RECIPE.length; pileIndex += 1) {
+    const count = counts[pileIndex];
+    if (count <= 0) continue;
+    usedPiles += 1;
+    const recipe = ARCHIVE_PILE_RECIPE[pileIndex];
+    const pile = { ...recipe, index: pileIndex };
+    for (let slot = 0; slot < count; slot += 1) {
       const report = list[cursor];
       cursor += 1;
       if (!report) continue;
-      const u = count <= 1 ? 0 : col / (count - 1) - 0.5;
-      const x = -span / 2 + col * colGap + stagger;
-      const z = zBase + u * u * 0.78;
-      reportPos[report.reportNo] = {
-        x,
-        y: REPORT_H * 0.5,
-        z,
-        rx: -0.03,
-        ry: 0.18 + u * 0.92,
-        row,
-        col,
-      };
-      minX = Math.min(minX, x);
-      maxX = Math.max(maxX, x);
-      minZ = Math.min(minZ, z);
-      maxZ = Math.max(maxZ, z);
+      const pose = poseForPile(report, pile, slot, count);
+      reportPos[report.reportNo] = pose;
+      absorbArchivePose(pose, bounds);
     }
   }
 
+  if (!Number.isFinite(bounds.minX)) return { ...empty, reportPos };
+
   return {
     reportPos,
-    span: Math.max(maxX - minX, 1),
-    minX,
-    maxX,
-    minZ,
-    maxZ,
-    rows,
+    span: Math.max(bounds.maxX - bounds.minX, 1),
+    minX: bounds.minX,
+    maxX: bounds.maxX,
+    minZ: bounds.minZ,
+    maxZ: bounds.maxZ,
+    minY: bounds.minY,
+    maxY: bounds.maxY,
+    pileCount: usedPiles,
   };
 }

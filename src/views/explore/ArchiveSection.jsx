@@ -312,8 +312,8 @@ export default function ArchiveSection({
               </h1>
               {isFiled ? null : (
                 <p className="intro-lead">
-                  Scroll to file the reports, then choose Theme, Year, or Type —
-                  or tap a folder.
+                  An unsorted heap. Scroll to file the reports into folders,
+                  then choose Theme, Year, or Type — or tap a folder.
                 </p>
               )}
             </section>
