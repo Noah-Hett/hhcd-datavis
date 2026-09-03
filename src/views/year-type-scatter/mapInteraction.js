@@ -41,6 +41,11 @@ export function dotPaintOrder(clusters, hoveredKey, selectedKey) {
   });
 }
 
+export function dotIsDimmed({ clusterKey, selectedKey }) {
+  if (!selectedKey) return false;
+  return clusterKey !== selectedKey;
+}
+
 export function shouldPeekFirst({
   keyboard,
   coarsePointer,

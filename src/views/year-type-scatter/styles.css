@@ -405,6 +405,10 @@
   outline: none;
 }
 
+.dot-mark {
+  transition: fill 180ms ease, stroke 180ms ease, opacity 180ms ease, filter 180ms ease;
+}
+
 .dot-focus {
   fill: none;
   stroke: none;
@@ -427,6 +431,13 @@
 .dot.is-selected .dot-focus {
   stroke: var(--text);
   stroke-width: 2;
+}
+
+.dot.is-dimmed .dot-mark {
+  fill: #c6c0b8;
+  stroke: #9a948c;
+  opacity: 0.7;
+  filter: none;
 }
 
 .panel {

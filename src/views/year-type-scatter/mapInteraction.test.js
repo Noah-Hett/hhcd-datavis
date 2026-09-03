@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   DOT_HOVER_PAD,
   TOOLTIP_GAP,
+  dotIsDimmed,
   dotPaintOrder,
   nearestDotAt,
   tooltipAnchorAboveDot,
@@ -69,6 +70,25 @@ test("dotPaintOrder keeps the hovered dot last so it stacks above neighbours", (
   assert.deepEqual(
     dotPaintOrder(clusters, "b", "c").map((cluster) => cluster.key),
     ["a", "c", "b"],
+  );
+});
+
+test("dotIsDimmed greys other marks only when a report is open", () => {
+  assert.equal(
+    dotIsDimmed({ clusterKey: "a", selectedKey: null }),
+    false,
+  );
+  assert.equal(
+    dotIsDimmed({ clusterKey: "b", selectedKey: null }),
+    false,
+  );
+  assert.equal(
+    dotIsDimmed({ clusterKey: "a", selectedKey: "a" }),
+    false,
+  );
+  assert.equal(
+    dotIsDimmed({ clusterKey: "b", selectedKey: "a" }),
+    true,
   );
 });
 
