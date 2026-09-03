@@ -1,5 +1,6 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { TOOLTIP_FADE_MS } from "./mapInteraction.js";
 import "./tooltip.css";
 
 const Tooltip = forwardRef(function Tooltip(
@@ -15,16 +16,44 @@ const Tooltip = forwardRef(function Tooltip(
   },
   ref,
 ) {
-  if (!cluster) return null;
+  const [rendered, setRendered] = useState(cluster);
+  const [open, setOpen] = useState(false);
+  const hideTimer = useRef(null);
+
+  useEffect(() => {
+    if (cluster) {
+      if (hideTimer.current) {
+        window.clearTimeout(hideTimer.current);
+        hideTimer.current = null;
+      }
+      setRendered(cluster);
+      const frame = window.requestAnimationFrame(() => setOpen(true));
+      return () => window.cancelAnimationFrame(frame);
+    }
+    setOpen(false);
+    hideTimer.current = window.setTimeout(() => {
+      setRendered(null);
+      hideTimer.current = null;
+    }, TOOLTIP_FADE_MS + 40);
+    return () => {
+      if (hideTimer.current) {
+        window.clearTimeout(hideTimer.current);
+        hideTimer.current = null;
+      }
+    };
+  }, [cluster]);
+
+  if (!rendered) return null;
 
   const className = [
     "tooltip",
+    open ? "is-open" : "",
     interactive ? "is-interactive" : "",
     peeked ? "is-peek" : "",
   ]
     .filter(Boolean)
     .join(" ");
-  const title = cluster.reports[0]?.title ?? "report";
+  const title = rendered.reports[0]?.title ?? "report";
 
   function handleActivate(event) {
     event.preventDefault();
@@ -44,7 +73,7 @@ const Tooltip = forwardRef(function Tooltip(
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >
-      {cluster.reports.map((report) => (
+      {rendered.reports.map((report) => (
         <div key={report.reportNo} className="tooltip-item">
           <strong>{report.title}</strong>
           <span>{report.author}</span>

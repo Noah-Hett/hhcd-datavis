@@ -51,8 +51,11 @@ export const COLOR_GROUPS = [
   },
 ];
 
-const DOT_R = 10;
-const DOT_GAP = 18;
+export const DOT_R = 10;
+/** Center-to-center spacing so fills sit 2px apart and strokes do not overlap. */
+export const DOT_GAP = 2 * DOT_R + 2;
+/** Extra hit radius beyond the fill; keep small so clustered dots do not steal hover. */
+export const DOT_HIT_PAD = 1;
 
 function bandForProjectType(projectType) {
   if (!projectType) return undefined;

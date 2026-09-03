@@ -2,6 +2,17 @@ export const TOOLTIP_GAP = 10;
 export const TOOLTIP_PAD = 12;
 export const TOOLTIP_WIDTH = 340;
 export const TOOLTIP_ESTIMATED_HEIGHT = 148;
+export const TOOLTIP_FADE_MS = 180;
+
+export function dotPaintOrder(clusters, hoveredKey, selectedKey) {
+  if (!hoveredKey && !selectedKey) return clusters;
+  return [...clusters].sort((a, b) => {
+    const score = (cluster) =>
+      Number(cluster.key === selectedKey) +
+      2 * Number(cluster.key === hoveredKey);
+    return score(a) - score(b);
+  });
+}
 
 export function shouldPeekFirst({
   keyboard,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   TOOLTIP_GAP,
+  dotPaintOrder,
   tooltipAnchorAboveDot,
 } from "./mapInteraction.js";
 
@@ -54,6 +55,19 @@ test("tooltipAnchorAboveDot may shift below on desktop if the top would clip", (
     allowShift: true,
   });
   assert.equal(pos.y, 36 + 16 + 8);
+});
+
+test("dotPaintOrder keeps the hovered dot last so it stacks above neighbours", () => {
+  const clusters = [{ key: "a" }, { key: "b" }, { key: "c" }];
+  assert.deepEqual(
+    dotPaintOrder(clusters, "a", null).map((cluster) => cluster.key),
+    ["b", "c", "a"],
+  );
+  assert.equal(dotPaintOrder(clusters, null, null), clusters);
+  assert.deepEqual(
+    dotPaintOrder(clusters, "b", "c").map((cluster) => cluster.key),
+    ["a", "c", "b"],
+  );
 });
 
 test("tooltipAnchorAboveDot clamps horizontally to the viewport", () => {
