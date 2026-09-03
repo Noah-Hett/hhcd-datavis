@@ -32,11 +32,11 @@
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 10px 20px;
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
 }
@@ -44,12 +44,12 @@
 .legend li {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .swatch {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 1px solid var(--text);
   flex-shrink: 0;
@@ -540,6 +540,20 @@
 
   .method-carousel-frame {
     flex: 1 1 100%;
+  }
+
+  .legend {
+    font-size: 12px;
+    gap: 8px 16px;
+  }
+
+  .legend li {
+    gap: 6px;
+  }
+
+  .swatch {
+    width: 10px;
+    height: 10px;
   }
 
   .panel {
