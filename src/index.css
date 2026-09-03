@@ -417,6 +417,10 @@ select {
 
 /* --- Report sidebar --------------------------------------------------- */
 
+.app.is-sidebar-open {
+  --sidebar-w: 42%;
+}
+
 .report-sidebar-backdrop {
   position: fixed;
   inset: 0;
@@ -622,33 +626,47 @@ select {
 }
 
 @media (min-width: 800px) {
-  /* Overlay drawer: keep .app-main full width so the 3D archive never
-     resizes when the sidebar opens or closes. */
+  /* Docked side-by-side: both the visualisation and the report pane stay
+     on screen and interactive. Width snaps once (no animated resize) so
+     the WebGL archive does not thrash every frame. */
+  .app.is-sidebar-open .app-main {
+    flex: 1 1 58%;
+    width: 58%;
+    max-width: 58%;
+    min-width: 0;
+  }
+
   .report-sidebar {
-    top: calc(var(--app-header-h) + 8px);
-    right: 12px;
-    bottom: 12px;
-    width: min(var(--sidebar-w, 22rem), calc(100vw - 24px));
-    max-width: min(28rem, calc(100vw - 24px));
-    border-radius: 16px;
+    position: relative;
+    inset: auto;
+    z-index: 2;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    flex: 0 0 0;
+    width: 0;
+    max-width: none;
+    height: auto;
+    align-self: stretch;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
     overflow: hidden;
-    transform: translateX(calc(100% + 24px));
-    transition:
-      transform var(--sidebar-duration, 320ms) var(--sidebar-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-      visibility 0s linear var(--sidebar-duration, 320ms);
+    transform: none;
   }
 
   .report-sidebar.is-open {
-    transform: translateX(0);
+    flex: 0 0 var(--sidebar-w, 42%);
+    width: var(--sidebar-w, 42%);
+    max-width: var(--sidebar-w, 42%);
+    border-left: 1px solid var(--archive-line);
     visibility: visible;
     pointer-events: auto;
-    transition:
-      transform var(--sidebar-duration, 320ms) var(--sidebar-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-      visibility 0s linear 0s;
   }
 
   .report-sidebar.is-closed {
-    transform: translateX(calc(100% + 24px));
+    transform: none;
   }
 }
 

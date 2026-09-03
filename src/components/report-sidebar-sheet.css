@@ -1,6 +1,5 @@
-/* Overlay polish for ReportSidebar on mobile + desktop.
-   The panel never docks into the main flex row, so Explore's 3D canvas
-   keeps a stable size while the drawer slides over it. */
+/* Mobile sheet polish for ReportSidebar. Desktop stays a docked column in
+   index.css so visualisation + report content share the page side-by-side. */
 
 :root {
   --sidebar-ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -57,9 +56,10 @@
 }
 
 @media (min-width: 800px) {
+  /* No modal backdrop on desktop: both panes stay interactive. */
   .report-sidebar-backdrop {
-    z-index: 45;
-    background: rgb(28 20 12 / 22%);
+    display: none;
+    pointer-events: none;
   }
 }
 

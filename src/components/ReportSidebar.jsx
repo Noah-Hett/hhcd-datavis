@@ -16,6 +16,7 @@ const FIELDS = [
   { key: "connections", label: "Connections" },
 ];
 
+const SHEET_QUERY = "(max-width: 799px)";
 const SIDEBAR_TRANSITION_MS = 320;
 
 function prefersReducedMotion() {
@@ -72,6 +73,11 @@ export default function ReportSidebar() {
   const [backdropMounted, setBackdropMounted] = useState(false);
   const [backdropVisible, setBackdropVisible] = useState(false);
   const panelActive = open || closing;
+  const [sheet, setSheet] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia(SHEET_QUERY).matches
+      : false,
+  );
 
   const close = () => {
     // Layout owns the single sidebar instance. Closing clears selection
@@ -80,6 +86,14 @@ export default function ReportSidebar() {
   };
   const closeRef = useRef(close);
   closeRef.current = close;
+
+  useEffect(() => {
+    const media = window.matchMedia(SHEET_QUERY);
+    const onChange = () => setSheet(media.matches);
+    onChange();
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -108,6 +122,14 @@ export default function ReportSidebar() {
   }, [open, report, selectedFolderId]);
 
   useEffect(() => {
+    // Backdrop is mobile-only. Desktop is a docked split view where both
+    // the visualisation and the report pane stay interactive.
+    if (!sheet) {
+      setBackdropMounted(false);
+      setBackdropVisible(false);
+      return undefined;
+    }
+
     if (open) {
       setBackdropMounted(true);
       if (sidebarTransitionMs() === 0) {
@@ -126,7 +148,7 @@ export default function ReportSidebar() {
       sidebarTransitionMs(),
     );
     return () => window.clearTimeout(id);
-  }, [open]);
+  }, [open, sheet]);
 
   const displayReport = panelActive
     ? (report ?? snapshotRef.current.report)
@@ -208,7 +230,7 @@ export default function ReportSidebar() {
         aria-labelledby={titleId}
         aria-describedby={liveId}
         aria-hidden={!panelActive}
-        aria-modal={panelActive ? true : undefined}
+        aria-modal={sheet && panelActive ? true : undefined}
         {...(!panelActive ? { inert: "" } : {})}
       >
         <div className="report-sidebar-bar">

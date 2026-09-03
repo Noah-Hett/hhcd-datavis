@@ -93,7 +93,10 @@ export default function Layout() {
   const mode = modeFromLocation(pathname, hash);
 
   return (
-    <div className="app" data-view={viewKey(pathname)}>
+    <div
+      className={sidebarOpen ? "app is-sidebar-open" : "app"}
+      data-view={viewKey(pathname)}
+    >
       <a className="skip-link" href="#main">
         Skip to main content
       </a>
