@@ -4,8 +4,10 @@ import {
   FILED_THRESHOLD,
   ORGANIZE_SCALE,
   applyOrganizeDelta,
+  hashNeedsReplace,
   isArchiveFiled,
   isFiled,
+  normalizeExploreHash,
   organizeFromScroll,
   waypointFromScroll,
 } from "./archivePhysics.js";
@@ -67,4 +69,23 @@ test("waypointFromScroll is geometric: intro, archive, then map", () => {
     }),
     "map",
   );
+});
+
+test("normalizeExploreHash defaults unknown Explore hashes to intro", () => {
+  assert.equal(normalizeExploreHash(""), "intro");
+  assert.equal(normalizeExploreHash("#"), "intro");
+  assert.equal(normalizeExploreHash("#intro"), "intro");
+  assert.equal(normalizeExploreHash("archive"), "archive");
+  assert.equal(normalizeExploreHash("#map"), "map");
+  assert.equal(normalizeExploreHash("#nope"), "intro");
+});
+
+test("hashNeedsReplace skips rewrite when already on the waypoint", () => {
+  assert.equal(hashNeedsReplace("", "intro"), false);
+  assert.equal(hashNeedsReplace("#intro", "intro"), false);
+  assert.equal(hashNeedsReplace("#archive", "archive"), false);
+  assert.equal(hashNeedsReplace("#map", "map"), false);
+  assert.equal(hashNeedsReplace("#intro", "archive"), true);
+  assert.equal(hashNeedsReplace("#archive", "map"), true);
+  assert.equal(hashNeedsReplace("", "map"), true);
 });

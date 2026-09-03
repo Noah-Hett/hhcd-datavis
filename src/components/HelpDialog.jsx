@@ -54,17 +54,21 @@ export default function HelpDialog({ open, onClose }) {
           </p>
           <h3>Mode switch</h3>
           <p>
-            Folders, Map, and Simple are the header toggle — not three
-            waypoints over the canvas. Intro is the start of Folders scroll,
-            so Folders stays selected there and at the archive.
+            The house Home control and the Folders / Map / Simple toggle track
+            what you are looking at. Scrolling Explore updates the selection:
+            the unsorted pile selects Home, filed folders select Folders, and
+            the scatter selects Map.
           </p>
           <ol>
             <li>
-              <strong>Folders</strong> — the archive. Scroll down from the
-              intro to file documents into magazine folders; scroll up from
-              the map to return here. Theme, Year, and Type appear once they
-              are filed. If the 3D scene cannot run, a folder list is the
-              fallback.
+              <strong>Home</strong> — the unsorted pile of reports at the top
+              of Explore. Scroll down to file them into folders.
+            </li>
+            <li>
+              <strong>Folders</strong> — the archive once reports are filed
+              into magazine folders. Theme, Year, and Type appear once they
+              are filed. Scroll up to return to the pile, or down to the map.
+              If the 3D scene cannot run, a folder list is the fallback.
             </li>
             <li>
               <strong>Map</strong> — a year × type scatter, coloured by theme,

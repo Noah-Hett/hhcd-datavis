@@ -157,6 +157,15 @@ select {
   background: var(--hover);
 }
 
+.app-brand[aria-current="page"] {
+  background: var(--chrome-ink);
+  color: var(--chrome);
+}
+
+.app-brand[aria-current="page"]:hover {
+  background: var(--chrome-ink);
+}
+
 .app-chrome {
   display: flex;
   align-items: center;

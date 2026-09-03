@@ -38,3 +38,15 @@ export function waypointFromScroll({ scrollTop, archiveTop, mapTop }) {
   }
   return "intro";
 }
+
+/** Empty or unknown Explore hashes map to the intro pile. */
+export function normalizeExploreHash(hash) {
+  const id = String(hash || "").replace(/^#/, "");
+  if (id === "archive" || id === "map" || id === "intro") return id;
+  return "intro";
+}
+
+/** True when scroll-driven waypoint should replace the URL hash. */
+export function hashNeedsReplace(currentHash, waypoint) {
+  return normalizeExploreHash(currentHash) !== waypoint;
+}
