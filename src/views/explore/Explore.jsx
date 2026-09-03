@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveSection from "./ArchiveSection.jsx";
-import { isFiled, organizeFromScroll } from "./archivePhysics.js";
+import {
+  isFiled,
+  isFilingScroll,
+  organizeFromScroll,
+} from "./archivePhysics.js";
 import MapSection from "./MapSection.jsx";
 
 const SCROLL_IDS = ["intro", "archive", "map"];
@@ -14,6 +18,7 @@ export default function Explore() {
   const organizeRef = useRef(0);
   const [organize, setOrganize] = useState(() => (reduceMotion ? 1 : 0));
   const filed = isFiled(organize, reduceMotion);
+  const filing = isFilingScroll(organize, reduceMotion);
   organizeRef.current = organize;
 
   useEffect(() => {
@@ -57,7 +62,7 @@ export default function Explore() {
   return (
     <div className="view-explore">
       <div
-        className="explore-scroll"
+        className={`explore-scroll${filing ? " is-filing" : ""}`}
         data-filed={filed ? "true" : "false"}
         data-reduce-motion={reduceMotion ? "true" : "false"}
         ref={scrollRef}
