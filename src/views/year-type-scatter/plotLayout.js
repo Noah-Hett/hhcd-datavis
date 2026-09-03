@@ -2,7 +2,7 @@ export const Y_COL = 168;
 export const LEFT = 20;
 export const RIGHT = 40;
 export const TOP = 28;
-export const BOTTOM = 2;
+export const BOTTOM = 28;
 export const PX_PER_YEAR = 48;
 export const MIN_INNER_FLOOR = 692;
 
