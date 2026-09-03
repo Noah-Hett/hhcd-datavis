@@ -11,10 +11,19 @@ import {
   COVER_CANVAS_H,
   COVER_CANVAS_W,
   COVER_W,
+  FOLDER_BACK_H,
   FOLDER_D,
+  FOLDER_PAD,
+  FOLDER_W,
   PEEK_REST,
   PEEK_SELECT,
+  PEEK_SLOT,
   REPORT_H,
+  REPORT_SHELF_Y,
+  REPORT_SHELF_Z,
+  REPORT_X_MAX,
+  REPORT_X_MIN,
+  WALL,
   carouselAnnouncement,
   carouselOrigin,
   carouselSignedOffset,
@@ -23,6 +32,7 @@ import {
   computeArchiveLayout,
   computeCarouselPose,
   computeLayout,
+  folderSpacing,
   reportHitAllowed,
   selectPeekSlot,
   shortestAngleDelta,
@@ -192,6 +202,56 @@ test("carousel spacing overlaps jackets so the fan stays on the page", () => {
 
 test("cover plane matches the jacket canvas so type is not stretched", () => {
   assert.equal(COVER_CANVAS_W / COVER_CANVAS_H, COVER_W / REPORT_H);
+});
+
+test("filed jackets sit inside the sleeve without crossing walls or each other", () => {
+  const innerMinX = WALL + FOLDER_PAD;
+  const innerMaxX = FOLDER_W - WALL - FOLDER_PAD;
+  const innerMinZ = WALL + FOLDER_PAD;
+  const innerMaxZ = FOLDER_D - WALL - FOLDER_PAD;
+  const layout = computeLayout(fakeFolders([12]));
+  const peeks = Object.values(layout.reportPos)
+    .filter((pose) => pose.visibleAtRest)
+    .sort((a, b) => a.x - b.x);
+
+  assert.equal(peeks.length, PEEK_REST);
+  assert.equal(REPORT_SHELF_Z, innerMinZ + COVER_W / 2);
+  assert.ok(REPORT_SHELF_Y - REPORT_H / 2 >= WALL);
+  assert.ok(REPORT_SHELF_Y + REPORT_H / 2 <= FOLDER_BACK_H);
+
+  for (const pose of peeks) {
+    assert.ok(pose.x + REPORT_X_MIN >= innerMinX - 1e-9, "left of jacket stays in sleeve");
+    assert.ok(pose.x + REPORT_X_MAX <= innerMaxX + 1e-9, "right of jacket stays in sleeve");
+    assert.ok(pose.z - COVER_W / 2 >= innerMinZ - 1e-9, "spine stays off the back wall");
+    assert.ok(pose.z + COVER_W / 2 <= innerMaxZ + 1e-9, "fore-edge stays off the front wall");
+    assert.equal(pose.rx, 0);
+  }
+
+  for (let i = 1; i < peeks.length; i += 1) {
+    assert.ok(
+      peeks[i].x - peeks[i - 1].x >= REPORT_X_MAX - REPORT_X_MIN - 1e-9,
+      "neighbouring peeks do not occupy the same X volume",
+    );
+  }
+  assert.ok(PEEK_SLOT > REPORT_X_MAX - REPORT_X_MIN);
+  assert.ok(folderSpacing(8) > FOLDER_W, "folders themselves stay apart");
+});
+
+test("two folder rows leave a gap so sleeves do not phase through each other", () => {
+  const layout = computeLayout(fakeFolders([2, 2, 2, 2, 2, 2]), { twoRows: true });
+  const boxes = Object.values(layout.folderPos).map((pos) => ({
+    minZ: pos.z,
+    maxZ: pos.z + FOLDER_D,
+    minX: pos.x,
+    maxX: pos.x + FOLDER_W,
+  }));
+  for (let i = 0; i < boxes.length; i += 1) {
+    for (let j = i + 1; j < boxes.length; j += 1) {
+      const overlapX = boxes[i].minX < boxes[j].maxX && boxes[j].minX < boxes[i].maxX;
+      const overlapZ = boxes[i].minZ < boxes[j].maxZ && boxes[j].minZ < boxes[i].maxZ;
+      assert.equal(overlapX && overlapZ, false);
+    }
+  }
 });
 
 test("shouldUseTwoRows ignores a sidebar-sized squeeze and holds through a resize band", () => {

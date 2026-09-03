@@ -795,10 +795,10 @@ export default function ArchiveScene({
         const restY = dest.y;
         const targetX = dest.x;
         const targetY = arriving
-          ? restY - 0.35
+          ? restY
           : restY + (isHover && show ? 0.06 : 0) + (isReport ? 0.08 : 0);
         const targetZ = dest.z;
-        const targetRx = isReport ? 0.02 : dest.rx;
+        const targetRx = dest.rx;
         if (!show) {
           g.position.set(dest.x, restY, dest.z);
           g.rotation.x = dest.rx;
@@ -812,8 +812,7 @@ export default function ArchiveScene({
         g.position.z += (targetZ - g.position.z) * follow;
         g.rotation.x += (targetRx - g.rotation.x) * follow;
         g.rotation.y += shortestAngleDelta(g.rotation.y, 0) * follow;
-        const s = isReport ? 1.08 : 1;
-        g.scale.setScalar(g.scale.x + (s - g.scale.x) * follow);
+        g.scale.setScalar(g.scale.x + (1 - g.scale.x) * follow);
       }
 
       {

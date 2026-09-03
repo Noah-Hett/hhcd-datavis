@@ -1,9 +1,5 @@
 import * as THREE from "three";
 
-export const FOLDER_W = 0.62;
-export const FOLDER_D = 1.48;
-export const FOLDER_BACK_H = 2.58;
-export const FOLDER_FRONT_H = 1.32;
 export const WALL = 0.034;
 export const FOLDER_LIP = 0.075;
 
@@ -13,6 +9,31 @@ export const REPORT_THICK = 0.05;
 export const COVER_CANVAS_W = 512;
 export const COVER_CANVAS_H = 768;
 export const COVER_W = REPORT_H * (COVER_CANVAS_W / COVER_CANVAS_H);
+/** Local X of a report group: cover plane at −0.03, spine/back to ~0.033. */
+export const REPORT_X_MIN = -0.033;
+export const REPORT_X_MAX = 0.035;
+export const REPORT_X_MID = (REPORT_X_MIN + REPORT_X_MAX) / 2;
+
+/** Air between a jacket and the sleeve walls. */
+export const FOLDER_PAD = 0.055;
+export const PEEK_REST = 6;
+export const PEEK_SELECT = 8;
+export const PEEK_RISE = 0.68;
+/** Centre-to-centre so neighbouring peeks do not share a volume. */
+export const PEEK_SLOT = REPORT_X_MAX - REPORT_X_MIN + 0.022;
+
+export const FOLDER_W =
+  WALL * 2 +
+  FOLDER_PAD * 2 +
+  (PEEK_REST - 1) * PEEK_SLOT +
+  (REPORT_X_MAX - REPORT_X_MIN);
+export const FOLDER_D = WALL * 2 + FOLDER_PAD * 2 + COVER_W;
+export const FOLDER_BACK_H = REPORT_H + WALL + FOLDER_PAD + 0.28;
+export const FOLDER_FRONT_H = 1.32;
+
+/** Sit the jacket on the floor, centred in the sleeve depth. */
+export const REPORT_SHELF_Y = WALL + REPORT_H * 0.5 + 0.008;
+export const REPORT_SHELF_Z = WALL + FOLDER_PAD + COVER_W * 0.5;
 
 const C_LEFT = "#8A6A4C";
 const C_FRONT = "#6B4A34";
@@ -98,7 +119,11 @@ export function createSharedResources() {
   const coverGeo = new THREE.PlaneGeometry(COVER_W, REPORT_H);
   const reportBackGeo = new THREE.BoxGeometry(0.008, REPORT_H, COVER_W);
   const ringGeo = new THREE.TorusGeometry(0.036, 0.012, 6, 12);
-  const reportHitGeo = new THREE.BoxGeometry(0.16, REPORT_H * 1.08, COVER_W * 1.02);
+  const reportHitGeo = new THREE.BoxGeometry(
+    REPORT_X_MAX - REPORT_X_MIN + 0.012,
+    REPORT_H * 1.04,
+    COVER_W * 0.98,
+  );
   const reportHitMat = new THREE.MeshBasicMaterial({ visible: false });
   const pagesMat = lambert(C_PAGES);
   const reportBackMat = lambert("#E8E0D4");
@@ -355,11 +380,7 @@ export function createReportMesh(report, shared) {
   return { group, pickable, texture, coverMat };
 }
 
-export const PEEK_REST = 6;
-export const PEEK_SELECT = 8;
-export const PEEK_RISE = 0.68;
-const PEEK_SLOT = 0.062;
-const ROW_GAP_Z = 2.28;
+const ROW_GAP_Z = FOLDER_D + 0.72;
 export const ARCHIVE_ROWS = 3;
 
 /** Cover-flow: max neighbours each side (13 cards). Smaller folders show every cover. */
@@ -490,10 +511,11 @@ export function computeCarouselPose(offset, count = CAROUSEL_RADIUS * 2 + 1) {
 }
 
 export function folderSpacing(count) {
-  if (count <= 3) return 1.72;
-  if (count <= 4) return 1.42;
-  if (count <= 5) return 1.22;
-  return 1.05;
+  const min = FOLDER_W + 0.36;
+  if (count <= 3) return Math.max(1.72, min);
+  if (count <= 4) return Math.max(1.42, min);
+  if (count <= 5) return Math.max(1.22, min);
+  return Math.max(1.05, min);
 }
 
 export function layoutColumns(folderCount, twoRows) {
@@ -592,15 +614,17 @@ export function computeLayout(folders, { twoRows = false } = {}) {
     folder.reports.forEach((report, slotIndex) => {
       const u = count <= 1 ? 0 : slotIndex - (count - 1) / 2;
       const packRest = (shown) =>
-        FOLDER_W * 0.5 + (slotIndex - (shown - 1) / 2) * PEEK_SLOT;
+        FOLDER_W * 0.5 -
+        REPORT_X_MID +
+        (slotIndex - (shown - 1) / 2) * PEEK_SLOT;
       reportPos[report.reportNo] = {
-        x: slotIndex < restN ? packRest(restN) : FOLDER_W * 0.5,
+        x: slotIndex < restN ? packRest(restN) : FOLDER_W * 0.5 - REPORT_X_MID,
         selectX: FOLDER_W * 0.5 + u * fanSlot,
-        y: WALL + REPORT_H * 0.42,
-        riseY: WALL + REPORT_H * 0.42 + PEEK_RISE,
-        z: FOLDER_D / 2,
-        selectZ: FOLDER_D / 2 + Math.abs(u) * 0.035,
-        rx: 0.04,
+        y: REPORT_SHELF_Y,
+        riseY: REPORT_SHELF_Y + PEEK_RISE,
+        z: REPORT_SHELF_Z,
+        selectZ: REPORT_SHELF_Z,
+        rx: 0,
         folderId: folder.id,
         slotIndex,
         count,
