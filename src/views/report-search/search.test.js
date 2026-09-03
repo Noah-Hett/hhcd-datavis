@@ -23,15 +23,15 @@ function run(query) {
   return search(reports, query, { vocab, index });
 }
 
-test("catalogue has the refreshed 64 reports", () => {
-  assert.equal(reports.length, 64);
+test("catalogue has the refreshed 67 reports", () => {
+  assert.equal(reports.length, 67);
 });
 
 test("search never removes reports from the field", () => {
   const { all, pops } = run("health interviews 2001");
-  assert.equal(all.length, 64);
+  assert.equal(all.length, 67);
   assert.ok(pops.length >= 2);
-  assert.ok(pops.length < 64);
+  assert.ok(pops.length < 67);
 });
 
 test("health interviews 2001 still surfaces the close reports", () => {
@@ -47,7 +47,7 @@ test("health interviews 2001 still surfaces the close reports", () => {
 
 test("taxi pops matching reports without emptying the field", () => {
   const { pops, all } = run("taxi");
-  assert.equal(all.length, 64);
+  assert.equal(all.length, 67);
   assert.ok(pops.some((item) => /taxi/i.test(item.report.title)));
   assert.ok(
     pops.some((item) => String(item.report.targetedUser ?? "").toLowerCase().includes("taxi")),
@@ -57,7 +57,7 @@ test("taxi pops matching reports without emptying the field", () => {
 test("typos still find observation reports", () => {
   assert.ok(levenshtein("observaton", "observation") <= 2);
   const { pops, corrections, all } = run("observaton");
-  assert.equal(all.length, 64);
+  assert.equal(all.length, 67);
   assert.ok(corrections.some((item) => item.to.includes("observ")));
   assert.ok(
     pops.some((item) =>
@@ -68,7 +68,7 @@ test("typos still find observation reports", () => {
 
 test("#11 finds e-scape at the top", () => {
   const { pops, all } = run("#11");
-  assert.equal(all.length, 64);
+  assert.equal(all.length, 67);
   assert.equal(pops[0].report.title.startsWith("e-scape"), true);
 });
 
@@ -83,7 +83,7 @@ test("urban lighting ranks lighting reports", () => {
 
 test("growing older is a semantic neighbourhood, not an exact phrase", () => {
   const { pops, themes, all } = run("growing older");
-  assert.equal(all.length, 64);
+  assert.equal(all.length, 67);
   assert.ok(themes.some((theme) => theme.label === "Growing older"));
   assert.ok(
     pops.some((item) =>
@@ -96,7 +96,7 @@ test("growing older is a semantic neighbourhood, not an exact phrase", () => {
 
 test("prototype stays a suggestion and still pops nearby work", () => {
   const { suggestions, pops, all } = run("prototype");
-  assert.equal(all.length, 64);
+  assert.equal(all.length, 67);
   assert.ok(suggestions.some((item) => item.dimension === "projectTypes"));
   assert.ok(pops.length >= 1);
 });
