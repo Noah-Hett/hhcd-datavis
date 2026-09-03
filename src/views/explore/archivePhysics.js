@@ -50,3 +50,12 @@ export function normalizeExploreHash(hash) {
 export function hashNeedsReplace(currentHash, waypoint) {
   return normalizeExploreHash(currentHash) !== waypoint;
 }
+
+/**
+ * `setSearchParams` / a search-only navigate leaves an empty hash. Treat that
+ * as a strip when the scroller is already on archive or map, not as Home.
+ */
+export function hashWasStripped(hash, previousWaypoint) {
+  const raw = String(hash || "").replace(/^#/, "");
+  return !raw && previousWaypoint != null && previousWaypoint !== "intro";
+}

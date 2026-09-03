@@ -73,4 +73,41 @@ export function applyClearReport() {
   };
 }
 
+function searchParamsFrom(search) {
+  if (search instanceof URLSearchParams) {
+    return new URLSearchParams(search);
+  }
+  return new URLSearchParams(String(search || "").replace(/^\?/, ""));
+}
+
+/** Apply or drop `?report=` while keeping every other search key. */
+export function applyReportSearchParam(currentSearch, reportNo) {
+  const next = searchParamsFrom(currentSearch);
+  const id = normalizeReportId(reportNo);
+  if (id) next.set("report", id);
+  else next.delete("report");
+  return next;
+}
+
+export function reportParamNeedsReplace(currentSearch, reportNo) {
+  return (
+    applyReportSearchParam(currentSearch, reportNo).toString() !==
+    searchParamsFrom(currentSearch).toString()
+  );
+}
+
+/**
+ * Build a location that updates `?report=` without dropping the Explore hash.
+ * `useSearchParams` navigates to `"?" + params` only, which strips `#map` /
+ * `#archive` and Explore then scroll-snaps back to the intro pile.
+ */
+export function locationWithReportParam(location, reportNo) {
+  const search = applyReportSearchParam(location?.search, reportNo).toString();
+  return {
+    pathname: location?.pathname || "/",
+    search: search ? `?${search}` : "",
+    hash: location?.hash || "",
+  };
+}
+
 export { SOURCES };
