@@ -51,7 +51,9 @@ test("ScatterPlot raises hovered dots and keeps hit targets close to the mark", 
     "utf8",
   );
   assert.match(source, /dotPaintOrder/);
-  assert.match(source, /cluster\.r \+ DOT_HIT_PAD/);
+  assert.match(source, /nearestDotAt/);
+  assert.match(source, /onPointerMove=\{handlePlotPointerMove\}/);
+  assert.doesNotMatch(source, /onMouseEnter/);
   assert.doesNotMatch(source, /cluster\.r \+ 6/);
   assert.doesNotMatch(source, /<title\b/);
 });

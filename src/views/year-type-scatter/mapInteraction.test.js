@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  DOT_HOVER_PAD,
   TOOLTIP_GAP,
   dotPaintOrder,
+  nearestDotAt,
   tooltipAnchorAboveDot,
 } from "./mapInteraction.js";
 
@@ -68,6 +70,19 @@ test("dotPaintOrder keeps the hovered dot last so it stacks above neighbours", (
     dotPaintOrder(clusters, "b", "c").map((cluster) => cluster.key),
     ["a", "c", "b"],
   );
+});
+
+test("nearestDotAt picks the closest centre when hover zones overlap", () => {
+  const a = { key: "a", x: 0, y: 0, r: 10, cluster: { key: "a" } };
+  const b = { key: "b", x: 22, y: 0, r: 10, cluster: { key: "b" } };
+  const points = [a, b];
+  assert.equal(nearestDotAt(points, 0, 0).key, "a");
+  assert.equal(nearestDotAt(points, 22, 0).key, "b");
+  assert.equal(nearestDotAt(points, 8, 0).key, "a");
+  assert.equal(nearestDotAt(points, 14, 0).key, "b");
+  assert.equal(nearestDotAt(points, 11, 0).key, "a");
+  assert.equal(nearestDotAt(points, 100, 0), null);
+  assert.ok(DOT_HOVER_PAD >= 11);
 });
 
 test("tooltipAnchorAboveDot clamps horizontally to the viewport", () => {

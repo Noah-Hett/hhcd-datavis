@@ -1,7 +1,12 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { DOT_HIT_PAD, Y_BANDS, clusterAriaLabel } from "./mapReports.js";
+import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
 import { Y_COL, plotLayout } from "./plotLayout.js";
-import { dotPaintOrder } from "./mapInteraction.js";
+import {
+  DOT_HOVER_PAD,
+  dotPaintOrder,
+  nearestDotAt,
+  pointerToSvgPoint,
+} from "./mapInteraction.js";
 
 function xForYear(year, yearMin, yearMax, layout) {
   const span = Math.max(yearMax - yearMin, 1);
@@ -103,6 +108,40 @@ export default function ScatterPlot({
     () => dotPaintOrder(clusters, hoveredKey, selectedKey),
     [clusters, hoveredKey, selectedKey],
   );
+  const marks = useMemo(
+    () =>
+      clusters.map((cluster) => ({
+        cluster,
+        r: cluster.r,
+        x: xForYear(cluster.year, yearMin, yearMax, layout) + cluster.dx,
+        y: yForBand(cluster.yBand, layout) + cluster.dy,
+      })),
+    [clusters, layout, yearMin, yearMax],
+  );
+
+  function hitCluster(event) {
+    const pt = pointerToSvgPoint(event, event.currentTarget);
+    if (!pt) return null;
+    return nearestDotAt(marks, pt.x, pt.y)?.cluster ?? null;
+  }
+
+  function handlePlotPointerMove(event) {
+    const cluster = hitCluster(event);
+    if (cluster) {
+      if (cluster.key !== hoveredKey) onHover(cluster, event);
+      return;
+    }
+    if (hoveredKey) onLeave(event);
+  }
+
+  function handlePlotPointerLeave(event) {
+    if (hoveredKey) onLeave(event);
+  }
+
+  function handlePlotClick(event) {
+    const cluster = hitCluster(event);
+    if (cluster) onSelect(cluster, event);
+  }
 
   function handleKeyDown(event, cluster) {
     if (event.key === "Enter") {
@@ -179,6 +218,9 @@ export default function ScatterPlot({
               aria-label="HHCD reports by year and project type"
               aria-describedby="scatter-desc"
               style={{ width: layout.plotWidth, height: layout.height }}
+              onPointerMove={handlePlotPointerMove}
+              onPointerLeave={handlePlotPointerLeave}
+              onClick={handlePlotClick}
             >
               <desc id="scatter-desc">
                 Scatter plot of research associate reports. The horizontal axis
@@ -194,6 +236,15 @@ export default function ScatterPlot({
               <defs>
                 <AxisArrowMarker id="axis-arrow-x" />
               </defs>
+
+              <rect
+                className="scatter-hit-plane"
+                x={0}
+                y={0}
+                width={layout.plotWidth}
+                height={layout.height}
+                fill="transparent"
+              />
 
               {Y_BANDS.map((band) => (
                 <line
@@ -256,17 +307,13 @@ export default function ScatterPlot({
                     aria-label={clusterAriaLabel(cluster)}
                     aria-pressed={selected}
                     ref={(node) => onDotRef?.(cluster.key, node)}
-                    onMouseEnter={(event) => onHover(cluster, event)}
-                    onMouseMove={(event) => onHover(cluster, event)}
-                    onMouseLeave={onLeave}
                     onFocus={(event) => onHover(cluster, event)}
                     onBlur={onLeave}
-                    onClick={(event) => onSelect(cluster, event)}
                     onKeyDown={(event) => handleKeyDown(event, cluster)}
                   >
                     <circle
                       className="dot-hit"
-                      r={cluster.r + DOT_HIT_PAD}
+                      r={cluster.r + DOT_HOVER_PAD}
                       fill="transparent"
                     />
                     <circle
