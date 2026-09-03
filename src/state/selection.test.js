@@ -6,6 +6,7 @@ import {
   applyOpenFolder,
   applyOpenReport,
   groupingIdFromFolderId,
+  locationWithReportParam,
   normalizeFolderId,
   normalizeReportId,
 } from "./selection.js";
@@ -142,4 +143,23 @@ test("backSidebar without a folder clears like Escape", () => {
     source: "url",
   });
   assert.deepEqual(next, applyClearReport());
+});
+
+test("locationWithReportParam keeps the Explore hash when writing ?report=", () => {
+  assert.deepEqual(
+    locationWithReportParam({ pathname: "/", hash: "#map" }, "", "12"),
+    { pathname: "/", search: "?report=12", hash: "#map" },
+  );
+  assert.deepEqual(
+    locationWithReportParam(
+      { pathname: "/", hash: "#archive" },
+      "report=12",
+      null,
+    ),
+    { pathname: "/", search: "", hash: "#archive" },
+  );
+  assert.equal(
+    locationWithReportParam({ pathname: "/", hash: "#archive" }, "", null),
+    null,
+  );
 });

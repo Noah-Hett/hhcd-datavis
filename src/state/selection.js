@@ -73,4 +73,28 @@ export function applyClearReport() {
   };
 }
 
+/**
+ * Next Explore location after setting or clearing ?report=.
+ * Returns null when search is unchanged. Always keeps the current hash —
+ * React Router's setSearchParams navigates to "?…" and drops #archive/#map,
+ * which then scrolls back to the intro pile.
+ */
+export function locationWithReportParam(location, currentSearch, reportNo) {
+  const from =
+    currentSearch instanceof URLSearchParams
+      ? currentSearch
+      : String(currentSearch || "").replace(/^\?/, "");
+  const current = new URLSearchParams(from);
+  const next = new URLSearchParams(current);
+  if (reportNo) next.set("report", String(reportNo));
+  else next.delete("report");
+  if (next.toString() === current.toString()) return null;
+  const search = next.toString();
+  return {
+    pathname: location?.pathname || "/",
+    search: search ? `?${search}` : "",
+    hash: location?.hash || "",
+  };
+}
+
 export { SOURCES };
