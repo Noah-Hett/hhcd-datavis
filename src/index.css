@@ -399,12 +399,15 @@ select {
   scroll-snap-stop: always;
 }
 
-#intro {
+/* Filing lives between intro and archive, so neither is a snap stop.
+   Snap only the map so a wheel flick cannot skip the pile → folders pass
+   (or the reverse). */
+#intro,
+#archive {
   scroll-snap-align: none;
   scroll-snap-stop: normal;
 }
 
-#archive,
 #map {
   scroll-snap-stop: always;
 }
