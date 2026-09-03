@@ -292,7 +292,6 @@ export default function ScatterPlot({
                 const active = hoveredKey === cluster.key || selected;
                 const dimmed = dotIsDimmed({
                   clusterKey: cluster.key,
-                  hoveredKey,
                   selectedKey,
                 });
                 return (

@@ -73,26 +73,22 @@ test("dotPaintOrder keeps the hovered dot last so it stacks above neighbours", (
   );
 });
 
-test("dotIsDimmed greys every mark except the hovered or selected report", () => {
+test("dotIsDimmed greys other marks only when a report is open", () => {
   assert.equal(
-    dotIsDimmed({ clusterKey: "a", hoveredKey: null, selectedKey: null }),
+    dotIsDimmed({ clusterKey: "a", selectedKey: null }),
     false,
   );
   assert.equal(
-    dotIsDimmed({ clusterKey: "a", hoveredKey: "a", selectedKey: null }),
+    dotIsDimmed({ clusterKey: "b", selectedKey: null }),
     false,
   );
   assert.equal(
-    dotIsDimmed({ clusterKey: "b", hoveredKey: "a", selectedKey: null }),
+    dotIsDimmed({ clusterKey: "a", selectedKey: "a" }),
+    false,
+  );
+  assert.equal(
+    dotIsDimmed({ clusterKey: "b", selectedKey: "a" }),
     true,
-  );
-  assert.equal(
-    dotIsDimmed({ clusterKey: "b", hoveredKey: null, selectedKey: "a" }),
-    true,
-  );
-  assert.equal(
-    dotIsDimmed({ clusterKey: "a", hoveredKey: "b", selectedKey: "a" }),
-    false,
   );
 });
 
