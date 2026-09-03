@@ -74,7 +74,7 @@ test("selected fan is wider than the rest peek so titles can sit apart", () => {
   assert.ok(selectPeekSlot(14) > selectPeekSlot(4));
 });
 
-test("computeArchiveLayout piles 64 reports into a messy desk, not a barcode", () => {
+test("computeArchiveLayout piles 64 reports into a slightly messy library table", () => {
   const list = fakeReports(64);
   const layout = computeArchiveLayout(list);
   const poses = Object.values(layout.reportPos);
@@ -83,10 +83,7 @@ test("computeArchiveLayout piles 64 reports into a messy desk, not a barcode", (
   assert.equal(ARCHIVE_PILE_RECIPE.reduce((sum, pile) => sum + pile.weight, 0), 64);
 
   const types = new Set(poses.map((pose) => pose.pileType));
-  assert.ok(types.has("stack"));
-  assert.ok(types.has("lean"));
-  assert.ok(types.has("fan"));
-  assert.ok(types.has("fallen"));
+  assert.deepEqual([...types], ["stack"]);
 
   const ys = poses.map((pose) => pose.y);
   assert.ok(
@@ -105,17 +102,47 @@ test("computeArchiveLayout piles 64 reports into a messy desk, not a barcode", (
   const flats = poses.filter(
     (pose) => Math.abs(Math.abs(pose.rz) - Math.PI / 2) < 0.45,
   );
-  assert.ok(flats.length > 28, "most reports should lie in heaps or fans");
-  const stands = poses.filter((pose) => Math.abs(pose.rz) < 0.4);
-  assert.ok(stands.length >= 12, "some reports still stand in leaning clumps");
-
-  const yaws = new Set(poses.map((pose) => pose.ry.toFixed(2)));
-  assert.ok(yaws.size > 12, "yaw should vary across piles, not a single angle");
+  assert.equal(flats.length, 64);
 
   assert.ok(
     flats.every((pose) => Math.abs(pose.ry) < 1.5),
     "flat yaw must stay in Euler-safe range so stacks sit on the table",
   );
+});
+
+test("archive stacks stay distinct columns, not a fanned heap", () => {
+  const layout = computeArchiveLayout(fakeReports(64));
+  const byPile = new Map();
+  for (const pose of Object.values(layout.reportPos)) {
+    const list = byPile.get(pose.pileIndex) ?? [];
+    list.push(pose);
+    byPile.set(pose.pileIndex, list);
+  }
+  assert.ok(byPile.size >= 6);
+
+  const centers = [];
+  for (const pilePoses of byPile.values()) {
+    const yaws = pilePoses.map((pose) => pose.ry);
+    assert.ok(
+      Math.max(...yaws) - Math.min(...yaws) < 0.16,
+      "each stack should share a library yaw, not fan out",
+    );
+    centers.push({
+      x: pilePoses.reduce((sum, pose) => sum + pose.x, 0) / pilePoses.length,
+      z: pilePoses.reduce((sum, pose) => sum + pose.z, 0) / pilePoses.length,
+    });
+  }
+
+  let minDist = Infinity;
+  for (let i = 0; i < centers.length; i += 1) {
+    for (let j = i + 1; j < centers.length; j += 1) {
+      minDist = Math.min(
+        minDist,
+        Math.hypot(centers[i].x - centers[j].x, centers[i].z - centers[j].z),
+      );
+    }
+  }
+  assert.ok(minDist > 2.15, "stacks should sit in their own space");
 });
 
 test("computeArchiveLayout keeps every report pickable with a unique slot", () => {

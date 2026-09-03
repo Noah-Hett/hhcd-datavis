@@ -125,9 +125,9 @@ function fitArchiveCamera(archive, aspect, outPos, outLook) {
   const distX = worldW / 2 / (Math.tan(fov / 2) * a);
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 6.4) * 1.08;
-  // Steeper 3/4 so stacked covers read as heaps, not a row of spines.
-  outPos.set(lookX - 0.3 * dist, lookY + 0.72 * dist, lookZ + 0.7 * dist);
+  const dist = Math.max(distX, distY, distZ, 6.4) * 1.06;
+  // Slightly less steep so stack height reads like library piles.
+  outPos.set(lookX - 0.26 * dist, lookY + 0.58 * dist, lookZ + 0.82 * dist);
 }
 
 function fitArchiveShadow(sun, archive) {

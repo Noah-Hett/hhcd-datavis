@@ -360,28 +360,19 @@ const ROW_GAP_Z = 2.28;
 
 /** Desk-height for a report lying cover-up (rz ≈ −π/2). */
 const FLAT_GROUND_Y = 0.042;
-const STACK_LAYER = REPORT_THICK + 0.02;
+const STACK_LAYER = REPORT_THICK + 0.014;
 
 /**
- * Unfiled intro: irregular heaps on a desk, not a barcode of standing spines.
- * Weights sum to 64 (the catalogue size); other lengths are scaled from this.
+ * Unfiled intro: a slightly messy library table — distinct stacks, not one
+ * intersecting heap. Weights sum to 64 (the catalogue size).
  */
 export const ARCHIVE_PILE_RECIPE = [
-  { type: "stack", weight: 14, x: -0.12, z: 0.08, yaw: 0.26 },
-  { type: "stack", weight: 11, x: -2.42, z: -0.38, yaw: -0.58 },
-  { type: "stack", weight: 9, x: 2.28, z: -0.18, yaw: 0.64 },
-  { type: "fan", weight: 8, x: 0.38, z: 1.72, yaw: -0.2 },
-  { type: "lean", weight: 7, x: -1.72, z: -1.92, yaw: 0.4 },
-  { type: "lean", weight: 6, x: 1.88, z: -1.98, yaw: -0.36 },
-  { type: "lean", weight: 5, x: -2.78, z: 1.28, yaw: 0.98 },
-  { type: "fallen", weight: 4, x: 0, z: 0, yaw: 0 },
-];
-
-const FALLEN_SPOTS = [
-  { x: 0.72, z: -1.12, yaw: 1.22 },
-  { x: -1.08, z: 0.92, yaw: -0.82 },
-  { x: 2.52, z: 1.02, yaw: 0.38 },
-  { x: -0.48, z: 1.88, yaw: -1.12 },
+  { type: "stack", weight: 13, x: -2.65, z: -1.38, yaw: 0.15 },
+  { type: "stack", weight: 11, x: 0, z: -1.42, yaw: 0.1 },
+  { type: "stack", weight: 10, x: 2.65, z: -1.34, yaw: 0.07 },
+  { type: "stack", weight: 12, x: -2.65, z: 1.28, yaw: 0.16 },
+  { type: "stack", weight: 9, x: 0, z: 1.32, yaw: 0.12 },
+  { type: "stack", weight: 9, x: 2.65, z: 1.24, yaw: 0.08 },
 ];
 
 /** Cover-flow: max neighbours each side (13 cards). Smaller folders show every cover. */
@@ -684,88 +675,27 @@ function absorbArchivePose(pose, bounds) {
   bounds.maxY = Math.max(bounds.maxY, y1);
 }
 
-function poseStack(report, pile, slot, count) {
+function poseStack(report, pile, slot) {
   const seed = reportSeed(report.reportNo);
-  const mid = (count - 1) / 2;
-  const u = slot - mid;
-  const twist = u * 0.048 + signedNoise(seed, 1) * 0.1;
-  const slip = (slot % 3 === 2 ? 0.18 : 0.06) * signedNoise(seed, 2);
-  const collapse = slot * 0.03;
-  const yaw = pile.yaw + twist;
-  const leanX = Math.sin(pile.yaw + 0.35);
-  const leanZ = Math.cos(pile.yaw - 0.18);
+  // Small independent offsets, like a used library pile — not a collapsing fan.
+  const twist = signedNoise(seed, 1) * 0.048;
+  const ox = signedNoise(seed, 2) * 0.038;
+  const oz = signedNoise(seed, 3) * 0.032;
   return {
-    x: pile.x + leanX * collapse + Math.cos(yaw) * slip,
+    x: pile.x + ox,
     y: FLAT_GROUND_Y + slot * STACK_LAYER,
-    z: pile.z + leanZ * collapse + Math.sin(yaw) * slip * 0.85,
-    rx: signedNoise(seed, 3) * 0.03,
-    ry: yaw,
-    rz: -Math.PI / 2 + signedNoise(seed, 4) * 0.03,
+    z: pile.z + oz,
+    rx: signedNoise(seed, 4) * 0.01,
+    ry: pile.yaw + twist,
+    rz: -Math.PI / 2 + signedNoise(seed, 5) * 0.01,
     pileType: pile.type,
     pileIndex: pile.index,
     slot,
   };
 }
 
-function poseFan(report, pile, slot, count) {
-  const seed = reportSeed(report.reportNo);
-  const mid = (count - 1) / 2;
-  const u = slot - mid;
-  const yaw = pile.yaw + u * 0.17 + signedNoise(seed, 1) * 0.05;
-  return {
-    x: pile.x + u * 0.13 + signedNoise(seed, 2) * 0.05,
-    y: FLAT_GROUND_Y + slot * 0.014,
-    z: pile.z + Math.abs(u) * 0.035 + signedNoise(seed, 3) * 0.04,
-    rx: signedNoise(seed, 4) * 0.04,
-    ry: yaw,
-    rz: -Math.PI / 2 + u * 0.025 + signedNoise(seed, 5) * 0.03,
-    pileType: pile.type,
-    pileIndex: pile.index,
-    slot,
-  };
-}
-
-function poseLean(report, pile, slot, count) {
-  const seed = reportSeed(report.reportNo);
-  const mid = (count - 1) / 2;
-  const u = slot - mid;
-  const pack = REPORT_THICK + 0.042;
-  const alongX = Math.cos(pile.yaw);
-  const alongZ = Math.sin(pile.yaw);
-  return {
-    x: pile.x + u * pack * alongX + signedNoise(seed, 1) * 0.045,
-    y: REPORT_H * 0.5,
-    z: pile.z + u * pack * alongZ + signedNoise(seed, 2) * 0.05,
-    rx: -0.07 + signedNoise(seed, 3) * 0.07,
-    ry: pile.yaw + 0.16 + u * 0.07 + signedNoise(seed, 4) * 0.1,
-    rz: -u * 0.05 + signedNoise(seed, 5) * 0.035,
-    pileType: pile.type,
-    pileIndex: pile.index,
-    slot,
-  };
-}
-
-function poseFallen(report, pile, slot) {
-  const seed = reportSeed(report.reportNo);
-  const spot = FALLEN_SPOTS[slot % FALLEN_SPOTS.length];
-  return {
-    x: spot.x + signedNoise(seed, 1) * 0.16,
-    y: FLAT_GROUND_Y,
-    z: spot.z + signedNoise(seed, 2) * 0.14,
-    rx: signedNoise(seed, 3) * 0.08,
-    ry: spot.yaw + signedNoise(seed, 4) * 0.18,
-    rz: -Math.PI / 2 + signedNoise(seed, 5) * 0.14,
-    pileType: pile.type,
-    pileIndex: pile.index,
-    slot,
-  };
-}
-
-function poseForPile(report, pile, slot, count) {
-  if (pile.type === "stack") return poseStack(report, pile, slot, count);
-  if (pile.type === "fan") return poseFan(report, pile, slot, count);
-  if (pile.type === "lean") return poseLean(report, pile, slot, count);
-  return poseFallen(report, pile, slot);
+function poseForPile(report, pile, slot) {
+  return poseStack(report, pile, slot);
 }
 
 export function computeArchiveLayout(list) {
@@ -806,7 +736,7 @@ export function computeArchiveLayout(list) {
       const report = list[cursor];
       cursor += 1;
       if (!report) continue;
-      const pose = poseForPile(report, pile, slot, count);
+      const pose = poseForPile(report, pile, slot);
       reportPos[report.reportNo] = pose;
       absorbArchivePose(pose, bounds);
     }
