@@ -1,7 +1,7 @@
 # hhcd-datavis
 
 A single, unified web app for exploring the **Helen Hamlyn Centre for Design**
-graduate & associate research catalogue (64 reports, 2000–2017). Two pages
+graduate & associate research catalogue (67 reports, 2000–2017). Two pages
 share one mint chrome, one report sidebar, and one catalogue (`src/data/`):
 
 - **Explore** (`/`) — a full-viewport scroller with three waypoints: intro

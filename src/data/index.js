@@ -1,6 +1,6 @@
 // Shared report catalogue for every visualisation.
 // Inlined from the original `@hhcd/data` workspace package so this app has a
-// single source of truth for the 64 HHCD reports. After editing the source
+// single source of truth for the 67 HHCD reports. After editing the source
 // JSON, keep this file's exports stable — the views depend on them.
 import rawReports from "./reports.json";
 

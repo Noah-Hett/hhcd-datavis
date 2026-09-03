@@ -38,8 +38,8 @@ function connectionIds(value) {
     .filter(Boolean);
 }
 
-test("catalogue still has 64 reports with stable app report numbers", () => {
-  assert.equal(catalogue.length, 64);
+test("catalogue has 67 reports with stable app report numbers", () => {
+  assert.equal(catalogue.length, 67);
   assert.equal(
     catalogue.filter((report) => report.reportNo == null).length,
     2,
@@ -113,4 +113,55 @@ test("Heathrow Process to pleasure keeps the three-report series", () => {
     "1",
     "21",
   ]);
+});
+
+test("the three spreadsheet rows are in the catalogue", () => {
+  const recipes = catalogue.find((report) => report.reportNo === "166");
+  const mind = catalogue.find((report) => report.reportNo === "186");
+  const foyle = catalogue.find((report) => report.reportNo === "202");
+  assert.equal(recipes?.title, "Hand Healthy Recipes");
+  assert.deepEqual(recipes.methodsPrimary, []);
+  assert.equal(recipes.partner, "Arthritis Research UK");
+  assert.equal(mind?.title, "Design for the mind");
+  assert.deepEqual(mind.methodsPrimary, [
+    "Desk Research",
+    "Individual Interviews",
+    "Co-Design",
+    "Critical User Forums",
+  ]);
+  assert.equal(mind.partner, "BSI");
+  assert.equal(foyle?.title, "Our Future Foyle (not on master list)");
+  assert.equal(foyle.projectType, "Media Campaign");
+  assert.equal(foyle.targetedUser, "communities");
+  assert.deepEqual(foyle.methodsPrimary, []);
+  assert.equal(foyle.partner, "Public Health, Northern Ireland");
+});
+
+test("author contacts from the previous catalogue are kept", () => {
+  const withContact = catalogue.filter(
+    (report) => report.contact != null && String(report.contact).trim() !== "",
+  );
+  assert.equal(withContact.length, 19);
+  assert.equal(
+    catalogue.find((report) => report.reportNo === "11")?.contact,
+    "https://www.linkedin.com/in/jennifer-brown-8b069771/",
+  );
+});
+
+test("connections union keeps app links and valid spreadsheet links", () => {
+  assert.deepEqual(connectionIds(catalogue.find((report) => report.reportNo === "13").connections), [
+    "19",
+    "20",
+  ]);
+  assert.deepEqual(
+    connectionIds(catalogue.find((report) => report.reportNo === "106").connections),
+    ["68", "166"],
+  );
+  assert.deepEqual(connectionIds(catalogue.find((report) => report.reportNo === "73").connections), [
+    "122",
+  ]);
+  assert.deepEqual(
+    connectionIds(catalogue.find((report) => report.reportNo === "122").connections),
+    ["73"],
+  );
 });
