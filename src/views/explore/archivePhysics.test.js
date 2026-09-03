@@ -5,6 +5,7 @@ import {
   ORGANIZE_SCALE,
   applyOrganizeDelta,
   hashNeedsReplace,
+  hashWasStripped,
   isArchiveFiled,
   isFiled,
   normalizeExploreHash,
@@ -88,4 +89,12 @@ test("hashNeedsReplace skips rewrite when already on the waypoint", () => {
   assert.equal(hashNeedsReplace("#intro", "archive"), true);
   assert.equal(hashNeedsReplace("#archive", "map"), true);
   assert.equal(hashNeedsReplace("", "map"), true);
+});
+
+test("hashWasStripped treats an emptied hash as a strip, not Home", () => {
+  assert.equal(hashWasStripped("", "map"), true);
+  assert.equal(hashWasStripped("#", "archive"), true);
+  assert.equal(hashWasStripped("", "intro"), false);
+  assert.equal(hashWasStripped("#map", "map"), false);
+  assert.equal(hashWasStripped("#intro", "map"), false);
 });

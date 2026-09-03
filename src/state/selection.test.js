@@ -5,9 +5,12 @@ import {
   applyClearReport,
   applyOpenFolder,
   applyOpenReport,
+  applyReportSearchParam,
   groupingIdFromFolderId,
+  locationWithReportParam,
   normalizeFolderId,
   normalizeReportId,
+  reportParamNeedsReplace,
 } from "./selection.js";
 
 test("normalize ids stringify and drop empties", () => {
@@ -142,4 +145,34 @@ test("backSidebar without a folder clears like Escape", () => {
     source: "url",
   });
   assert.deepEqual(next, applyClearReport());
+});
+
+test("applyReportSearchParam sets and clears report without dropping other keys", () => {
+  const withReport = applyReportSearchParam("q=health", "11");
+  assert.equal(withReport.get("q"), "health");
+  assert.equal(withReport.get("report"), "11");
+  const cleared = applyReportSearchParam("?q=health&report=11", null);
+  assert.equal(cleared.get("q"), "health");
+  assert.equal(cleared.get("report"), null);
+});
+
+test("reportParamNeedsReplace skips a no-op write", () => {
+  assert.equal(reportParamNeedsReplace("", null), false);
+  assert.equal(reportParamNeedsReplace("report=11", "11"), false);
+  assert.equal(reportParamNeedsReplace("", "11"), true);
+  assert.equal(reportParamNeedsReplace("report=11", null), true);
+});
+
+test("locationWithReportParam keeps the Explore hash when opening a report", () => {
+  assert.deepEqual(
+    locationWithReportParam({ pathname: "/", search: "", hash: "#map" }, "86"),
+    { pathname: "/", search: "?report=86", hash: "#map" },
+  );
+  assert.deepEqual(
+    locationWithReportParam(
+      { pathname: "/", search: "?report=11", hash: "#archive" },
+      null,
+    ),
+    { pathname: "/", search: "", hash: "#archive" },
+  );
 });
