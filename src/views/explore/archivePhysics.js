@@ -36,15 +36,23 @@ export function filingPhases(organize) {
   };
 }
 
+const ORGANIZE_JUMP = 0.1;
+const ORGANIZE_CATCH_JUMP = 0.07;
+const ORGANIZE_CATCH_SCRUB = 0.5;
+
 /**
- * Mandatory snap on `#intro` / `#archive` jumps organize 0 → 1 in one tick.
- * Keep snap off from the intro until the folders are filed.
+ * Snap still jumps the scroller to `#archive`, but the 3D scene should ease
+ * across that jump instead of popping to the filed pose in one tick.
+ * Small scroll deltas (a real scrub) stay tight to the scroller.
  */
-export function isFilingScroll(organize, reduceMotion = false) {
-  if (reduceMotion) return false;
-  const t = Number(organize);
-  if (!Number.isFinite(t)) return false;
-  return t < FILED_THRESHOLD;
+export function stepVisualOrganize(visual, target, reduceMotion = false) {
+  if (reduceMotion) return 1;
+  const from = Math.min(1, Math.max(0, Number(visual) || 0));
+  const to = Math.min(1, Math.max(0, Number(target) || 0));
+  const gap = to - from;
+  if (Math.abs(gap) < 0.001) return to;
+  const rate = Math.abs(gap) > ORGANIZE_JUMP ? ORGANIZE_CATCH_JUMP : ORGANIZE_CATCH_SCRUB;
+  return from + gap * rate;
 }
 
 export function applyOrganizeDelta(current, deltaY, scale = ORGANIZE_SCALE) {

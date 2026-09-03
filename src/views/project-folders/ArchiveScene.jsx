@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { reports } from "../../data/index.js";
-import { easeInOut, filingPhases } from "../explore/archivePhysics.js";
+import { easeInOut, filingPhases, stepVisualOrganize } from "../explore/archivePhysics.js";
 import { GROUPINGS, groupReports } from "./grouping.js";
 import {
   FOLDER_BACK_H,
@@ -399,6 +399,9 @@ export default function ArchiveScene({
     let transTo = "theme";
     let transStart = 0;
     let lastShadowKey = "";
+    let visualOrganize = reduceRef.current
+      ? 1
+      : Math.min(1, Math.max(0, organizeRef.current));
 
     const setPointer = (event) => {
       const rect = renderer.domElement.getBoundingClientRect();
@@ -600,7 +603,12 @@ export default function ArchiveScene({
       }
       const selectedFolder = selectedFolderRef.current;
       const selectedReport = selectedReportRef.current;
-      const organize = reduce ? 1 : Math.min(1, Math.max(0, organizeRef.current));
+      const organize = stepVisualOrganize(
+        visualOrganize,
+        organizeRef.current,
+        reduce,
+      );
+      visualOrganize = organize;
       const { cam: camT, stand, travel, folders: folderT } = filingPhases(organize);
       const shelved = organize >= 0.995;
 

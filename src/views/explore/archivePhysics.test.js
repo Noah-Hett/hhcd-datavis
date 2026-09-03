@@ -7,8 +7,8 @@ import {
   filingPhases,
   isArchiveFiled,
   isFiled,
-  isFilingScroll,
   organizeFromScroll,
+  stepVisualOrganize,
   waypointFromScroll,
 } from "./archivePhysics.js";
 
@@ -96,10 +96,15 @@ test("filingPhases stand before travel, folders last", () => {
   assert.equal(done.cam, 1);
 });
 
-test("isFilingScroll keeps snap off from intro until folders are filed", () => {
-  assert.equal(isFilingScroll(0), true);
-  assert.equal(isFilingScroll(0.4), true);
-  assert.equal(isFilingScroll(FILED_THRESHOLD), false);
-  assert.equal(isFilingScroll(1), false);
-  assert.equal(isFilingScroll(0, true), false);
+test("stepVisualOrganize eases a snap jump and tracks a scrub", () => {
+  let visual = 0;
+  for (let i = 0; i < 8; i += 1) visual = stepVisualOrganize(visual, 1);
+  assert.ok(visual > 0.3 && visual < 0.9);
+
+  visual = 0;
+  for (let i = 0; i < 90; i += 1) visual = stepVisualOrganize(visual, 1);
+  assert.ok(visual > 0.99);
+
+  assert.equal(stepVisualOrganize(0.5, 0.52), 0.5 + (0.52 - 0.5) * 0.5);
+  assert.equal(stepVisualOrganize(0.2, 1, true), 1);
 });

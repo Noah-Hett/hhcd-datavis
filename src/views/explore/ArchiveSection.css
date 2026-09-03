@@ -95,8 +95,8 @@
 .explore-archive-span > #archive {
   height: auto;
   min-height: 0;
-  scroll-snap-align: none;
-  scroll-snap-stop: normal;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .explore-archive-span .archive-section .intro {
