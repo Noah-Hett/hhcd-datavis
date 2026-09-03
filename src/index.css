@@ -417,10 +417,6 @@ select {
 
 /* --- Report sidebar --------------------------------------------------- */
 
-.app.is-sidebar-open {
-  --sidebar-w: 40%;
-}
-
 .report-sidebar-backdrop {
   position: fixed;
   inset: 0;
@@ -626,59 +622,33 @@ select {
 }
 
 @media (min-width: 800px) {
-  .app.is-sidebar-open .app-main {
-    flex: 1 1 60%;
-    width: 60%;
-    max-width: 60%;
-  }
-
+  /* Overlay drawer: keep .app-main full width so the 3D archive never
+     resizes when the sidebar opens or closes. */
   .report-sidebar {
-    position: relative;
-    inset: auto;
-    z-index: 2;
-    top: auto;
-    right: auto;
-    bottom: auto;
-    flex: 0 0 0;
-    width: 0;
-    max-width: none;
-    height: auto;
-    min-height: 0;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+    top: calc(var(--app-header-h) + 8px);
+    right: 12px;
+    bottom: 12px;
+    width: min(var(--sidebar-w, 22rem), calc(100vw - 24px));
+    max-width: min(28rem, calc(100vw - 24px));
+    border-radius: 16px;
     overflow: hidden;
-    transform: none;
+    transform: translateX(calc(100% + 24px));
+    transition:
+      transform var(--sidebar-duration, 320ms) var(--sidebar-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+      visibility 0s linear var(--sidebar-duration, 320ms);
   }
 
   .report-sidebar.is-open {
-    flex: 0 0 40%;
-    width: var(--sidebar-w, 40%);
-    max-width: 40%;
-    border-left: 1px solid var(--archive-line);
+    transform: translateX(0);
     visibility: visible;
     pointer-events: auto;
-  }
-
-  .report-sidebar.is-open .report-sidebar-body {
-    animation: report-sidebar-body-in var(--sidebar-duration, 320ms)
-      var(--sidebar-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    transition:
+      transform var(--sidebar-duration, 320ms) var(--sidebar-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+      visibility 0s linear 0s;
   }
 
   .report-sidebar.is-closed {
-    transform: none;
-  }
-}
-
-@keyframes report-sidebar-body-in {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
+    transform: translateX(calc(100% + 24px));
   }
 }
 
@@ -833,7 +803,6 @@ select {
   .skip-link,
   .report-sidebar,
   .report-sidebar-backdrop,
-  .report-sidebar.is-open .report-sidebar-body,
   .explore-scroll {
     transition: none;
     animation: none;

@@ -1,5 +1,6 @@
-/* Mobile sheet polish for ReportSidebar. Desktop docking stays in index.css.
-   Backdrop and pointer-events that cover the page are mobile-only. */
+/* Overlay polish for ReportSidebar on mobile + desktop.
+   The panel never docks into the main flex row, so Explore's 3D canvas
+   keeps a stable size while the drawer slides over it. */
 
 :root {
   --sidebar-ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -57,8 +58,8 @@
 
 @media (min-width: 800px) {
   .report-sidebar-backdrop {
-    display: none;
-    pointer-events: none;
+    z-index: 45;
+    background: rgb(28 20 12 / 22%);
   }
 }
 
