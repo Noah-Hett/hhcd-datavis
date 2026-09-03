@@ -7,7 +7,14 @@ import {
   reportsMatchingMethods,
   uniqueMethods,
 } from "./mapFilters.js";
-import { COLOR_GROUPS, clusterAriaLabel, mapReports } from "./mapReports.js";
+import {
+  COLOR_GROUPS,
+  DOT_GAP,
+  DOT_HIT_PAD,
+  DOT_R,
+  clusterAriaLabel,
+  mapReports,
+} from "./mapReports.js";
 import { contrastRatio, shouldPeekFirst } from "./mapInteraction.js";
 import { METHOD_PILL_THEME as theme } from "./methodPillTheme.js";
 import { readFile } from "node:fs/promises";
@@ -38,6 +45,19 @@ test("MapSection opens the shared sidebar from the map source", async () => {
   assert.match(source, /event\.key !== "Escape"/);
 });
 
+test("ScatterPlot hovers the nearest dot and raises the active mark", async () => {
+  const source = await readFile(
+    new URL("./ScatterPlot.jsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /dotPaintOrder/);
+  assert.match(source, /nearestDotAt/);
+  assert.match(source, /onPointerMove=\{handlePlotPointerMove\}/);
+  assert.doesNotMatch(source, /onMouseEnter/);
+  assert.doesNotMatch(source, /cluster\.r \+ 6/);
+  assert.doesNotMatch(source, /<title\b/);
+});
+
 test("portaled map tooltip styles are global, not nested under .view-year-type", async () => {
   const tooltip = await readFile(
     new URL("./Tooltip.jsx", import.meta.url),
@@ -54,7 +74,11 @@ test("portaled map tooltip styles are global, not nested under .view-year-type",
   assert.match(tooltip, /createPortal\(node,\s*document\.body\)/);
   assert.match(tooltip, /import\s+"\.\/tooltip\.css"/);
   assert.match(tooltip, /position:\s*"fixed"/);
+  assert.match(tooltip, /setOpen\(true\)/);
   assert.match(overlayCss, /\.tooltip\s*\{[^}]*position:\s*fixed/);
+  assert.match(overlayCss, /opacity:\s*0/);
+  assert.match(overlayCss, /transition:/);
+  assert.match(overlayCss, /\.tooltip\.is-open\s*\{[^}]*opacity:\s*1/);
   assert.doesNotMatch(scopedCss, /\.tooltip\s*\{/);
 });
 
@@ -144,6 +168,54 @@ test("clusterAriaLabel names title, year, and type band", () => {
     reports: [{ title: "Mobility kit" }],
   });
   assert.equal(label, "Mobility kit, 2008, Physical prototypes");
+});
+
+test("same-cell dots pack far enough that fills do not overlap", () => {
+  const sample = mapReports([
+    {
+      reportNo: 1,
+      year: 2010,
+      projectType: "design concepts",
+      category: "City and community",
+    },
+    {
+      reportNo: 2,
+      year: 2010,
+      projectType: "design concepts",
+      category: "Work and workplace",
+    },
+    {
+      reportNo: 3,
+      year: 2010,
+      projectType: "design concepts",
+      category: "Health and wellbeing",
+    },
+    {
+      reportNo: 4,
+      year: 2010,
+      projectType: "design concepts",
+      category: "Transport",
+    },
+    {
+      reportNo: 5,
+      year: 2010,
+      projectType: "design concepts",
+      category: "Mobility and Transport",
+    },
+  ]);
+  assert.equal(DOT_GAP, 2 * DOT_R + 2);
+  assert.ok(DOT_HIT_PAD <= 1);
+  for (let i = 0; i < sample.clusters.length; i += 1) {
+    for (let j = i + 1; j < sample.clusters.length; j += 1) {
+      const a = sample.clusters[i];
+      const b = sample.clusters[j];
+      const dist = Math.hypot(a.dx - b.dx, a.dy - b.dy);
+      assert.ok(
+        dist + 0.01 >= a.r + b.r,
+        `dots ${a.key} and ${b.key} overlap: ${dist} < ${a.r + b.r}`,
+      );
+    }
+  }
 });
 
 test("mapReports still plots the catalogue with theme groups", async () => {

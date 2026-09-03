@@ -23,14 +23,32 @@
   appearance: none;
   -webkit-appearance: none;
   touch-action: manipulation;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
-.tooltip.is-interactive {
+.tooltip.is-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tooltip.is-open.is-interactive,
+.tooltip.is-open.is-peek {
   pointer-events: auto;
 }
 
-.tooltip.is-peek {
-  pointer-events: auto;
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    transform: none;
+    transition: none;
+  }
+
+  .tooltip.is-open {
+    transform: none;
+  }
 }
 
 .tooltip::after {
