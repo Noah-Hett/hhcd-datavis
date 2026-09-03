@@ -20,6 +20,7 @@ test("tooltipAnchorAboveDot centers the tip above the dot", () => {
   });
   assert.equal(pos.x, 100 + 20 / 2 - 80 / 2);
   assert.equal(pos.y, 200 - 40 - 8);
+  assert.equal(pos.placement, "above");
 });
 
 test("tooltipAnchorAboveDot uses the shared gap by default", () => {
@@ -31,6 +32,7 @@ test("tooltipAnchorAboveDot uses the shared gap by default", () => {
   });
   assert.equal(pos.x, 200 + 12 / 2 - 100 / 2);
   assert.equal(pos.y, 180 - 50 - TOOLTIP_GAP);
+  assert.equal(pos.placement, "above");
 });
 
 test("tooltipAnchorAboveDot stays above the dot on mobile when there is no room", () => {
@@ -44,6 +46,7 @@ test("tooltipAnchorAboveDot stays above the dot on mobile when there is no room"
     allowShift: false,
   });
   assert.equal(pos.y, 12);
+  assert.equal(pos.placement, "above");
   assert.ok(pos.y < 36, "mobile peek stays above the dot instead of flipping below");
 });
 
@@ -58,6 +61,35 @@ test("tooltipAnchorAboveDot may shift below on desktop if the top would clip", (
     allowShift: true,
   });
   assert.equal(pos.y, 36 + 16 + 8);
+  assert.equal(pos.placement, "below");
+});
+
+test("tooltipAnchorAboveDot preferBelow places under the dot when there is room", () => {
+  const pos = tooltipAnchorAboveDot({
+    dot: { left: 200, top: 180, width: 16, height: 16 },
+    tipWidth: 80,
+    tipHeight: 48,
+    gap: 8,
+    pad: 12,
+    viewport: { width: 800, height: 600 },
+    preferBelow: true,
+  });
+  assert.equal(pos.y, 180 + 16 + 8);
+  assert.equal(pos.placement, "below");
+});
+
+test("tooltipAnchorAboveDot preferBelow falls back above when below would clip", () => {
+  const pos = tooltipAnchorAboveDot({
+    dot: { left: 200, top: 520, width: 16, height: 16 },
+    tipWidth: 80,
+    tipHeight: 80,
+    gap: 8,
+    pad: 12,
+    viewport: { width: 800, height: 600 },
+    preferBelow: true,
+  });
+  assert.equal(pos.y, 520 - 80 - 8);
+  assert.equal(pos.placement, "above");
 });
 
 test("dotPaintOrder keeps the hovered dot last so it stacks above neighbours", () => {
@@ -115,4 +147,5 @@ test("tooltipAnchorAboveDot clamps horizontally to the viewport", () => {
     viewport: { width: 200, height: 600 },
   });
   assert.equal(pos.x, 12);
+  assert.equal(pos.placement, "above");
 });

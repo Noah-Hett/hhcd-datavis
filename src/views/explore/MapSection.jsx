@@ -50,7 +50,7 @@ export default function MapSection() {
   const mapped = useMemo(() => mapReports(filteredReports), [filteredReports]);
   const [hovered, setHovered] = useState(null);
   const [peeked, setPeeked] = useState(null);
-  const [tipPos, setTipPos] = useState({ x: 0, y: 0 });
+  const [tipPos, setTipPos] = useState({ x: 0, y: 0, placement: "above" });
   const [mobile, setMobile] = useState(() =>
     typeof window !== "undefined" && window.matchMedia
       ? window.matchMedia(MOBILE_QUERY).matches
@@ -106,8 +106,15 @@ export default function MapSection() {
         height: window.innerHeight,
       },
       allowShift: !isCoarsePointer() && !window.matchMedia?.(MOBILE_QUERY)?.matches,
+      preferBelow: cluster.cellCount > 1 && cluster.dy > 0,
     });
-    setTipPos((prev) => (prev.x === next.x && prev.y === next.y ? prev : next));
+    setTipPos((prev) =>
+      prev.x === next.x &&
+      prev.y === next.y &&
+      prev.placement === next.placement
+        ? prev
+        : next,
+    );
   }, []);
 
   const handleHover = useCallback(
@@ -362,6 +369,7 @@ export default function MapSection() {
                 cluster={tipCluster}
                 x={tipPos.x}
                 y={tipPos.y}
+                placement={tipPos.placement}
                 interactive
                 peeked={Boolean(peeked)}
                 onActivate={handleTooltipActivate}

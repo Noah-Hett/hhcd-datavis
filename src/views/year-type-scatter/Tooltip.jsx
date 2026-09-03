@@ -8,6 +8,7 @@ const Tooltip = forwardRef(function Tooltip(
     cluster,
     x,
     y,
+    placement = "above",
     interactive = false,
     peeked = false,
     onActivate,
@@ -48,6 +49,7 @@ const Tooltip = forwardRef(function Tooltip(
   const className = [
     "tooltip",
     open ? "is-open" : "",
+    placement === "below" ? "is-below" : "",
     interactive ? "is-interactive" : "",
     peeked ? "is-peek" : "",
   ]
