@@ -65,29 +65,34 @@ export function tooltipAnchorAboveDot({
   pad = TOOLTIP_PAD,
   viewport,
   allowShift = false,
+  preferBelow = false,
 }) {
   const width = Math.max(0, tipWidth);
   const height = Math.max(0, tipHeight);
   let x = dot.left + dot.width / 2 - width / 2;
-  let y = dot.top - height - gap;
+  const aboveY = dot.top - height - gap;
+  const belowY = dot.top + (dot.height ?? 0) + gap;
+  const belowFits = belowY + height <= viewport.height - pad;
+  let y = aboveY;
+  let placement = "above";
 
   const maxX = viewport.width - width - pad;
   x = maxX < pad ? pad : Math.min(Math.max(pad, x), maxX);
 
-  if (y < pad) {
-    if (allowShift) {
-      const below = dot.top + (dot.height ?? 0) + gap;
-      if (below + height <= viewport.height - pad) {
-        y = below;
-      } else {
-        y = pad;
-      }
+  if (preferBelow && belowFits) {
+    y = belowY;
+    placement = "below";
+  } else if (y < pad) {
+    if (allowShift && belowFits) {
+      y = belowY;
+      placement = "below";
     } else {
       y = Math.max(y, pad);
+      placement = "above";
     }
   }
 
-  return { x, y };
+  return { x, y, placement };
 }
 
 export function contrastRatio(hexA, hexB) {

@@ -39,6 +39,8 @@ test("MapSection opens the shared sidebar from the map source", async () => {
   assert.match(source, /source:\s*MAP_SELECTION_SOURCE/);
   assert.match(source, /shouldPeekFirst/);
   assert.match(source, /tooltipAnchorAboveDot/);
+  assert.match(source, /preferBelow:\s*cluster\.cellCount > 1 && cluster\.dy > 0/);
+  assert.match(source, /placement=\{tipPos\.placement\}/);
   assert.match(source, /onActivate=\{handleTooltipActivate\}/);
   assert.match(source, /variant=\{mobile \? "sheet" : "carousel"\}/);
   assert.match(source, /showModal/);
@@ -77,10 +79,14 @@ test("portaled map tooltip styles are global, not nested under .view-year-type",
   assert.match(tooltip, /import\s+"\.\/tooltip\.css"/);
   assert.match(tooltip, /position:\s*"fixed"/);
   assert.match(tooltip, /setOpen\(true\)/);
+  assert.match(tooltip, /placement === "below" \? "is-below"/);
   assert.match(overlayCss, /\.tooltip\s*\{[^}]*position:\s*fixed/);
   assert.match(overlayCss, /opacity:\s*0/);
   assert.match(overlayCss, /transition:/);
   assert.match(overlayCss, /\.tooltip\.is-open\s*\{[^}]*opacity:\s*1/);
+  assert.match(overlayCss, /width:\s*40px/);
+  assert.match(overlayCss, /\.tooltip\.is-below::after/);
+  assert.doesNotMatch(overlayCss, /left:\s*10px;\s*right:\s*10px/);
   assert.doesNotMatch(scopedCss, /\.tooltip\s*\{/);
 });
 
@@ -207,6 +213,7 @@ test("same-cell dots pack far enough that fills do not overlap", () => {
   ]);
   assert.equal(DOT_GAP, 2 * DOT_R + 2);
   assert.ok(DOT_HIT_PAD <= 1);
+  assert.ok(sample.clusters.every((cluster) => cluster.cellCount === 5));
   for (let i = 0; i < sample.clusters.length; i += 1) {
     for (let j = i + 1; j < sample.clusters.length; j += 1) {
       const a = sample.clusters[i];

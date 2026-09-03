@@ -131,6 +131,7 @@ function assignCellOffsets(dots) {
     group.forEach((dot, index) => {
       dot.dx = offsets[index].dx;
       dot.dy = offsets[index].dy;
+      dot.cellCount = group.length;
     });
   }
 }
@@ -161,6 +162,7 @@ export function mapReports(reports) {
     r: DOT_R,
     dx: 0,
     dy: 0,
+    cellCount: 1,
   }));
 
   assignCellOffsets(dots);
