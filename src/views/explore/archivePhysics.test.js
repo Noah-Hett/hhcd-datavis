@@ -4,8 +4,10 @@ import {
   FILED_THRESHOLD,
   ORGANIZE_SCALE,
   applyOrganizeDelta,
+  filingPhases,
   isArchiveFiled,
   isFiled,
+  isFilingScroll,
   organizeFromScroll,
   waypointFromScroll,
 } from "./archivePhysics.js";
@@ -67,4 +69,37 @@ test("waypointFromScroll is geometric: intro, archive, then map", () => {
     }),
     "map",
   );
+});
+
+test("filingPhases stand before travel, folders last", () => {
+  const rest = filingPhases(0);
+  assert.equal(rest.stand, 0);
+  assert.equal(rest.travel, 0);
+  assert.equal(rest.folders, 0);
+  assert.equal(rest.cam, 0);
+
+  const early = filingPhases(0.2);
+  assert.ok(early.stand > 0.3);
+  assert.equal(early.travel, 0);
+  assert.equal(early.folders, 0);
+
+  const mid = filingPhases(0.5);
+  assert.equal(mid.stand, 1);
+  assert.ok(mid.travel > 0.05 && mid.travel < 0.95);
+  assert.ok(mid.folders > 0);
+  assert.ok(mid.folders < mid.travel + 0.2);
+
+  const done = filingPhases(1);
+  assert.equal(done.stand, 1);
+  assert.equal(done.travel, 1);
+  assert.equal(done.folders, 1);
+  assert.equal(done.cam, 1);
+});
+
+test("isFilingScroll keeps snap off from intro until folders are filed", () => {
+  assert.equal(isFilingScroll(0), true);
+  assert.equal(isFilingScroll(0.4), true);
+  assert.equal(isFilingScroll(FILED_THRESHOLD), false);
+  assert.equal(isFilingScroll(1), false);
+  assert.equal(isFilingScroll(0, true), false);
 });

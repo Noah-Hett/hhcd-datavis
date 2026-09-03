@@ -31,6 +31,22 @@
   max-width: calc(100% - 24px);
   pointer-events: auto;
   border-radius: 16px;
+  animation: folder-chrome-in 280ms ease;
+}
+
+@keyframes folder-chrome-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive-section .grouping-tabs {
+    animation: none;
+  }
 }
 
 .archive-section .grouping-tabs[hidden] {
@@ -85,6 +101,7 @@
 
 .explore-archive-span .archive-section .intro {
   pointer-events: none;
+  opacity: clamp(0, calc(1 - (var(--organize, 0) - 0.08) / 0.34), 1);
 }
 
 .archive:has(.webgl-fallback) .intro {

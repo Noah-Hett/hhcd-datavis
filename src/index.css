@@ -380,6 +380,18 @@ select {
   scroll-behavior: auto;
 }
 
+.explore-scroll.is-filing {
+  scroll-snap-type: none;
+}
+
+.explore-scroll.is-filing .explore-section,
+.explore-scroll.is-filing #intro,
+.explore-scroll.is-filing #archive,
+.explore-scroll.is-filing #map {
+  scroll-snap-align: none;
+  scroll-snap-stop: normal;
+}
+
 .explore-section {
   min-height: 100%;
   height: 100%;

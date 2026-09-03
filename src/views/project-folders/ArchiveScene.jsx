@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { reports } from "../../data/index.js";
+import { easeInOut, filingPhases } from "../explore/archivePhysics.js";
 import { GROUPINGS, groupReports } from "./grouping.js";
 import {
   FOLDER_BACK_H,
@@ -25,16 +26,12 @@ import {
   shouldUseTwoRows,
 } from "./geometry.js";
 
-function easeInOut(t) {
-  const x = Math.min(1, Math.max(0, t));
-  return x < 0.5 ? 2 * x * x : -1 + (4 - 2 * x) * x;
-}
-
 function sideSign(x) {
   return x < 0 ? -1 : 1;
 }
 
 const EXIT_X = 12;
+const EXIT_INTRO = 5.4;
 const MORPH_MS = 900;
 const CAM_FOV = 22;
 const TAP_SLOP = 18;
@@ -46,8 +43,9 @@ const SELECT_FORWARD = 0.28;
 const REST_RECEDE = 1.05;
 const FOLLOW_SELECTED = 0.07;
 const FOLLOW_FOLDER = 0.06;
+const FOLLOW_FOLDER_INTRO = 0.22;
 const FOLLOW_CAROUSEL = 0.12;
-const FOLLOW_REPORT = 0.2;
+const FOLLOW_REPORT = 0.42;
 
 function folderTarget(fromLayout, toLayout, id, entry) {
   const from = fromLayout.folderPos[id];
@@ -346,17 +344,29 @@ export default function ArchiveScene({
     const destLook = new THREE.Vector3();
     const projected = new THREE.Vector3();
     const parentScratch = new THREE.Vector3();
+    const qFrom = new THREE.Quaternion();
+    const qTo = new THREE.Quaternion();
+    const qNow = new THREE.Quaternion();
+    const eFrom = new THREE.Euler(0, 0, 0, "XYZ");
+    const eTo = new THREE.Euler(0, 0, 0, "XYZ");
 
-    const reparentKeepWorldPosition = (obj, parent) => {
+    const reparentKeepWorldPosition = (obj, parent, { keepRotation = false } = {}) => {
       if (obj.parent === parent) return;
       obj.updateWorldMatrix(true, false);
       obj.getWorldPosition(parentScratch);
+      if (keepRotation) obj.getWorldQuaternion(qNow);
       parent.add(obj);
       parent.updateWorldMatrix(true, false);
       parent.worldToLocal(parentScratch);
       obj.position.copy(parentScratch);
-      obj.rotation.x = 0;
-      obj.rotation.z = 0;
+      if (keepRotation) {
+        parent.getWorldQuaternion(qFrom);
+        qFrom.invert();
+        obj.quaternion.copy(qFrom.multiply(qNow));
+      } else {
+        obj.rotation.x = 0;
+        obj.rotation.z = 0;
+      }
     };
 
     const followYaw = (obj, target, t) => {
@@ -552,7 +562,9 @@ export default function ArchiveScene({
           entry.group.rotation.set(pose.rx ?? 0, 0, 0);
           entry.group.scale.setScalar(1);
         } else {
-          reparentKeepWorldPosition(entry.group, folderEntry.group);
+          reparentKeepWorldPosition(entry.group, folderEntry.group, {
+            keepRotation: true,
+          });
         }
         entry.folderId = folderId;
       }
@@ -588,12 +600,9 @@ export default function ArchiveScene({
       }
       const selectedFolder = selectedFolderRef.current;
       const selectedReport = selectedReportRef.current;
-      const filed = reduce
-        ? 1
-        : easeInOut(Math.min(1, Math.max(0, organizeRef.current)));
-      const enter = easeInOut(Math.max(0, Math.min(1, (filed - 0.32) / 0.5)));
-      const camT = easeInOut(Math.max(0, Math.min(1, (filed - 0.08) / 0.82)));
-      const shelved = filed >= 0.995;
+      const organize = reduce ? 1 : Math.min(1, Math.max(0, organizeRef.current));
+      const { cam: camT, stand, travel, folders: folderT } = filingPhases(organize);
+      const shelved = organize >= 0.995;
 
       fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
       if (selectedFolder && shelved && !shuffling) {
@@ -604,6 +613,7 @@ export default function ArchiveScene({
       if (!shelved) {
         camPos.lerpVectors(introPos, destPos, camT);
         camLook.lerpVectors(introLook, destLook, camT);
+        camPos.y += Math.sin(Math.PI * camT) * 0.55;
         camera.position.copy(camPos);
         camera.lookAt(camLook);
       } else {
@@ -619,9 +629,10 @@ export default function ArchiveScene({
       sizeDirty = false;
 
       if (!shelved) {
-        const introKey = `intro:${archiveLayout.span}`;
+        const introKey = folderT > 0.55 ? `mix:${archiveLayout.span}` : `intro:${archiveLayout.span}`;
         if (introKey !== lastShadowKey) {
-          fitArchiveShadow(sun, archiveLayout);
+          if (folderT > 0.55) fitShadow(sun, toLayout);
+          else fitArchiveShadow(sun, archiveLayout);
           lastShadowKey = introKey;
         }
       } else {
@@ -658,15 +669,21 @@ export default function ArchiveScene({
             ? REST_SCALE
             : 1;
         if (!shelved && slide.onStage) {
-          targetX = slide.x + sideSign(slide.x || 1) * EXIT_X * (1 - enter);
+          targetX = slide.x + sideSign(slide.x || 1) * EXIT_INTRO * (1 - folderT);
         }
-        const follow = reduce ? 1 : selected ? FOLLOW_SELECTED : FOLLOW_FOLDER;
-        const onStage = slide.onStage && (shelved || enter > 0);
+        const follow = reduce
+          ? 1
+          : selected
+            ? FOLLOW_SELECTED
+            : !shelved
+              ? FOLLOW_FOLDER_INTRO
+              : FOLLOW_FOLDER;
+        const onStage = slide.onStage && (shelved || folderT > 0.02);
 
         if (onStage) {
           if (entry.parked) {
             entry.group.position.set(
-              targetX + sideSign(targetX) * EXIT_X,
+              slide.x + sideSign(slide.x || 1) * EXIT_INTRO,
               targetY,
               targetZ,
             );
@@ -747,23 +764,25 @@ export default function ArchiveScene({
           const ay = loose?.y ?? REPORT_H * 0.5;
           const az = loose?.z ?? 0;
           const bx = (destFolder?.x ?? 0) + (dest?.x ?? 0);
-          const by = (destFolder?.y ?? 0) + (dest?.y ?? ay);
+          const by = (destFolder?.y ?? 0) + (dest?.y ?? REPORT_H * 0.42);
           const bz = (destFolder?.z ?? 0) + (dest?.z ?? 0);
           const g = entry.group;
           g.visible = true;
-          const tx = THREE.MathUtils.lerp(ax, bx, enter);
-          const ty = THREE.MathUtils.lerp(ay, by, enter);
-          const tz = THREE.MathUtils.lerp(az, bz, enter);
-          const targetRx = THREE.MathUtils.lerp(loose?.rx ?? 0, dest?.rx ?? 0, enter);
-          const targetRy = THREE.MathUtils.lerp(loose?.ry ?? 0, 0, enter);
-          const targetRz = THREE.MathUtils.lerp(loose?.rz ?? 0, 0, enter);
+          const hop = Math.sin(Math.PI * stand) * 0.18 * (1 - travel);
+          const tx = THREE.MathUtils.lerp(ax, bx, travel);
+          const ty = THREE.MathUtils.lerp(ay, by, travel) + hop;
+          const tz = THREE.MathUtils.lerp(az, bz, travel);
+          eFrom.set(loose?.rx ?? 0, loose?.ry ?? 0, loose?.rz ?? 0);
+          eTo.set(dest?.rx ?? 0, 0, 0);
+          qFrom.setFromEuler(eFrom);
+          qTo.setFromEuler(eTo);
+          qNow.slerpQuaternions(qFrom, qTo, stand);
           const follow = reduce ? 1 : FOLLOW_REPORT;
           g.position.x += (tx - g.position.x) * follow;
           g.position.y += (ty - g.position.y) * follow;
           g.position.z += (tz - g.position.z) * follow;
-          g.rotation.x += (targetRx - g.rotation.x) * follow;
-          g.rotation.y += shortestAngleDelta(g.rotation.y, targetRy) * follow;
-          g.rotation.z += shortestAngleDelta(g.rotation.z, targetRz) * follow;
+          if (reduce) g.quaternion.copy(qNow);
+          else g.quaternion.slerp(qNow, follow);
           g.scale.setScalar(1);
           continue;
         }
