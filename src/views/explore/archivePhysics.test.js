@@ -4,6 +4,7 @@ import {
   FILED_THRESHOLD,
   ORGANIZE_SCALE,
   applyOrganizeDelta,
+  exploreHashScrollTarget,
   hashNeedsReplace,
   isArchiveFiled,
   isFiled,
@@ -78,6 +79,15 @@ test("normalizeExploreHash defaults unknown Explore hashes to intro", () => {
   assert.equal(normalizeExploreHash("archive"), "archive");
   assert.equal(normalizeExploreHash("#map"), "map");
   assert.equal(normalizeExploreHash("#nope"), "intro");
+});
+
+test("exploreHashScrollTarget ignores a stripped hash so selection cannot jump to intro", () => {
+  assert.equal(exploreHashScrollTarget(""), null);
+  assert.equal(exploreHashScrollTarget("#"), null);
+  assert.equal(exploreHashScrollTarget("#nope"), null);
+  assert.equal(exploreHashScrollTarget("#intro"), "intro");
+  assert.equal(exploreHashScrollTarget("#archive"), "archive");
+  assert.equal(exploreHashScrollTarget("#map"), "map");
 });
 
 test("hashNeedsReplace skips rewrite when already on the waypoint", () => {

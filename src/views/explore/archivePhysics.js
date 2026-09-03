@@ -39,11 +39,19 @@ export function waypointFromScroll({ scrollTop, archiveTop, mapTop }) {
   return "intro";
 }
 
-/** Empty or unknown Explore hashes map to the intro pile. */
-export function normalizeExploreHash(hash) {
+/**
+ * Only an explicit #intro / #archive / #map is a scroll command.
+ * A stripped hash (setSearchParams drops it) must not jump to the pile.
+ */
+export function exploreHashScrollTarget(hash) {
   const id = String(hash || "").replace(/^#/, "");
   if (id === "archive" || id === "map" || id === "intro") return id;
-  return "intro";
+  return null;
+}
+
+/** Empty or unknown Explore hashes map to the intro pile for header chrome. */
+export function normalizeExploreHash(hash) {
+  return exploreHashScrollTarget(hash) ?? "intro";
 }
 
 /** True when scroll-driven waypoint should replace the URL hash. */

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveSection from "./ArchiveSection.jsx";
 import {
+  exploreHashScrollTarget,
   hashNeedsReplace,
   isFiled,
   normalizeExploreHash,
@@ -10,8 +11,6 @@ import {
   waypointFromScroll,
 } from "./archivePhysics.js";
 import MapSection from "./MapSection.jsx";
-
-const SCROLL_IDS = ["intro", "archive", "map"];
 
 export default function Explore() {
   const { hash, search } = useLocation();
@@ -35,13 +34,15 @@ export default function Explore() {
   }, [reduceMotion]);
 
   useEffect(() => {
-    const id = normalizeExploreHash(hash);
-    waypointRef.current = id;
+    const id = exploreHashScrollTarget(hash);
+    if (id) waypointRef.current = id;
 
     if (skipHashScrollRef.current) {
       skipHashScrollRef.current = false;
       return undefined;
     }
+
+    if (!id) return undefined;
 
     const scroller = scrollRef.current;
     suppressWaypointWriteRef.current = true;
@@ -51,7 +52,7 @@ export default function Explore() {
     };
 
     const scrollToHash = () => {
-      const node = SCROLL_IDS.includes(id) ? document.getElementById(id) : null;
+      const node = document.getElementById(id);
       node?.scrollIntoView({ block: "start" });
     };
     const frame = window.requestAnimationFrame(() => {
