@@ -1,8 +1,9 @@
 import { Suspense, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import HelpDialog from "./HelpDialog.jsx";
 import ReportSidebar from "./ReportSidebar.jsx";
 import SimpleSearch from "./SimpleSearch.jsx";
+import { modeFromLocation } from "./modeFromLocation.js";
 import { useSelection } from "../state/SelectionContext.jsx";
 
 function viewKey(pathname) {
@@ -12,12 +13,6 @@ function viewKey(pathname) {
 
 function keepSearch(search) {
   return search || "";
-}
-
-function modeFromLocation(pathname, hash) {
-  if (pathname.startsWith("/search")) return "simple";
-  if (hash.replace(/^#/, "") === "map") return "map";
-  return "folders";
 }
 
 function ChromeIcon({ children }) {
@@ -107,17 +102,10 @@ export default function Layout() {
       ) : null}
       <header className="app-header">
         <div className="app-header-start">
-          <NavLink
+          <Link
             to={{ pathname: "/", search: query, hash: "intro" }}
             className="app-brand"
-            end
-            onClick={() => {
-              window.requestAnimationFrame(() => {
-                document
-                  .getElementById("intro")
-                  ?.scrollIntoView({ block: "start" });
-              });
-            }}
+            aria-current={mode === "home" ? "page" : undefined}
           >
             <ChromeIcon>
               <path
@@ -129,7 +117,7 @@ export default function Layout() {
               />
             </ChromeIcon>
             <span className="sr-only">Home</span>
-          </NavLink>
+          </Link>
           <SimpleSearch />
         </div>
 
