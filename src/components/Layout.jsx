@@ -107,7 +107,18 @@ export default function Layout() {
       ) : null}
       <header className="app-header">
         <div className="app-header-start">
-          <NavLink to="/" className="app-brand" end>
+          <NavLink
+            to={{ pathname: "/", search: query, hash: "intro" }}
+            className="app-brand"
+            end
+            onClick={() => {
+              window.requestAnimationFrame(() => {
+                document
+                  .getElementById("intro")
+                  ?.scrollIntoView({ block: "start" });
+              });
+            }}
+          >
             <ChromeIcon>
               <path
                 fill="none"
