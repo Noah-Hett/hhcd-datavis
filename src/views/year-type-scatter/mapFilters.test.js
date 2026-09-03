@@ -53,6 +53,8 @@ test("ScatterPlot hovers the nearest dot and raises the active mark", async () =
   assert.match(source, /dotPaintOrder/);
   assert.match(source, /nearestDotAt/);
   assert.match(source, /onPointerMove=\{handlePlotPointerMove\}/);
+  assert.match(source, /dotIsDimmed/);
+  assert.match(source, /is-dimmed/);
   assert.doesNotMatch(source, /onMouseEnter/);
   assert.doesNotMatch(source, /cluster\.r \+ 6/);
   assert.doesNotMatch(source, /<title\b/);
@@ -327,4 +329,5 @@ test("styles.css keeps the documented inactive greys", async () => {
   assert.match(css, /\.method-pill\.is-inactive\s*\{[^}]*color:\s*#222222/i);
   assert.match(css, /\.method-pill\s*\{[^}]*border:\s*1px solid var\(--archive-line\)/i);
   assert.doesNotMatch(css, /\.method-pill\.is-inactive\s*\{[^}]*display:\s*none/);
+  assert.match(css, /\.dot\.is-dimmed\s+\.dot-mark\s*\{[^}]*fill:\s*#c6c0b8/i);
 });

@@ -3,6 +3,7 @@ import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
 import { Y_COL, plotLayout } from "./plotLayout.js";
 import {
   DOT_HOVER_PAD,
+  dotIsDimmed,
   dotPaintOrder,
   nearestDotAt,
   pointerToSvgPoint,
@@ -289,6 +290,11 @@ export default function ScatterPlot({
                 const cy = yForBand(cluster.yBand, layout) + cluster.dy;
                 const selected = selectedKey === cluster.key;
                 const active = hoveredKey === cluster.key || selected;
+                const dimmed = dotIsDimmed({
+                  clusterKey: cluster.key,
+                  hoveredKey,
+                  selectedKey,
+                });
                 return (
                   <g
                     key={cluster.key}
@@ -297,6 +303,7 @@ export default function ScatterPlot({
                         "dot",
                         active ? "active" : "",
                         selected ? "is-selected" : "",
+                        dimmed ? "is-dimmed" : "",
                       ]
                         .filter(Boolean)
                         .join(" ")
