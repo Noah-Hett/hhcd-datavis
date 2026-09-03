@@ -1,40 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
-
-const Y_COL = 168;
-const LEFT = 20;
-const RIGHT = 40;
-const TOP = 28;
-const BOTTOM = 2;
-const PX_PER_YEAR = 48;
-const MIN_INNER_FLOOR = 692;
-
-function minInnerWidth(yearMin, yearMax) {
-  const slots = Math.max(yearMax - yearMin, 1) + 1.2;
-  return Math.max(MIN_INNER_FLOOR, slots * PX_PER_YEAR);
-}
-
-function plotLayout(viewportWidth, height, yearMin, yearMax) {
-  const innerWidth = Math.max(
-    Math.max(viewportWidth - LEFT - RIGHT, 1),
-    minInnerWidth(yearMin, yearMax),
-  );
-  const plotWidth = LEFT + innerWidth + RIGHT;
-  const innerHeight = Math.max(height - TOP - BOTTOM, 1);
-  return {
-    height,
-    left: LEFT,
-    right: RIGHT,
-    top: TOP,
-    bottom: BOTTOM,
-    innerWidth,
-    innerHeight,
-    plotWidth,
-    originY: height - BOTTOM,
-    arrowRight: plotWidth - 10,
-    scrollable: plotWidth > viewportWidth + 1,
-  };
-}
+import { Y_COL, plotLayout } from "./plotLayout.js";
 
 function xForYear(year, yearMin, yearMax, layout) {
   const span = Math.max(yearMax - yearMin, 1);
@@ -63,10 +29,18 @@ function usePlotSize() {
     if (!frame || !scroll) return undefined;
 
     const read = () => {
+      // Prefer frame width minus the fixed Y column so a leftover horizontal
+      // scrollbar cannot shrink clientWidth and keep the plot "scrollable".
+      const frameWidth = Math.round(frame.clientWidth);
+      const fromFrame = frameWidth - Y_COL;
+      const fromScroll = Math.round(scroll.clientWidth);
+      const viewportWidth = Math.max(
+        fromFrame > 1 ? fromFrame : fromScroll,
+        1,
+      );
       const height = Math.round(
         scroll.clientHeight || frame.getBoundingClientRect().height,
       );
-      const viewportWidth = Math.round(scroll.clientWidth);
       if (height < 2 || viewportWidth < 2) return;
       setSize((prev) =>
         Math.abs(prev.viewportWidth - viewportWidth) < 0.5 &&
