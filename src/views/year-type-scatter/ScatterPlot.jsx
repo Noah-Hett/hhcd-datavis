@@ -267,22 +267,30 @@ export default function ScatterPlot({
                 markerEnd="url(#axis-arrow-x)"
               />
 
-              <text
-                className="x-end"
-                x={xForYear(yearMin, yearMin, yearMax, layout)}
-                y={layout.originY - 6}
-                textAnchor="start"
-              >
-                {yearMin}
-              </text>
-              <text
-                className="x-end"
-                x={xForYear(yearMax, yearMin, yearMax, layout)}
-                y={layout.originY - 6}
-                textAnchor="end"
-              >
-                {yearMax}
-              </text>
+              {(() => {
+                const ticks = [];
+                const first = Math.ceil(Math.max(yearMin, 2000) / 5) * 5;
+                for (let y = first; y <= yearMax; y += 5) ticks.push(y);
+                return ticks.map((y) => (
+                  <g key={y}>
+                    <line
+                      className="x-tick"
+                      x1={xForYear(y, yearMin, yearMax, layout)}
+                      y1={layout.originY}
+                      x2={xForYear(y, yearMin, yearMax, layout)}
+                      y2={layout.originY + 6}
+                    />
+                    <text
+                      className="x-end"
+                      x={xForYear(y, yearMin, yearMax, layout)}
+                      y={layout.originY + 18}
+                      textAnchor="middle"
+                    >
+                      {y}
+                    </text>
+                  </g>
+                ));
+              })()}
 
               {painted.map((cluster) => {
                 const cx =

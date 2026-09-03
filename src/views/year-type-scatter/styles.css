@@ -400,6 +400,12 @@
   font-family: var(--font);
 }
 
+.x-tick {
+  stroke: var(--text);
+  stroke-width: 1;
+  opacity: 0.4;
+}
+
 .dot {
   cursor: pointer;
   outline: none;
