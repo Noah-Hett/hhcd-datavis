@@ -2,6 +2,44 @@ export const TOOLTIP_GAP = 10;
 export const TOOLTIP_PAD = 12;
 export const TOOLTIP_WIDTH = 340;
 export const TOOLTIP_ESTIMATED_HEIGHT = 148;
+export const TOOLTIP_FADE_MS = 180;
+/** Extra hover radius so moving across a cluster stays on the nearest dot. */
+export const DOT_HOVER_PAD = 12;
+
+export function nearestDotAt(points, x, y, hoverPad = DOT_HOVER_PAD) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const point of points) {
+    const dist = Math.hypot(point.x - x, point.y - y);
+    if (dist <= point.r + hoverPad && dist < bestDist) {
+      best = point;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
+export function pointerToSvgPoint(event, svg) {
+  if (!svg?.getBoundingClientRect) return null;
+  const rect = svg.getBoundingClientRect();
+  if (rect.width < 1 || rect.height < 1) return null;
+  const width = Number(svg.getAttribute?.("width")) || rect.width;
+  const height = Number(svg.getAttribute?.("height")) || rect.height;
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * width,
+    y: ((event.clientY - rect.top) / rect.height) * height,
+  };
+}
+
+export function dotPaintOrder(clusters, hoveredKey, selectedKey) {
+  if (!hoveredKey && !selectedKey) return clusters;
+  return [...clusters].sort((a, b) => {
+    const score = (cluster) =>
+      Number(cluster.key === selectedKey) +
+      2 * Number(cluster.key === hoveredKey);
+    return score(a) - score(b);
+  });
+}
 
 export function shouldPeekFirst({
   keyboard,
