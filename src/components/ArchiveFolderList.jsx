@@ -2,10 +2,15 @@ import { groupingIdFromFolderId } from "../state/selection.js";
 import { useSelection } from "../state/SelectionContext.jsx";
 import { GROUPINGS, groupReports } from "../views/project-folders/grouping.js";
 
-export default function ArchiveFolderList({ titleId, headingRef }) {
+export default function ArchiveFolderList({
+  titleId,
+  headingRef,
+  folderId: folderIdOverride,
+}) {
   const { selectedFolderId, selectedReportNo, openFolder, openReport } =
     useSelection();
-  const grouping = groupingIdFromFolderId(selectedFolderId) ?? "theme";
+  const activeFolderId = folderIdOverride ?? selectedFolderId;
+  const grouping = groupingIdFromFolderId(activeFolderId) ?? "theme";
   const groupingMeta = GROUPINGS.find((item) => item.id === grouping);
   const folders = groupReports(grouping);
 
@@ -29,7 +34,7 @@ export default function ArchiveFolderList({ titleId, headingRef }) {
       </h3>
       <ul className="folder-list" id="archive-list" tabIndex={-1}>
         {folders.map((folder) => {
-          const open = folder.id === selectedFolderId;
+          const open = folder.id === activeFolderId;
           return (
             <li key={folder.id}>
               <button
@@ -38,7 +43,7 @@ export default function ArchiveFolderList({ titleId, headingRef }) {
                 aria-expanded={open}
                 aria-controls={`folder-reports-${folder.id}`}
                 onClick={() =>
-                  folder.id === selectedFolderId
+                  folder.id === activeFolderId
                     ? openFolder(null)
                     : openFolder(folder.id, { openSidebar: true })
                 }

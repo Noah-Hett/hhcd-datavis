@@ -418,7 +418,7 @@ select {
 /* --- Report sidebar --------------------------------------------------- */
 
 .app.is-sidebar-open {
-  --sidebar-w: 40%;
+  --sidebar-w: 42%;
 }
 
 .report-sidebar-backdrop {
@@ -441,7 +441,10 @@ select {
   color: var(--text);
   border: 1px solid var(--archive-line);
   box-shadow: 0 16px 48px rgb(28 20 12 / 16%);
-  transition: transform 0.2s ease, visibility 0.2s ease;
+}
+
+.report-sidebar.is-open {
+  visibility: visible;
 }
 
 .report-sidebar.is-closed {
@@ -623,10 +626,14 @@ select {
 }
 
 @media (min-width: 800px) {
+  /* Docked side-by-side: both the visualisation and the report pane stay
+     on screen and interactive. Width snaps once (no animated resize) so
+     the WebGL archive does not thrash every frame. */
   .app.is-sidebar-open .app-main {
-    flex: 1 1 60%;
-    width: 60%;
-    max-width: 60%;
+    flex: 1 1 58%;
+    width: 58%;
+    max-width: 58%;
+    min-width: 0;
   }
 
   .report-sidebar {
@@ -640,6 +647,7 @@ select {
     width: 0;
     max-width: none;
     height: auto;
+    align-self: stretch;
     min-height: 0;
     border: 0;
     border-radius: 0;
@@ -649,9 +657,9 @@ select {
   }
 
   .report-sidebar.is-open {
-    flex: 0 0 40%;
-    width: var(--sidebar-w, 40%);
-    max-width: 40%;
+    flex: 0 0 var(--sidebar-w, 42%);
+    width: var(--sidebar-w, 42%);
+    max-width: var(--sidebar-w, 42%);
     border-left: 1px solid var(--archive-line);
     visibility: visible;
     pointer-events: auto;
@@ -717,14 +725,6 @@ select {
   .report-sidebar-bar {
     position: relative;
     padding-top: 18px;
-  }
-
-  .report-sidebar.is-closed {
-    transform: translateY(100%);
-  }
-
-  .report-sidebar.is-open {
-    transform: translateY(0);
   }
 }
 
@@ -820,8 +820,10 @@ select {
 
   .skip-link,
   .report-sidebar,
+  .report-sidebar-backdrop,
   .explore-scroll {
     transition: none;
+    animation: none;
   }
 
   .explore-scroll {
