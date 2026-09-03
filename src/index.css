@@ -399,7 +399,11 @@ select {
   scroll-snap-stop: always;
 }
 
-#intro,
+#intro {
+  scroll-snap-align: none;
+  scroll-snap-stop: normal;
+}
+
 #archive,
 #map {
   scroll-snap-stop: always;

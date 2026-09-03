@@ -91,7 +91,13 @@
   grid-row: 2;
 }
 
-.explore-archive-span > #intro,
+.explore-archive-span > #intro {
+  height: auto;
+  min-height: 0;
+  scroll-snap-align: none;
+  scroll-snap-stop: normal;
+}
+
 .explore-archive-span > #archive {
   height: auto;
   min-height: 0;
