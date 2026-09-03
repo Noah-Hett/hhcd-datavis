@@ -363,16 +363,26 @@ const FLAT_GROUND_Y = 0.042;
 const STACK_LAYER = REPORT_THICK + 0.014;
 
 /**
- * Unfiled intro: a slightly messy library table — distinct stacks, not one
- * intersecting heap. Weights sum to 64 (the catalogue size).
+ * Unfiled intro: a slightly messy library table with uneven, differently
+ * turned stacks — plus one slumped heap and a few strays like the first pass.
+ * Weights sum to 64 (the catalogue size).
  */
 export const ARCHIVE_PILE_RECIPE = [
-  { type: "stack", weight: 13, x: -2.65, z: -1.38, yaw: 0.15 },
-  { type: "stack", weight: 11, x: 0, z: -1.42, yaw: 0.1 },
-  { type: "stack", weight: 10, x: 2.65, z: -1.34, yaw: 0.07 },
-  { type: "stack", weight: 12, x: -2.65, z: 1.28, yaw: 0.16 },
-  { type: "stack", weight: 9, x: 0, z: 1.32, yaw: 0.12 },
-  { type: "stack", weight: 9, x: 2.65, z: 1.24, yaw: 0.08 },
+  { type: "stack", weight: 16, x: -2.82, z: -1.22, yaw: 0.2 },
+  { type: "stack", weight: 6, x: -0.35, z: -1.68, yaw: 0.92 },
+  { type: "stack", weight: 10, x: 2.48, z: -1.05, yaw: -0.7 },
+  { type: "stack", weight: 7, x: -2.38, z: 1.22, yaw: 0.52 },
+  { type: "stack", weight: 4, x: 2.95, z: 1.58, yaw: -1.08 },
+  { type: "heap", weight: 16, x: 0.22, z: 0.95, yaw: 0.3 },
+  { type: "fallen", weight: 5, x: 0, z: 0, yaw: 0 },
+];
+
+const FALLEN_SPOTS = [
+  { x: -1.18, z: 0.08, yaw: 0.88 },
+  { x: 1.22, z: -0.22, yaw: -0.72 },
+  { x: -1.05, z: 1.82, yaw: 0.38 },
+  { x: 1.28, z: 1.72, yaw: -1.12 },
+  { x: 0.58, z: -0.58, yaw: 1.18 },
 ];
 
 /** Cover-flow: max neighbours each side (13 cards). Smaller folders show every cover. */
@@ -677,24 +687,64 @@ function absorbArchivePose(pose, bounds) {
 
 function poseStack(report, pile, slot) {
   const seed = reportSeed(report.reportNo);
-  // Small independent offsets, like a used library pile — not a collapsing fan.
-  const twist = signedNoise(seed, 1) * 0.048;
-  const ox = signedNoise(seed, 2) * 0.038;
-  const oz = signedNoise(seed, 3) * 0.032;
+  const twist = signedNoise(seed, 1) * 0.06;
+  const ox = signedNoise(seed, 2) * 0.05;
+  const oz = signedNoise(seed, 3) * 0.042;
   return {
     x: pile.x + ox,
     y: FLAT_GROUND_Y + slot * STACK_LAYER,
     z: pile.z + oz,
-    rx: signedNoise(seed, 4) * 0.01,
+    rx: signedNoise(seed, 4) * 0.012,
     ry: pile.yaw + twist,
-    rz: -Math.PI / 2 + signedNoise(seed, 5) * 0.01,
+    rz: -Math.PI / 2 + signedNoise(seed, 5) * 0.012,
     pileType: pile.type,
     pileIndex: pile.index,
     slot,
   };
 }
 
-function poseForPile(report, pile, slot) {
+function poseHeap(report, pile, slot, count) {
+  const seed = reportSeed(report.reportNo);
+  const mid = (count - 1) / 2;
+  const u = slot - mid;
+  const twist = u * 0.032 + signedNoise(seed, 1) * 0.08;
+  const slip = (slot % 3 === 2 ? 0.13 : 0.045) * signedNoise(seed, 2);
+  const collapse = slot * 0.02;
+  const yaw = pile.yaw + twist;
+  const leanX = Math.sin(pile.yaw + 0.35);
+  const leanZ = Math.cos(pile.yaw - 0.18);
+  return {
+    x: pile.x + leanX * collapse + Math.cos(yaw) * slip,
+    y: FLAT_GROUND_Y + slot * STACK_LAYER,
+    z: pile.z + leanZ * collapse + Math.sin(yaw) * slip * 0.85,
+    rx: signedNoise(seed, 3) * 0.025,
+    ry: yaw,
+    rz: -Math.PI / 2 + signedNoise(seed, 4) * 0.025,
+    pileType: pile.type,
+    pileIndex: pile.index,
+    slot,
+  };
+}
+
+function poseFallen(report, pile, slot) {
+  const seed = reportSeed(report.reportNo);
+  const spot = FALLEN_SPOTS[slot % FALLEN_SPOTS.length];
+  return {
+    x: spot.x + signedNoise(seed, 1) * 0.12,
+    y: FLAT_GROUND_Y,
+    z: spot.z + signedNoise(seed, 2) * 0.1,
+    rx: signedNoise(seed, 3) * 0.06,
+    ry: spot.yaw + signedNoise(seed, 4) * 0.14,
+    rz: -Math.PI / 2 + signedNoise(seed, 5) * 0.1,
+    pileType: pile.type,
+    pileIndex: pile.index,
+    slot,
+  };
+}
+
+function poseForPile(report, pile, slot, count) {
+  if (pile.type === "heap") return poseHeap(report, pile, slot, count);
+  if (pile.type === "fallen") return poseFallen(report, pile, slot);
   return poseStack(report, pile, slot);
 }
 
@@ -736,7 +786,7 @@ export function computeArchiveLayout(list) {
       const report = list[cursor];
       cursor += 1;
       if (!report) continue;
-      const pose = poseForPile(report, pile, slot);
+      const pose = poseForPile(report, pile, slot, count);
       reportPos[report.reportNo] = pose;
       absorbArchivePose(pose, bounds);
     }

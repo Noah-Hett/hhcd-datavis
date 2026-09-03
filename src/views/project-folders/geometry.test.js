@@ -83,7 +83,24 @@ test("computeArchiveLayout piles 64 reports into a slightly messy library table"
   assert.equal(ARCHIVE_PILE_RECIPE.reduce((sum, pile) => sum + pile.weight, 0), 64);
 
   const types = new Set(poses.map((pose) => pose.pileType));
-  assert.deepEqual([...types], ["stack"]);
+  assert.ok(types.has("stack"));
+  assert.ok(types.has("heap"));
+  assert.ok(types.has("fallen"));
+
+  const stackWeights = ARCHIVE_PILE_RECIPE.filter((pile) => pile.type === "stack").map(
+    (pile) => pile.weight,
+  );
+  assert.ok(
+    Math.max(...stackWeights) - Math.min(...stackWeights) >= 10,
+    "library stacks should vary in height",
+  );
+  const stackYaws = ARCHIVE_PILE_RECIPE.filter((pile) => pile.type === "stack").map(
+    (pile) => pile.yaw,
+  );
+  assert.ok(
+    Math.max(...stackYaws) - Math.min(...stackYaws) > 1,
+    "library stacks should not all face the same way",
+  );
 
   const ys = poses.map((pose) => pose.y);
   assert.ok(
@@ -102,7 +119,7 @@ test("computeArchiveLayout piles 64 reports into a slightly messy library table"
   const flats = poses.filter(
     (pose) => Math.abs(Math.abs(pose.rz) - Math.PI / 2) < 0.45,
   );
-  assert.equal(flats.length, 64);
+  assert.ok(flats.length > 50);
 
   assert.ok(
     flats.every((pose) => Math.abs(pose.ry) < 1.5),
@@ -122,11 +139,15 @@ test("archive stacks stay distinct columns, not a fanned heap", () => {
 
   const centers = [];
   for (const pilePoses of byPile.values()) {
-    const yaws = pilePoses.map((pose) => pose.ry);
-    assert.ok(
-      Math.max(...yaws) - Math.min(...yaws) < 0.16,
-      "each stack should share a library yaw, not fan out",
-    );
+    const type = pilePoses[0]?.pileType;
+    if (type === "stack") {
+      const yaws = pilePoses.map((pose) => pose.ry);
+      assert.ok(
+        Math.max(...yaws) - Math.min(...yaws) < 0.18,
+        "tidy stacks should share a library yaw, not fan out",
+      );
+    }
+    if (type === "fallen") continue;
     centers.push({
       x: pilePoses.reduce((sum, pose) => sum + pose.x, 0) / pilePoses.length,
       z: pilePoses.reduce((sum, pose) => sum + pose.z, 0) / pilePoses.length,
@@ -142,7 +163,7 @@ test("archive stacks stay distinct columns, not a fanned heap", () => {
       );
     }
   }
-  assert.ok(minDist > 2.15, "stacks should sit in their own space");
+  assert.ok(minDist > 2.15, "main piles should sit in their own space");
 });
 
 test("computeArchiveLayout keeps every report pickable with a unique slot", () => {
