@@ -22,15 +22,15 @@ export default function HelpGuide({ titleId, headingRef }) {
       </p>
       <h3>Mode switch</h3>
       <p>
-        The house Home control and the Folders / Map / Simple toggle track what
-        you are looking at. Scrolling Explore updates the selection: the
-        unsorted pile selects Home, filed folders select Folders, and the
-        scatter selects Map.
+        The Home / Folders / Map / Simple toggle tracks what you are looking
+        at. Scrolling Explore updates the selection: the unsorted pile selects
+        Home, filed folders select Folders, and the scatter selects Map.
       </p>
       <ol>
         <li>
-          <strong>Home</strong> — the unsorted pile of reports at the top of
-          Explore. Scroll down to file them into folders.
+          <strong>Home</strong> — the unsorted pile at the top of Explore is
+          atmosphere, not a reading table. Scroll, tap the pile, or use
+          Folders / Map to enter. Reports open after you choose a way in.
         </li>
         <li>
           <strong>Folders</strong> — the archive once reports are filed into
@@ -64,12 +64,14 @@ export default function HelpGuide({ titleId, headingRef }) {
       </p>
       <h3>Search versus Simple view</h3>
       <p>
-        The header field is a typeahead that uses the same ranking as Simple
-        view. Choosing a match opens the shared sidebar. A footer link opens
-        Simple view with that query. Simple view lists every report — title,
-        author, year, theme, and type — with chips for filters the query
-        applied. You can read the catalogue without touching the 3D scene or
-        the graph.
+        On Explore, the header field is a typeahead that uses the same ranking
+        as Simple view. On a phone that same field shrinks so the chrome stays
+        compact, then grows again while you type. Choosing a match opens the
+        shared sidebar. A footer link opens Simple view with that query. Simple
+        view hides that header field and uses its own search box, plus filter
+        pills for theme, type, method, and year. Search results are split into
+        reports that were returned and the rest of the catalogue. You can read
+        the catalogue without touching the 3D scene or the graph.
       </p>
       <h3>Keyboard</h3>
       <ul className="help-keys">

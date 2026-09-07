@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { reports } from "../data/index.js";
 import { useSelection } from "../state/SelectionContext.jsx";
+import { themeForCategory } from "../theme/categories.js";
+import ThemeBadge from "../theme/ThemeBadge.jsx";
 import { buildIndex, buildVocab, search } from "../views/report-search/search.js";
 import { isEditableTarget } from "../views/report-search/listKeyboard.js";
 import "../views/report-search/simple-search.css";
@@ -16,6 +18,7 @@ export default function SimpleSearch() {
   const [query, setQuery] = useState("");
   const [listOpen, setListOpen] = useState(false);
   const [active, setActive] = useState(0);
+  const [compact, setCompact] = useState(false);
   const inputRef = useRef(null);
   const listId = useId();
   const labelId = useId();
@@ -38,14 +41,26 @@ export default function SimpleSearch() {
   }, [query]);
 
   useEffect(() => {
+    setListOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 799px)");
+    const sync = () => setCompact(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
     function onKey(event) {
       if (onSimpleView) return;
       if (event.key !== "/") return;
       if (isEditableTarget(event.target)) return;
       if (event.target?.closest?.("dialog[open]")) return;
       event.preventDefault();
-      inputRef.current?.focus();
       setListOpen(true);
+      inputRef.current?.focus();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -105,13 +120,37 @@ export default function SimpleSearch() {
     <div className="simple-search">
       <label className="simple-search-label" id={labelId} htmlFor={`${listId}-input`}>
         <span className="sr-only">Search reports</span>
+        <svg
+          className="simple-search-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle
+            cx="6.75"
+            cy="6.75"
+            r="4.1"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            d="m9.8 9.8 3.45 3.45"
+          />
+        </svg>
         <input
           id={`${listId}-input`}
           ref={inputRef}
           type="search"
           className="simple-search-input"
           role="combobox"
-          placeholder="Search reports"
+          placeholder={compact ? "Search" : "Search reports"}
           autoComplete="off"
           spellCheck="false"
           enterKeyHint="search"
@@ -152,32 +191,44 @@ export default function SimpleSearch() {
             role="listbox"
             aria-label="Search suggestions"
           >
-            {items.map((item, i) => (
-              <li key={item.key} role="presentation">
-                <button
-                  type="button"
-                  id={`${listId}-${item.key}`}
-                  role="option"
-                  aria-selected={i === active}
-                  className={
-                    i === active
-                      ? "simple-search-option is-active"
-                      : "simple-search-option"
-                  }
-                  onMouseDown={(event) => event.preventDefault()}
-                  onMouseEnter={() => setActive(i)}
-                  onClick={() => choose(item)}
-                >
-                  <span className="simple-search-year">
-                    {item.report.year ?? "—"}
-                  </span>
-                  <span className="simple-search-copy">
-                    <strong>{item.report.title}</strong>
-                    <em>{item.report.author}</em>
-                  </span>
-                </button>
-              </li>
-            ))}
+            {items.map((item, i) => {
+              const theme = themeForCategory(item.report.category);
+              return (
+                <li key={item.key} role="presentation">
+                  <button
+                    type="button"
+                    id={`${listId}-${item.key}`}
+                    role="option"
+                    aria-selected={i === active}
+                    className={
+                      i === active
+                        ? "simple-search-option is-active"
+                        : "simple-search-option"
+                    }
+                    style={
+                      theme ? { "--theme-color": theme.color } : undefined
+                    }
+                    onMouseDown={(event) => event.preventDefault()}
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => choose(item)}
+                  >
+                    <span className="simple-search-year">
+                      {item.report.year ?? "—"}
+                    </span>
+                    <span className="simple-search-copy">
+                      <strong>{item.report.title}</strong>
+                      <em>{item.report.author}</em>
+                      {theme ? (
+                        <ThemeBadge
+                          category={item.report.category}
+                          compact
+                        />
+                      ) : null}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
           {items.length === 0 ? (
             <p className="simple-search-empty">No close matches yet.</p>

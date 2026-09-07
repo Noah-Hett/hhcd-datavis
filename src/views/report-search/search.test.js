@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   buildIndex,
   buildVocab,
+  emptyFilters,
   highlightParts,
   levenshtein,
   parseQuery,
@@ -122,4 +123,49 @@ test("cultural probes is a preset method filter", () => {
 test("highlight wraps matching terms", () => {
   const parts = highlightParts("Taxi drivers; taxi passengers", ["taxi"]);
   assert.ok(parts.some((part) => part.hit && part.text.toLowerCase() === "taxi"));
+});
+
+test("search splits returned reports from the rest of the catalogue", () => {
+  const { all, matches, rest, idle } = run("health interviews 2001");
+  assert.equal(idle, false);
+  assert.equal(all.length, 67);
+  assert.ok(matches.length >= 2);
+  assert.equal(matches.length + rest.length, 67);
+  for (const item of matches) {
+    assert.equal(item.report.category, "Health and wellbeing");
+    assert.equal(item.report.year, 2001);
+    assert.ok(
+      (item.report.methodsPrimary ?? []).includes("Individual Interviews"),
+    );
+  }
+});
+
+test("manual category filter returns that theme without a query", () => {
+  const manual = emptyFilters();
+  manual.categories = ["Health and wellbeing"];
+  const { matches, rest, idle, chips } = search(reports, "", {
+    vocab,
+    index,
+    manual,
+  });
+  assert.equal(idle, false);
+  assert.ok(chips.some((chip) => chip.value === "Health and wellbeing"));
+  assert.ok(matches.length >= 18);
+  assert.ok(rest.length > 0);
+  assert.equal(matches.length + rest.length, 67);
+  assert.ok(matches.every((item) => item.report.category === "Health and wellbeing"));
+  assert.ok(rest.every((item) => item.report.category !== "Health and wellbeing"));
+});
+
+test("text plus a method filter intersects instead of returning every method report", () => {
+  const manual = emptyFilters();
+  manual.methods = ["Observation"];
+  const { matches } = search(reports, "lighting", { vocab, index, manual });
+  assert.ok(matches.length > 0);
+  assert.ok(matches.length < 34);
+  assert.ok(
+    matches.every((item) =>
+      (item.report.methodsPrimary ?? []).includes("Observation"),
+    ),
+  );
 });

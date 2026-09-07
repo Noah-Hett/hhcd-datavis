@@ -1,7 +1,9 @@
 import { reports, yearRange } from "../../data/index.js";
+import { themeForCategory } from "../../theme/categories.js";
 import { YEAR_BUCKETS, folderIdForFacet, yearBucketFor } from "./yearBuckets.js";
 
 export { YEAR_BUCKETS, folderIdForFacet, yearBucketFor };
+export { CATEGORY_PALETTE, coverColorFor } from "../../theme/categories.js";
 
 export const GROUPINGS = [
   {
@@ -44,45 +46,9 @@ export const BROWSE_GROUPING_IDS = new Set(
   BROWSE_GROUPINGS.map((item) => item.id),
 );
 
-/** Dark cover colours kept for any text UI that still names a theme. */
-export const CATEGORY_PALETTE = [
-  { label: "Health and wellbeing", color: "#b66474", initial: "H" },
-  { label: "Transport", color: "#977b3f", initial: "T" },
-  { label: "Mobility and Transport", color: "#798831", initial: "M" },
-  { label: "Work and workplace", color: "#5889a9", initial: "W" },
-  { label: "City and community", color: "#9773a1", initial: "C" },
-];
-
-/** Jacket colours — mostly paper, with a few tints. Not mapped to theme. */
-const COVER_POOL = [
-  "#F4EFE6",
-  "#F4EFE6",
-  "#F4EFE6",
-  "#F4EFE6",
-  "#F4EFE6",
-  "#F4EFE6",
-  "#E8C4B8",
-  "#C5D4E6",
-  "#D2E3C8",
-  "#EDD99A",
-];
-
-export function coverColorFor(reportNo) {
-  const str = String(reportNo);
-  let hash = 0;
-  for (let i = 0; i < str.length; i += 1) {
-    hash = (hash * 31 + str.charCodeAt(i)) | 0;
-  }
-  return COVER_POOL[Math.abs(hash) % COVER_POOL.length];
-}
-
-const CATEGORY_BY_LABEL = new Map(
-  CATEGORY_PALETTE.map((item) => [item.label, item]),
-);
-
 export function categoryStyle(category) {
   return (
-    CATEGORY_BY_LABEL.get(category) ?? {
+    themeForCategory(category) ?? {
       label: category || "Other",
       color: "#3F3F46",
       initial: "?",

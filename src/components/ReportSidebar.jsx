@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useSelection } from "../state/SelectionContext.jsx";
 import { groupingIdFromFolderId } from "../state/selection.js";
 import { reports } from "../data/index.js";
+import ThemeSwatch from "../theme/ThemeSwatch.jsx";
+import { themeForCategory } from "../theme/categories.js";
 import {
   BROWSE_GROUPINGS,
   groupReports,
@@ -77,7 +79,17 @@ function ReportRow({ report, folderId, source = "archive" }) {
       }
     >
       <span className="report-btn-meta">
-        {[report.year, report.category].filter(Boolean).join(" · ")}
+        {report.year}
+        {report.category ? (
+          <>
+            <span aria-hidden="true"> · </span>
+            <span className="sr-only">Theme: </span>
+            {themeForCategory(report.category) ? (
+              <ThemeSwatch category={report.category} />
+            ) : null}{" "}
+            {report.category}
+          </>
+        ) : null}
       </span>
       <span className="report-btn-title">{report.title}</span>
       <span className="report-btn-author">{report.author}</span>
@@ -135,7 +147,12 @@ function ReportRecord({ report, headingRef, titleId }) {
               } in ${facet.kindLabel.toLowerCase()} ${facet.label}`}
             >
               <span className="report-sidebar-facet-kind">{facet.kindLabel}</span>
-              <span className="report-sidebar-facet-label">{facet.label}</span>
+              <span className="report-sidebar-facet-label">
+                {facet.kind === "theme" && themeForCategory(facet.label) ? (
+                  <ThemeSwatch category={facet.label} />
+                ) : null}
+                {facet.label}
+              </span>
               <span className="report-sidebar-facet-count">
                 {facet.count} {facet.count === 1 ? "report" : "reports"}
               </span>
