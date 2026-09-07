@@ -1,5 +1,37 @@
 .simple-search {
   position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  justify-self: start;
+}
+
+.simple-search-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 70;
+  width: min(22rem, calc(100vw - 24px));
+  padding: 8px;
+  border: 1px solid var(--archive-line);
+  border-radius: 16px;
+  background: var(--chrome);
+  box-shadow: 0 16px 40px rgb(28 20 12 / 16%);
+}
+
+.simple-search-pop {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  margin-top: 6px;
+  z-index: 1;
+  min-width: 0;
+  max-height: min(24rem, 70vh);
+  overflow: auto;
+  border: 1px solid var(--archive-line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: none;
 }
 
 .simple-search-pop {
