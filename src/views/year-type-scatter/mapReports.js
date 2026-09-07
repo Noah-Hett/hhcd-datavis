@@ -1,3 +1,7 @@
+import { COLOR_GROUPS } from "../../theme/categories.js";
+
+export { COLOR_GROUPS };
+
 export const Y_BANDS = [
   { id: 0, label: "Conceptual framework" },
   { id: 1, label: "Design guidelines / Policy guidelines" },
@@ -16,40 +20,6 @@ const PROJECT_TYPE_TO_BAND = {
   "products": 4,
   "media campaign": 4,
 };
-
-/** Dot colours from the Figma theme swatches (left → right). */
-export const COLOR_GROUPS = [
-  {
-    id: "health",
-    label: "Health and wellbeing",
-    color: "#b66474",
-    categories: ["Health and wellbeing"],
-  },
-  {
-    id: "transport",
-    label: "Transport",
-    color: "#977b3f",
-    categories: ["Transport"],
-  },
-  {
-    id: "mobility",
-    label: "Mobility and Transport",
-    color: "#798831",
-    categories: ["Mobility and Transport"],
-  },
-  {
-    id: "work",
-    label: "Work and workplace",
-    color: "#5889a9",
-    categories: ["Work and workplace"],
-  },
-  {
-    id: "city",
-    label: "City and community",
-    color: "#9773a1",
-    categories: ["City and community"],
-  },
-];
 
 export const DOT_R = 10;
 /** Center-to-center spacing so fills sit 2px apart and strokes do not overlap. */

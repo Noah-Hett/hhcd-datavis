@@ -81,6 +81,47 @@ select {
   border: 0;
 }
 
+/* Shared theme marker — same 10px circle as the map legend on small screens. */
+.theme-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--text);
+  flex-shrink: 0;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.theme-swatch.is-empty {
+  visibility: hidden;
+  background: transparent;
+}
+
+/* Named theme chip — colour plus the label, so Simple view is not colour-only. */
+.theme-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 2px solid var(--theme-color);
+  background: color-mix(in srgb, var(--theme-color) 22%, var(--surface));
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+
+.theme-badge.is-compact {
+  min-height: 22px;
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
 /* --- App shell -------------------------------------------------------- */
 
 .app {
@@ -123,6 +164,8 @@ select {
 
 .app-header {
   box-sizing: border-box;
+  position: relative;
+  z-index: 40;
   flex: 0 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -131,39 +174,6 @@ select {
   min-height: var(--app-header-h);
   padding: 8px 16px;
   background: transparent;
-}
-
-.app-header-start {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.app-brand {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  text-decoration: none;
-  color: var(--chrome-ink);
-  flex-shrink: 0;
-  border-radius: 999px;
-}
-
-.app-brand:hover,
-.app-brand:focus-visible {
-  background: var(--hover);
-}
-
-.app-brand[aria-current="page"] {
-  background: var(--chrome-ink);
-  color: var(--chrome);
-}
-
-.app-brand[aria-current="page"]:hover {
-  background: var(--chrome-ink);
 }
 
 .app-chrome {
@@ -220,13 +230,6 @@ select {
   background: var(--chrome-ink);
 }
 
-.simple-search {
-  position: relative;
-  flex: 1 1 16rem;
-  min-width: 10rem;
-  max-width: 22rem;
-}
-
 .simple-search-label {
   display: block;
 }
@@ -243,6 +246,17 @@ select {
 
 .simple-search-input::placeholder {
   color: var(--muted);
+}
+
+.app[data-view="search"] .simple-search {
+  display: none;
+}
+
+/* Keep the centred mode toggle when Simple view has no header search. */
+@media (min-width: 800px) {
+  .app[data-view="search"] .app-header::before {
+    content: "";
+  }
 }
 
 .chrome-btn {
@@ -317,14 +331,6 @@ select {
 .explore-waypoints a[aria-current="true"] {
   background: var(--chrome-ink);
   color: var(--chrome);
-}
-
-@media (max-width: 640px) {
-  .mode-toggle-seg {
-    padding: 0 10px;
-    font-size: 12px;
-    gap: 4px;
-  }
 }
 
 .app-body {
@@ -513,6 +519,17 @@ select {
   color: var(--muted);
 }
 
+.report-sidebar-meta .theme-swatch {
+  margin: 0 0.35em 0 0.15em;
+}
+
+.report-sidebar .folder-btn-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .report-sidebar-title {
   margin: 0 0 8px;
   font-size: 1.25rem;
@@ -565,7 +582,7 @@ select {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  align-items: baseline;
+  align-items: center;
   min-height: 48px;
   padding: 10px 12px;
   border-left: 3px solid transparent;
@@ -618,6 +635,10 @@ select {
 .report-sidebar .report-btn-meta {
   font-size: 12px;
   color: var(--muted);
+}
+
+.report-sidebar .report-btn-meta .theme-swatch {
+  margin: 0 0.35em 0 0.1em;
 }
 
 .report-sidebar .report-btn-title {
@@ -673,33 +694,52 @@ select {
 
 @media (max-width: 799px) {
   .app-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-  }
-
-  .app-header-start {
-    flex: 1 1 auto;
-    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "toggle toggle"
+      "search help";
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 12px 12px;
   }
 
   .mode-toggle {
-    flex: 1 1 100%;
-    order: 3;
-    justify-content: center;
-    justify-self: unset;
+    grid-area: toggle;
+    width: 100%;
+    max-width: none;
+    justify-content: stretch;
+    justify-self: stretch;
+    order: unset;
   }
 
-  .app-chrome {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    justify-self: unset;
-    margin-left: auto;
+  .mode-toggle-seg {
+    flex: 1 1 0;
+    padding: 0 4px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .mode-toggle-seg .chrome-btn-icon {
+    width: 14px;
+    height: 14px;
   }
 
   .simple-search {
-    flex: 1 1 auto;
-    max-width: none;
+    grid-area: search;
+    justify-self: start;
+  }
+
+  .app-chrome {
+    grid-area: help;
+    justify-content: flex-end;
+    justify-self: end;
+    margin-left: 0;
+    flex-wrap: nowrap;
+  }
+
+  .chrome-btn-sidebar {
+    display: none;
   }
 
   .report-sidebar {

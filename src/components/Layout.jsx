@@ -32,6 +32,20 @@ function ChromeIcon({ children }) {
 
 const MODE_SEGMENTS = [
   {
+    id: "home",
+    label: "Home",
+    to: (query) => ({ pathname: "/", search: query, hash: "intro" }),
+    icon: (
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        d="M2.5 7.5 8 2.75 13.5 7.5v6.25H9.25v-3.5H6.75v3.5H2.5z"
+      />
+    ),
+  },
+  {
     id: "folders",
     label: "Folders",
     to: (query) => ({ pathname: "/", search: query, hash: "archive" }),
@@ -101,27 +115,9 @@ export default function Layout() {
         </a>
       ) : null}
       <header className="app-header">
-        <div className="app-header-start">
-          <Link
-            to={{ pathname: "/", search: query, hash: "intro" }}
-            className="app-brand"
-            aria-current={mode === "home" ? "page" : undefined}
-          >
-            <ChromeIcon>
-              <path
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-                d="M2.5 7.5 8 2.75 13.5 7.5v6.25H9.25v-3.5H6.75v3.5H2.5z"
-              />
-            </ChromeIcon>
-            <span className="sr-only">Home</span>
-          </Link>
-          <SimpleSearch />
-        </div>
+        {mode === "simple" ? null : <SimpleSearch />}
 
-        <div className="mode-toggle" role="group" aria-label="View mode">
+        <div className="mode-toggle" role="group" aria-label="View">
           {MODE_SEGMENTS.map((segment) => {
             const current = mode === segment.id;
             return (
@@ -171,7 +167,7 @@ export default function Layout() {
 
           <button
             type="button"
-            className="chrome-btn"
+            className="chrome-btn chrome-btn-sidebar"
             aria-expanded={sidebarOpen}
             aria-controls="report-sidebar"
             onClick={() => setSidebarOpen(!sidebarOpen)}
