@@ -18,6 +18,7 @@ export default function SimpleSearch() {
   const [query, setQuery] = useState("");
   const [listOpen, setListOpen] = useState(false);
   const [active, setActive] = useState(0);
+  const [compact, setCompact] = useState(false);
   const inputRef = useRef(null);
   const listId = useId();
   const labelId = useId();
@@ -42,6 +43,14 @@ export default function SimpleSearch() {
   useEffect(() => {
     setListOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 799px)");
+    const sync = () => setCompact(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     function onKey(event) {
@@ -141,7 +150,7 @@ export default function SimpleSearch() {
           type="search"
           className="simple-search-input"
           role="combobox"
-          placeholder="Search reports"
+          placeholder={compact ? "Search" : "Search reports"}
           autoComplete="off"
           spellCheck="false"
           enterKeyHint="search"

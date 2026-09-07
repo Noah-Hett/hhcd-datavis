@@ -33,7 +33,7 @@ test("header Search is one field that shrinks on mobile and Sidebar is hidden th
   assert.match(searchCss, /\.simple-search \{[\s\S]*flex: 1 1 16rem;/);
   assert.match(
     searchCss,
-    /@media \(max-width: 799px\)[\s\S]*\.simple-search \{[\s\S]*width: 7\.25rem;/,
+    /@media \(max-width: 799px\)[\s\S]*\.simple-search \{[\s\S]*width: 8rem;/,
   );
 });
 
