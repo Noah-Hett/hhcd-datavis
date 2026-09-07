@@ -661,6 +661,14 @@ function yearInFilters(year, filters) {
 
 export function partitionSearchRows({ ranked, filters, remainderTerms, idle }) {
   if (idle) return { matches: [], rest: ranked };
+  const hasFacets =
+    filters.methods.length > 0 ||
+    filters.categories.length > 0 ||
+    filters.projectTypes.length > 0 ||
+    filters.years.length > 0 ||
+    filters.yearRanges.length > 0 ||
+    filters.reportNos.length > 0 ||
+    filters.targetedUsers.length > 0;
   const matches = [];
   const rest = [];
   for (const item of ranked) {
@@ -668,7 +676,7 @@ export function partitionSearchRows({ ranked, filters, remainderTerms, idle }) {
     const inText =
       remainderTerms.length === 0 ||
       (item.hits?.length ?? 0) > 0 ||
-      item.score > 0.12;
+      (!hasFacets && item.score > 0.12);
     if (inFilters && inText) matches.push(item);
     else rest.push(item);
   }

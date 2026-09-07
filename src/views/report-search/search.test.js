@@ -156,3 +156,16 @@ test("manual category filter returns that theme without a query", () => {
   assert.ok(matches.every((item) => item.report.category === "Health and wellbeing"));
   assert.ok(rest.every((item) => item.report.category !== "Health and wellbeing"));
 });
+
+test("text plus a method filter intersects instead of returning every method report", () => {
+  const manual = emptyFilters();
+  manual.methods = ["Observation"];
+  const { matches } = search(reports, "lighting", { vocab, index, manual });
+  assert.ok(matches.length > 0);
+  assert.ok(matches.length < 34);
+  assert.ok(
+    matches.every((item) =>
+      (item.report.methodsPrimary ?? []).includes("Observation"),
+    ),
+  );
+});
