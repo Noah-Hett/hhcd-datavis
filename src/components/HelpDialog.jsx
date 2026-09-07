@@ -89,12 +89,13 @@ export default function HelpDialog({ open, onClose }) {
           </p>
           <h3>Search versus Simple view</h3>
           <p>
-            The header field is a typeahead that uses the same ranking as
-            Simple view. Choosing a match opens the shared sidebar. A footer
-            link opens Simple view with that query. Simple view lists every
-            report — title, author, year, theme, and type — with chips for
-            filters the query applied. You can read the catalogue without
-            touching the 3D scene or the graph.
+            On Explore, the header field is a typeahead that uses the same
+            ranking as Simple view. Choosing a match opens the shared sidebar.
+            A footer link opens Simple view with that query. Simple view hides
+            that header field and uses its own search box, plus filter pills
+            for theme, type, method, and year. Search results are split into
+            reports that were returned and the rest of the catalogue. You can
+            read the catalogue without touching the 3D scene or the graph.
           </p>
           <h3>Keyboard</h3>
           <ul className="help-keys">

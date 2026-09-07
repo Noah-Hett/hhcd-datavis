@@ -2,36 +2,56 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
-import { appliedChips, buildIndex, buildVocab, search } from "./search.js";
+import {
+  appliedChips,
+  buildIndex,
+  buildVocab,
+  countFacets,
+  emptyFilters,
+  search,
+} from "./search.js";
+import {
+  clearFacetState,
+  filtersAreEmpty,
+  toggleFacet,
+} from "./filters.js";
 import {
   isEditableTarget,
   isOverlayTarget,
   searchListKeyAction,
   stepActive,
 } from "./listKeyboard.js";
+import SearchFilters from "./SearchFilters.jsx";
 import "./styles.css";
 
 const vocab = buildVocab(reports);
 const index = buildIndex(reports);
+const facets = countFacets(reports);
 
 export default function ReportSearch() {
   const { selectedReportNo, openReport } = useSelection();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
+  const [manual, setManual] = useState(emptyFilters);
+  const [suppressed, setSuppressed] = useState([]);
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
   const itemRefs = useRef(new Map());
 
   const result = useMemo(
-    () => search(reports, query, { vocab, index }),
-    [query],
+    () => search(reports, query, { vocab, index, manual, suppressed }),
+    [query, manual, suppressed],
   );
   const chips = result.chips.length ? result.chips : appliedChips(result.filters);
-  const rows = result.all;
+  const matches = result.idle ? [] : result.matches;
+  const rest = result.idle ? result.all : result.rest;
+  const rows = result.idle ? result.all : [...matches, ...rest];
   const urlQuery = searchParams.get("q") ?? "";
-  const listLabel = result.idle
-    ? "All reports"
-    : `Search results, ${rows.length} reports`;
+  const selectedKeys = useMemo(
+    () => new Set(chips.map((chip) => chip.key)),
+    [chips],
+  );
+  const canClear = chips.length > 0 || !filtersAreEmpty(manual);
 
   useEffect(() => {
     const fromUrl = searchParams.get("q") ?? "";
@@ -42,7 +62,7 @@ export default function ReportSearch() {
 
   useEffect(() => {
     setActive(0);
-  }, [query]);
+  }, [query, manual, suppressed]);
 
   function writeQuery(next) {
     setSearchParams(
@@ -73,10 +93,33 @@ export default function ReportSearch() {
     });
   }
 
+  function applyFacetToggle(dimension, value) {
+    const next = toggleFacet({
+      dimension,
+      value,
+      manual,
+      suppressed,
+      parsedFilters: result.parsed.filters,
+    });
+    setManual(next.manual);
+    setSuppressed(next.suppressed);
+  }
+
+  function dismissChip(chip) {
+    applyFacetToggle(chip.dimension, chip.value);
+  }
+
+  function clearFilters() {
+    const next = clearFacetState(result.parsed.filters);
+    setManual(next.manual);
+    setSuppressed(next.suppressed);
+  }
+
   useEffect(() => {
     function onKey(event) {
       const typing = isEditableTarget(event.target);
       const inInput = event.target === inputRef.current;
+      const inFilters = Boolean(event.target?.closest?.(".search-filters"));
       const overlayOpen =
         isOverlayTarget(event.target) ||
         Boolean(document.querySelector("#help-dialog")?.open) ||
@@ -87,6 +130,7 @@ export default function ReportSearch() {
         typing,
         inInput,
         overlayOpen,
+        inFilters,
         length: rows.length,
       });
       if (!action) return;
@@ -135,12 +179,66 @@ export default function ReportSearch() {
     return () => window.removeEventListener("keydown", onKey);
     // focusRow / openRow / writeQuery close over the current rows and query.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, query, rows, openReport]);
+  }, [active, query, rows, openReport, manual, suppressed]);
 
   function onChange(event) {
     const next = event.target.value;
     setQuery(next);
     writeQuery(next);
+  }
+
+  function renderRow(item, i, restRow = false) {
+    const report = item.report;
+    const current = String(report.reportNo) === String(selectedReportNo);
+    const author = report.author || "Unknown author";
+    const year = report.year ?? "—";
+    const theme = report.category || "—";
+    const type = report.projectType || "—";
+    return (
+      <li key={item.key}>
+        <button
+          type="button"
+          ref={(node) => {
+            if (node) itemRefs.current.set(item.key, node);
+            else itemRefs.current.delete(item.key);
+          }}
+          className={[
+            "search-row",
+            i === active ? "is-active" : "",
+            current ? "is-current" : "",
+            restRow ? "is-rest" : "",
+            !result.idle ? `is-${item.glow}` : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          tabIndex={i === active ? 0 : -1}
+          aria-current={current ? "true" : undefined}
+          aria-label={`${report.title}, ${author}, ${year}, theme ${theme}, type ${type}`}
+          onFocus={() => setActive(i)}
+          onClick={(event) => openRow(item, event.currentTarget)}
+        >
+          <span className="search-row-title">{report.title}</span>
+          <span className="search-row-meta">
+            <span>
+              <span className="sr-only">Author </span>
+              {author}
+            </span>
+            <span>
+              <span className="sr-only">Year </span>
+              {year}
+            </span>
+            <span>
+              <span className="sr-only">Theme </span>
+              {theme}
+            </span>
+            <span>
+              <span className="sr-only">Type </span>
+              {type}
+            </span>
+          </span>
+        </button>
+      </li>
+    );
   }
 
   return (
@@ -150,9 +248,8 @@ export default function ReportSearch() {
           <h1>Simple view</h1>
           <p className="search-page-lede">
             A keyboard-first list of every report — no 3D archive, no graph.
-            Type to rank by meaning; chips show the filters the query applied.
-            Arrow keys move, Enter opens the shared sidebar, Escape returns
-            here.
+            Type to rank by meaning, or pick filters below. Arrow keys move,
+            Enter opens the shared sidebar, Escape returns here.
           </p>
           <label className="search-page-box">
             <span className="sr-only">Search all reports</span>
@@ -170,15 +267,15 @@ export default function ReportSearch() {
               aria-keyshortcuts="/"
             />
           </label>
-          {chips.length > 0 ? (
-            <ul className="search-chips" aria-label="Applied filters">
-              {chips.map((chip) => (
-                <li key={chip.key}>
-                  <span className="search-chip">{chip.label}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          <SearchFilters
+            facets={facets}
+            chips={chips}
+            selectedKeys={selectedKeys}
+            canClear={canClear}
+            onToggle={applyFacetToggle}
+            onDismissChip={dismissChip}
+            onClear={clearFilters}
+          />
           {result.corrections.length > 0 ? (
             <p className="search-didyou">
               Treating{" "}
@@ -194,71 +291,50 @@ export default function ReportSearch() {
 
         {result.idle ? null : (
           <p className="search-count" aria-live="polite">
-            {result.pops.length} close matches · {rows.length} in the list
+            {matches.length} returned · {rest.length} in the rest of the catalogue
           </p>
         )}
 
-        <ul
-          id="search-report-list"
-          className="search-list"
-          aria-label={listLabel}
-        >
-          {rows.map((item, i) => {
-            const report = item.report;
-            const current =
-              String(report.reportNo) === String(selectedReportNo);
-            const author = report.author || "Unknown author";
-            const year = report.year ?? "—";
-            const theme = report.category || "—";
-            const type = report.projectType || "—";
-            return (
-              <li key={item.key}>
-                <button
-                  type="button"
-                  ref={(node) => {
-                    if (node) itemRefs.current.set(item.key, node);
-                    else itemRefs.current.delete(item.key);
-                  }}
-                  className={[
-                    "search-row",
-                    i === active ? "is-active" : "",
-                    current ? "is-current" : "",
-                    !result.idle ? `is-${item.glow}` : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  tabIndex={i === active ? 0 : -1}
-                  aria-current={current ? "true" : undefined}
-                  aria-label={`${report.title}, ${author}, ${year}, theme ${theme}, type ${type}`}
-                  onFocus={() => setActive(i)}
-                  onClick={(event) =>
-                    openRow(item, event.currentTarget)
-                  }
+        {result.idle ? (
+          <ul
+            id="search-report-list"
+            className="search-list"
+            aria-label="All reports"
+          >
+            {rows.map((item, i) => renderRow(item, i))}
+          </ul>
+        ) : (
+          <div id="search-report-list" className="search-groups">
+            <section className="search-group" aria-labelledby="search-returned-heading">
+              <h2 id="search-returned-heading" className="search-group-title">
+                Returned
+                <span className="search-group-count">{matches.length}</span>
+              </h2>
+              {matches.length === 0 ? (
+                <p className="search-group-empty">No reports match this search.</p>
+              ) : (
+                <ul
+                  className="search-list"
+                  aria-label={`Returned reports, ${matches.length}`}
                 >
-                  <span className="search-row-title">{report.title}</span>
-                  <span className="search-row-meta">
-                    <span>
-                      <span className="sr-only">Author </span>
-                      {author}
-                    </span>
-                    <span>
-                      <span className="sr-only">Year </span>
-                      {year}
-                    </span>
-                    <span>
-                      <span className="sr-only">Theme </span>
-                      {theme}
-                    </span>
-                    <span>
-                      <span className="sr-only">Type </span>
-                      {type}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  {matches.map((item, i) => renderRow(item, i))}
+                </ul>
+              )}
+            </section>
+            <section className="search-group" aria-labelledby="search-rest-heading">
+              <h2 id="search-rest-heading" className="search-group-title">
+                Rest of the catalogue
+                <span className="search-group-count">{rest.length}</span>
+              </h2>
+              <ul
+                className="search-list"
+                aria-label={`Rest of the catalogue, ${rest.length} reports`}
+              >
+                {rest.map((item, i) => renderRow(item, matches.length + i, true))}
+              </ul>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   );

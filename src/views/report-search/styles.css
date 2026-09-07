@@ -1,6 +1,6 @@
 .view-search {
 .search-page {
-  max-width: 52rem;
+  max-width: 58rem;
   margin: 0 auto;
   padding: 28px 16px 64px;
 }
@@ -45,6 +45,7 @@
 .search-chip {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
@@ -52,6 +53,153 @@
   border: 1px solid var(--archive-line);
   font-size: 12px;
   font-weight: 650;
+}
+
+.search-chip.is-applied {
+  cursor: pointer;
+  color: inherit;
+}
+
+.search-chip.is-applied:hover,
+.search-chip.is-applied:focus-visible {
+  background: var(--hover);
+}
+
+.search-filters {
+  margin-top: 18px;
+}
+
+.search-filters-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.search-filters-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.search-filters-clear {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.search-facets {
+  display: grid;
+  gap: 12px;
+}
+
+.search-facet {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.search-facet legend {
+  padding: 0;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.search-facet-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.search-facet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--archive-line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.search-facet-pill:hover,
+.search-facet-pill:focus-visible {
+  background: var(--hover);
+}
+
+.search-facet-pill:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.search-facet-pill.is-selected {
+  background: var(--accent-bar);
+  border-color: var(--accent-bar);
+  color: var(--surface);
+}
+
+.search-facet-pill.is-selected:hover,
+.search-facet-pill.is-selected:focus-visible {
+  background: var(--archive-ink);
+  border-color: var(--archive-ink);
+}
+
+.search-facet-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  opacity: 0.72;
+}
+
+.search-groups {
+  display: grid;
+  gap: 28px;
+}
+
+.search-group-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.search-group-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.search-group-empty {
+  margin: 0;
+  padding: 12px 10px;
+  border-top: 1px solid var(--archive-line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search-row.is-rest .search-row-title,
+.search-row.is-rest .search-row-meta {
+  color: var(--muted);
 }
 
 .search-didyou,

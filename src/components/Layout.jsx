@@ -118,7 +118,7 @@ export default function Layout() {
             </ChromeIcon>
             <span className="sr-only">Home</span>
           </Link>
-          <SimpleSearch />
+          {mode === "simple" ? null : <SimpleSearch />}
         </div>
 
         <div className="mode-toggle" role="group" aria-label="View mode">

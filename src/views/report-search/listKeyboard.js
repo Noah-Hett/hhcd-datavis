@@ -34,6 +34,7 @@ export function searchListKeyAction({
   typing,
   inInput,
   overlayOpen,
+  inFilters = false,
   length,
 }) {
   if (overlayOpen) return null;
@@ -41,6 +42,7 @@ export function searchListKeyAction({
   if (key === "Escape") {
     return inInput ? { type: "escape-input" } : { type: "focus-input" };
   }
+  if (inFilters) return null;
   if (!length) return null;
   if (inInput && typing && key === "ArrowDown") {
     return { type: "focus-row", index: 0 };
