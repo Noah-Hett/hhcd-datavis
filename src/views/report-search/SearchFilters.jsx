@@ -1,50 +1,49 @@
 import { themeForCategory } from "../../theme/categories.js";
-import { FACET_GROUPS } from "./filters.js";
+import { FACET_GROUPS, selectValueForDimension } from "./filters.js";
 
-function FacetPills({ legend, dimension, options, selectedKeys, onToggle }) {
+function FacetSelect({
+  legend,
+  dimension,
+  options,
+  chips,
+  onSet,
+}) {
   if (!options.length) return null;
+  const value = selectValueForDimension(chips, dimension);
+  const theme =
+    dimension === "categories" && value ? themeForCategory(value) : null;
+  const selectId = `search-facet-${dimension}`;
   return (
-    <fieldset className="search-facet">
-      <legend>{legend}</legend>
-      <div className="search-facet-pills">
+    <div className="search-facet">
+      <label htmlFor={selectId} className="search-facet-label">
+        {legend}
+      </label>
+      <select
+        id={selectId}
+        className={theme ? "search-facet-select is-theme" : "search-facet-select"}
+        style={theme ? { "--theme-color": theme.color } : undefined}
+        value={value}
+        onChange={(event) => onSet(dimension, event.target.value)}
+      >
+        <option value="">All</option>
         {options.map((option) => {
-          const value = option.label;
-          const key = `${dimension}:${value}`;
-          const pressed = selectedKeys.has(key);
-          const theme =
-            dimension === "categories" ? themeForCategory(value) : null;
+          const optionValue = String(option.label);
           return (
-            <button
-              key={key}
-              type="button"
-              className={[
-                "search-facet-pill",
-                pressed ? "is-selected" : "",
-                theme ? "is-theme" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              style={theme ? { "--theme-color": theme.color } : undefined}
-              aria-pressed={pressed}
-              onClick={() => onToggle(dimension, value)}
-            >
-              {value}
-              <span className="search-facet-count">{option.count}</span>
-            </button>
+            <option key={optionValue} value={optionValue}>
+              {option.label} ({option.count})
+            </option>
           );
         })}
-      </div>
-    </fieldset>
+      </select>
+    </div>
   );
 }
 
 export default function SearchFilters({
   facets,
   chips,
-  selectedKeys,
   canClear,
-  onToggle,
-  onDismissChip,
+  onSet,
   onClear,
 }) {
   return (
@@ -59,48 +58,22 @@ export default function SearchFilters({
           </button>
         ) : null}
       </div>
-      <div className="search-facets" aria-labelledby="search-filters-heading">
+      <div
+        className="search-facets"
+        role="group"
+        aria-labelledby="search-filters-heading"
+      >
         {FACET_GROUPS.map((group) => (
-          <FacetPills
+          <FacetSelect
             key={group.dimension}
             legend={group.legend}
             dimension={group.dimension}
             options={facets[group.dimension] ?? []}
-            selectedKeys={selectedKeys}
-            onToggle={onToggle}
+            chips={chips}
+            onSet={onSet}
           />
         ))}
       </div>
-      {chips.length > 0 ? (
-        <ul className="search-chips" aria-label="Applied filters">
-          {chips.map((chip) => {
-            const theme =
-              chip.dimension === "categories"
-                ? themeForCategory(chip.value)
-                : null;
-            return (
-              <li key={chip.key}>
-                <button
-                  type="button"
-                  className={
-                    theme
-                      ? "search-chip is-applied is-theme"
-                      : "search-chip is-applied"
-                  }
-                  style={
-                    theme ? { "--theme-color": theme.color } : undefined
-                  }
-                  onClick={() => onDismissChip(chip)}
-                >
-                  {chip.label}
-                  <span aria-hidden="true">×</span>
-                  <span className="sr-only">Remove filter</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
     </div>
   );
 }

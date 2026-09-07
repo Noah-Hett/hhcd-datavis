@@ -15,7 +15,7 @@ import {
 import {
   clearFacetState,
   filtersAreEmpty,
-  toggleFacet,
+  setDimension,
 } from "./filters.js";
 import {
   isEditableTarget,
@@ -49,10 +49,6 @@ export default function ReportSearch() {
   const rest = result.idle ? result.all : result.rest;
   const rows = result.idle ? result.all : [...matches, ...rest];
   const urlQuery = searchParams.get("q") ?? "";
-  const selectedKeys = useMemo(
-    () => new Set(chips.map((chip) => chip.key)),
-    [chips],
-  );
   const canClear = chips.length > 0 || !filtersAreEmpty(manual);
 
   useEffect(() => {
@@ -95,8 +91,8 @@ export default function ReportSearch() {
     });
   }
 
-  function applyFacetToggle(dimension, value) {
-    const next = toggleFacet({
+  function applyFacetSet(dimension, value) {
+    const next = setDimension({
       dimension,
       value,
       manual,
@@ -105,10 +101,6 @@ export default function ReportSearch() {
     });
     setManual(next.manual);
     setSuppressed(next.suppressed);
-  }
-
-  function dismissChip(chip) {
-    applyFacetToggle(chip.dimension, chip.value);
   }
 
   function clearFilters() {
@@ -258,9 +250,9 @@ export default function ReportSearch() {
           <h1>Simple view</h1>
           <p className="search-page-lede">
             A keyboard-first list of every report — no 3D archive, no graph.
-            Type to rank by meaning, or pick filters below. Arrow keys move,
-            Enter opens the shared sidebar, Escape returns here. Theme colours
-            match the map dots and the archive jackets.
+            Type to rank by meaning, or use the four filters. Arrow keys move
+            the list, Enter opens the shared sidebar, Escape returns here.
+            Theme colours match the map dots and the archive jackets.
           </p>
           <label className="search-page-box">
             <span className="sr-only">Search all reports</span>
@@ -281,10 +273,8 @@ export default function ReportSearch() {
           <SearchFilters
             facets={facets}
             chips={chips}
-            selectedKeys={selectedKeys}
             canClear={canClear}
-            onToggle={applyFacetToggle}
-            onDismissChip={dismissChip}
+            onSet={applyFacetSet}
             onClear={clearFilters}
           />
           {result.corrections.length > 0 ? (

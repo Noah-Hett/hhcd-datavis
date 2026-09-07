@@ -50,15 +50,17 @@ test("list aria-label follows the query", () => {
   assert.match(src, /Rest of the catalogue, \$\{rest\.length\} reports/);
 });
 
-test("Simple view exposes clickable filters and splits returned rows", () => {
+test("Simple view exposes four filter menus and splits returned rows", () => {
   assert.match(src, /<SearchFilters/);
   assert.match(src, /search-returned-heading/);
   assert.match(src, /Rest of the catalogue/);
-  assert.match(css, /\.search-facet-pill\.is-selected/);
+  assert.match(filters, /<select/);
+  assert.doesNotMatch(filters, /search-facet-pill/);
+  assert.match(css, /\.search-facet-select/);
   assert.match(css, /\.search-group-title/);
 });
 
-test("category filter pills carry the shared theme colour", () => {
+test("category filter menu carries the shared theme colour", () => {
   assert.match(filters, /dimension === "categories"/);
   assert.match(filters, /themeForCategory/);
   assert.match(filters, /is-theme/);
@@ -72,5 +74,5 @@ test("search rows name the theme with a labelled badge, not a colour-only swatch
   assert.doesNotMatch(src, /ThemeSwatch/);
   assert.doesNotMatch(src, /search-theme-key/);
   assert.match(css, /\.search-row-spine/);
-  assert.match(css, /\.search-facet-pill\.is-theme/);
+  assert.match(css, /\.search-facet-select\.is-theme/);
 });

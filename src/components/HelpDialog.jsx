@@ -94,7 +94,7 @@ export default function HelpDialog({ open, onClose }) {
             so the chrome stays compact. Choosing a match opens the shared
             sidebar. A footer link opens Simple view with that query. Simple
             view hides that header field and uses its own search box, plus
-            filter pills for theme, type, method, and year. Search results
+            four filter menus for theme, type, method, and year. Search results
             are split into reports that were returned and the rest of the
             catalogue. You can read the catalogue without touching the 3D
             scene or the graph.
