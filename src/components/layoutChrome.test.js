@@ -8,6 +8,10 @@ const root = dirname(fileURLToPath(import.meta.url));
 const layout = await readFile(resolve(root, "Layout.jsx"), "utf8");
 const css = await readFile(resolve(root, "../index.css"), "utf8");
 const help = await readFile(resolve(root, "HelpDialog.jsx"), "utf8");
+const searchCss = await readFile(
+  resolve(root, "../views/report-search/simple-search.css"),
+  "utf8",
+);
 
 test("Home lives in the Folders/Map/Simple toggle, not a separate brand", () => {
   assert.match(layout, /id: "home"/);
@@ -17,11 +21,16 @@ test("Home lives in the Folders/Map/Simple toggle, not a separate brand", () => 
   assert.match(layout, /aria-label="View"/);
 });
 
-test("header Search is a compact button and Sidebar is marked for mobile hide", () => {
+test("header Search is a compact button on mobile and Sidebar is hidden there", () => {
   assert.match(layout, /<SimpleSearch \/>/);
   assert.match(layout, /className="chrome-btn chrome-btn-sidebar"/);
   assert.match(css, /\.chrome-btn-sidebar\s*\{\s*display:\s*none;/);
   assert.match(css, /grid-template-areas:\s*"toggle toggle"\s*"search help"/);
+  assert.match(searchCss, /\.simple-search-trigger \{\s*display: none;/);
+  assert.match(
+    searchCss,
+    /@media \(max-width: 799px\)[\s\S]*\.simple-search-trigger \{\s*display: inline-flex;/,
+  );
 });
 
 test("help copy describes Home inside the mode toggle", () => {

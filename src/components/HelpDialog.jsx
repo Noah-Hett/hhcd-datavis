@@ -89,8 +89,9 @@ export default function HelpDialog({ open, onClose }) {
           </p>
           <h3>Search versus Simple view</h3>
           <p>
-            The header Search button opens a typeahead that uses the same
-            ranking as Simple view. Choosing a match opens the shared sidebar.
+            The header search field is a typeahead that uses the same ranking
+            as Simple view. On a phone it sits behind a Search button so the
+            chrome stays compact. Choosing a match opens the shared sidebar.
             A footer link opens Simple view with that query. Simple view lists
             every report — title, author, year, theme, and type — with chips
             for filters the query applied. You can read the catalogue without

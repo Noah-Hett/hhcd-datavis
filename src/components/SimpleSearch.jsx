@@ -28,8 +28,8 @@ export default function SimpleSearch() {
     [query],
   );
   const items = result.idle ? [] : [...result.pops, ...result.nearby];
-  const open = expanded && listOpen && items.length > 0;
-  const showPop = expanded && listOpen && !result.idle;
+  const open = listOpen && items.length > 0;
+  const showPop = listOpen && !result.idle;
   const trimmed = query.trim();
   const advancedHref = trimmed
     ? `/search?q=${encodeURIComponent(trimmed)}`
@@ -70,6 +70,7 @@ export default function SimpleSearch() {
       event.preventDefault();
       setExpanded(true);
       setListOpen(true);
+      inputRef.current?.focus();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -102,6 +103,7 @@ export default function SimpleSearch() {
         return;
       }
       setExpanded(false);
+      inputRef.current?.blur();
       return;
     }
     if (event.key === "ArrowDown") {
@@ -135,13 +137,111 @@ export default function SimpleSearch() {
     setListOpen(true);
   }
 
+  const field = (
+    <>
+      <label className="simple-search-label" id={labelId} htmlFor={`${listId}-input`}>
+        <span className="sr-only">Search reports</span>
+        <input
+          id={`${listId}-input`}
+          ref={inputRef}
+          type="search"
+          className="simple-search-input"
+          role="combobox"
+          placeholder="Search reports"
+          autoComplete="off"
+          spellCheck="false"
+          enterKeyHint="search"
+          value={query}
+          aria-labelledby={labelId}
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-haspopup="listbox"
+          aria-autocomplete="list"
+          aria-keyshortcuts={onSimpleView ? undefined : "/"}
+          aria-describedby={statusId}
+          aria-activedescendant={
+            open && items[active] ? `${listId}-${items[active].key}` : undefined
+          }
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setListOpen(true);
+          }}
+          onFocus={() => setListOpen(true)}
+          onBlur={() => {
+            window.setTimeout(() => setListOpen(false), 120);
+          }}
+          onKeyDown={onInputKeyDown}
+        />
+      </label>
+      <p id={statusId} className="sr-only" aria-live="polite">
+        {showPop
+          ? items.length
+            ? `${items.length} suggestions. Use arrows and Enter to open a report.`
+            : "No close matches yet."
+          : ""}
+      </p>
+      {showPop ? (
+        <div className="simple-search-pop">
+          <ul
+            id={listId}
+            className="simple-search-list"
+            role="listbox"
+            aria-label="Search suggestions"
+          >
+            {items.map((item, i) => (
+              <li key={item.key} role="presentation">
+                <button
+                  type="button"
+                  id={`${listId}-${item.key}`}
+                  role="option"
+                  aria-selected={i === active}
+                  className={
+                    i === active
+                      ? "simple-search-option is-active"
+                      : "simple-search-option"
+                  }
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActive(i)}
+                  onClick={() => choose(item)}
+                >
+                  <span className="simple-search-year">
+                    {item.report.year ?? "—"}
+                  </span>
+                  <span className="simple-search-copy">
+                    <strong>{item.report.title}</strong>
+                    <em>{item.report.author}</em>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {items.length === 0 ? (
+            <p className="simple-search-empty">No close matches yet.</p>
+          ) : null}
+          <p className="simple-search-footer">
+            {onSimpleView ? (
+              <span>Showing ranking from the catalogue search.</span>
+            ) : (
+              <Link to={advancedHref} onClick={() => setExpanded(false)}>
+                See all reports{trimmed ? ` for “${trimmed}”` : ""} in Simple view
+              </Link>
+            )}
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
-    <div className="simple-search" ref={rootRef}>
+    <div
+      className={expanded ? "simple-search is-open" : "simple-search"}
+      ref={rootRef}
+    >
       <button
         type="button"
-        className="chrome-btn"
+        className="chrome-btn simple-search-trigger"
         aria-expanded={onSimpleView ? undefined : expanded}
-        aria-controls={onSimpleView ? undefined : `${listId}-panel`}
+        aria-controls={onSimpleView ? undefined : `${listId}-input`}
         onClick={onTriggerClick}
       >
         <svg
@@ -170,93 +270,7 @@ export default function SimpleSearch() {
         </svg>
         Search
       </button>
-      {expanded && !onSimpleView ? (
-        <div className="simple-search-panel" id={`${listId}-panel`}>
-          <label className="simple-search-label" id={labelId} htmlFor={`${listId}-input`}>
-            <span className="sr-only">Search reports</span>
-            <input
-              id={`${listId}-input`}
-              ref={inputRef}
-              type="search"
-              className="simple-search-input"
-              role="combobox"
-              placeholder="Search reports"
-              autoComplete="off"
-              spellCheck="false"
-              enterKeyHint="search"
-              value={query}
-              aria-labelledby={labelId}
-              aria-expanded={open}
-              aria-controls={listId}
-              aria-haspopup="listbox"
-              aria-autocomplete="list"
-              aria-keyshortcuts="/"
-              aria-describedby={statusId}
-              aria-activedescendant={
-                open && items[active] ? `${listId}-${items[active].key}` : undefined
-              }
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setListOpen(true);
-              }}
-              onFocus={() => setListOpen(true)}
-              onKeyDown={onInputKeyDown}
-            />
-          </label>
-          <p id={statusId} className="sr-only" aria-live="polite">
-            {showPop
-              ? items.length
-                ? `${items.length} suggestions. Use arrows and Enter to open a report.`
-                : "No close matches yet."
-              : ""}
-          </p>
-          {showPop ? (
-            <div className="simple-search-pop">
-              <ul
-                id={listId}
-                className="simple-search-list"
-                role="listbox"
-                aria-label="Search suggestions"
-              >
-                {items.map((item, i) => (
-                  <li key={item.key} role="presentation">
-                    <button
-                      type="button"
-                      id={`${listId}-${item.key}`}
-                      role="option"
-                      aria-selected={i === active}
-                      className={
-                        i === active
-                          ? "simple-search-option is-active"
-                          : "simple-search-option"
-                      }
-                      onMouseDown={(event) => event.preventDefault()}
-                      onMouseEnter={() => setActive(i)}
-                      onClick={() => choose(item)}
-                    >
-                      <span className="simple-search-year">
-                        {item.report.year ?? "—"}
-                      </span>
-                      <span className="simple-search-copy">
-                        <strong>{item.report.title}</strong>
-                        <em>{item.report.author}</em>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {items.length === 0 ? (
-                <p className="simple-search-empty">No close matches yet.</p>
-              ) : null}
-              <p className="simple-search-footer">
-                <Link to={advancedHref} onClick={() => setExpanded(false)}>
-                  See all reports{trimmed ? ` for “${trimmed}”` : ""} in Simple view
-                </Link>
-              </p>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      <div className="simple-search-field">{field}</div>
     </div>
   );
 }
