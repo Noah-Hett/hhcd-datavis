@@ -29,7 +29,10 @@ test("header Search is one field that shrinks on mobile and Sidebar is hidden th
   assert.match(css, /grid-template-areas:\s*"toggle toggle"\s*"search help"/);
   assert.equal(search.includes("simple-search-trigger"), false);
   assert.equal(searchCss.includes("simple-search-trigger"), false);
+  assert.match(search, /className="simple-search-icon"/);
   assert.match(search, /className="simple-search-input"/);
+  assert.match(searchCss, /\.simple-search-icon \{[\s\S]*position: absolute;/);
+  assert.doesNotMatch(searchCss, /\.simple-search-icon \{\s*display: none;/);
   assert.match(searchCss, /\.simple-search \{[\s\S]*flex: 1 1 16rem;/);
   assert.match(
     searchCss,

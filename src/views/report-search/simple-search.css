@@ -12,7 +12,16 @@
 }
 
 .simple-search-icon {
-  display: none;
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--chrome-ink);
+}
+
+.simple-search .simple-search-input {
+  padding-left: 36px;
 }
 
 .simple-search-pop {
@@ -108,15 +117,8 @@
   }
 
   .simple-search .simple-search-icon {
-    display: block;
-    position: absolute;
-    left: 12px;
-    top: 50%;
     width: 14px;
     height: 14px;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: var(--chrome-ink);
   }
 
   .simple-search .simple-search-input {
