@@ -62,7 +62,7 @@
 
 .search-chip.is-theme,
 .search-facet-pill.is-theme {
-  border-color: var(--theme-color);
+  border: 2px solid var(--theme-color);
   background: color-mix(in srgb, var(--theme-color) 22%, var(--surface));
   color: var(--text);
 }
@@ -156,6 +156,10 @@
   font-size: 12px;
   font-weight: 650;
   cursor: pointer;
+}
+
+.search-facet-pill.is-theme:not(.is-selected) {
+  border-color: var(--theme-color);
 }
 
 .search-facet-pill:hover,
