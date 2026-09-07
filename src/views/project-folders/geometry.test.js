@@ -34,6 +34,7 @@ import {
   computeLayout,
   folderSpacing,
   reportHitAllowed,
+  paintCover,
   selectPeekSlot,
   shortestAngleDelta,
   shouldUseTwoRows,
@@ -361,14 +362,22 @@ test("carouselAnnouncement names the featured report", () => {
   assert.equal(carouselAnnouncement(0, 0, "Nope"), "No reports in this folder");
 });
 
-test("reportHitAllowed only picks reports from the open folder when filed", () => {
+test("reportHitAllowed does not pick unfiled reports, then only the open folder", () => {
   assert.equal(
     reportHitAllowed({
       filed: false,
       selectedFolderId: null,
       folderId: "a",
     }),
-    true,
+    false,
+  );
+  assert.equal(
+    reportHitAllowed({
+      filed: false,
+      selectedFolderId: "a",
+      folderId: "a",
+    }),
+    false,
   );
   assert.equal(
     reportHitAllowed({
@@ -394,4 +403,43 @@ test("reportHitAllowed only picks reports from the open folder when filed", () =
     }),
     false,
   );
+});
+
+function fakeCoverCtx() {
+  const calls = [];
+  return {
+    calls,
+    fillStyle: "",
+    strokeStyle: "",
+    lineWidth: 0,
+    font: "",
+    textAlign: "",
+    fillRect(...args) {
+      calls.push(["fillRect", args]);
+    },
+    strokeRect(...args) {
+      calls.push(["strokeRect", args]);
+    },
+    fillText(text, x, y) {
+      calls.push(["fillText", String(text), x, y]);
+    },
+    measureText(text) {
+      return { width: String(text).length * 10 };
+    },
+  };
+}
+
+function coverTexts(ctx) {
+  return ctx.calls.filter((call) => call[0] === "fillText").map((call) => call[1]);
+}
+
+test("paintCover always paints number, title, and year", () => {
+  const ctx = fakeCoverCtx();
+  paintCover(ctx, { reportNo: 11, title: "e-scape", year: 2001 });
+  assert.ok(ctx.calls.some((call) => call[0] === "fillRect"));
+  assert.ok(ctx.calls.some((call) => call[0] === "strokeRect"));
+  const texts = coverTexts(ctx);
+  assert.ok(texts.some((text) => text.includes("No. 11")));
+  assert.ok(texts.some((text) => text.includes("e-scape")));
+  assert.ok(texts.some((text) => text.includes("2001")));
 });

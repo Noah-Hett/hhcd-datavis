@@ -253,13 +253,8 @@ function wrapTitle(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
   });
 }
 
-export function createCoverTexture(report) {
+export function paintCover(ctx, report) {
   const jacket = coverColorFor(report);
-  const canvas = document.createElement("canvas");
-  canvas.width = COVER_CANVAS_W;
-  canvas.height = COVER_CANVAS_H;
-  const ctx = canvas.getContext("2d");
-
   ctx.fillStyle = jacket;
   ctx.fillRect(0, 0, COVER_CANVAS_W, COVER_CANVAS_H);
 
@@ -280,6 +275,14 @@ export function createCoverTexture(report) {
 
   ctx.font = "28px ui-sans-serif, system-ui, sans-serif";
   ctx.fillText(String(report.year ?? ""), 32, 712);
+}
+
+export function createCoverTexture(report) {
+  const canvas = document.createElement("canvas");
+  canvas.width = COVER_CANVAS_W;
+  canvas.height = COVER_CANVAS_H;
+  const ctx = canvas.getContext("2d");
+  paintCover(ctx, report);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -434,11 +437,11 @@ export function carouselAnnouncement(index, count, title) {
 }
 
 /**
- * Filed folders only pick reports from the open sleeve. Scatter / unfiled
- * reports stay clickable.
+ * Home is atmosphere: unfiled reports are not pickable. Filed folders only
+ * pick reports from the open sleeve.
  */
 export function reportHitAllowed({ filed, selectedFolderId, folderId }) {
-  if (!filed) return true;
+  if (!filed) return false;
   if (!selectedFolderId) return false;
   return folderId === selectedFolderId;
 }
