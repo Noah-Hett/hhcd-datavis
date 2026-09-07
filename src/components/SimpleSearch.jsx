@@ -16,10 +16,9 @@ export default function SimpleSearch() {
   const { pathname } = useLocation();
   const onSimpleView = pathname.startsWith("/search");
   const [query, setQuery] = useState("");
-  const [expanded, setExpanded] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const rootRef = useRef(null);
+  const [compact, setCompact] = useState(false);
   const inputRef = useRef(null);
   const listId = useId();
   const labelId = useId();
@@ -42,26 +41,16 @@ export default function SimpleSearch() {
   }, [query]);
 
   useEffect(() => {
-    setExpanded(false);
     setListOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!expanded || onSimpleView) return;
-    const id = window.requestAnimationFrame(() => inputRef.current?.focus());
-    return () => window.cancelAnimationFrame(id);
-  }, [expanded, onSimpleView]);
-
-  useEffect(() => {
-    if (!expanded) return undefined;
-    function onPointerDown(event) {
-      if (rootRef.current?.contains(event.target)) return;
-      setExpanded(false);
-      setListOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [expanded]);
+    const mq = window.matchMedia("(max-width: 799px)");
+    const sync = () => setCompact(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     function onKey(event) {
@@ -70,7 +59,6 @@ export default function SimpleSearch() {
       if (isEditableTarget(event.target)) return;
       if (event.target?.closest?.("dialog[open]")) return;
       event.preventDefault();
-      setExpanded(true);
       setListOpen(true);
       inputRef.current?.focus();
     }
@@ -86,7 +74,6 @@ export default function SimpleSearch() {
       returnFocus: inputRef.current,
     });
     setListOpen(false);
-    setExpanded(false);
   }
 
   function onInputKeyDown(event) {
@@ -104,7 +91,6 @@ export default function SimpleSearch() {
         setQuery("");
         return;
       }
-      setExpanded(false);
       inputRef.current?.blur();
       return;
     }
@@ -130,26 +116,41 @@ export default function SimpleSearch() {
     }
   }
 
-  function onTriggerClick() {
-    if (onSimpleView) {
-      document.getElementById("simple-view-search")?.focus();
-      return;
-    }
-    setExpanded((value) => !value);
-    setListOpen(true);
-  }
-
-  const field = (
-    <>
+  return (
+    <div className="simple-search">
       <label className="simple-search-label" id={labelId} htmlFor={`${listId}-input`}>
         <span className="sr-only">Search reports</span>
+        <svg
+          className="simple-search-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle
+            cx="6.75"
+            cy="6.75"
+            r="4.1"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            d="m9.8 9.8 3.45 3.45"
+          />
+        </svg>
         <input
           id={`${listId}-input`}
           ref={inputRef}
           type="search"
           className="simple-search-input"
           role="combobox"
-          placeholder="Search reports"
+          placeholder={compact ? "Search" : "Search reports"}
           autoComplete="off"
           spellCheck="false"
           enterKeyHint="search"
@@ -236,55 +237,13 @@ export default function SimpleSearch() {
             {onSimpleView ? (
               <span>Showing ranking from the catalogue search.</span>
             ) : (
-              <Link to={advancedHref} onClick={() => setExpanded(false)}>
+              <Link to={advancedHref}>
                 See all reports{trimmed ? ` for “${trimmed}”` : ""} in Simple view
               </Link>
             )}
           </p>
         </div>
       ) : null}
-    </>
-  );
-
-  return (
-    <div
-      className={expanded ? "simple-search is-open" : "simple-search"}
-      ref={rootRef}
-    >
-      <button
-        type="button"
-        className="chrome-btn simple-search-trigger"
-        aria-expanded={onSimpleView ? undefined : expanded}
-        aria-controls={onSimpleView ? undefined : `${listId}-input`}
-        onClick={onTriggerClick}
-      >
-        <svg
-          className="chrome-btn-icon"
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <circle
-            cx="6.75"
-            cy="6.75"
-            r="4.1"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-          <path
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            d="m9.8 9.8 3.45 3.45"
-          />
-        </svg>
-        Search
-      </button>
-      <div className="simple-search-field">{field}</div>
     </div>
   );
 }

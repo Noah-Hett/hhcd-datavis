@@ -91,14 +91,14 @@ export default function HelpDialog({ open, onClose }) {
           <h3>Search versus Simple view</h3>
           <p>
             On Explore, the header field is a typeahead that uses the same
-            ranking as Simple view. On a phone it sits behind a Search button
-            so the chrome stays compact. Choosing a match opens the shared
-            sidebar. A footer link opens Simple view with that query. Simple
-            view hides that header field and uses its own search box, plus
-            filter pills for theme, type, method, and year. Search results
-            are split into reports that were returned and the rest of the
-            catalogue. You can read the catalogue without touching the 3D
-            scene or the graph.
+            ranking as Simple view. On a phone that same field shrinks so the
+            chrome stays compact, then grows again while you type. Choosing a
+            match opens the shared sidebar. A footer link opens Simple view
+            with that query. Simple view hides that header field and uses its
+            own search box, plus filter pills for theme, type, method, and
+            year. Search results are split into reports that were returned
+            and the rest of the catalogue. You can read the catalogue without
+            touching the 3D scene or the graph.
           </p>
           <h3>Keyboard</h3>
           <ul className="help-keys">
