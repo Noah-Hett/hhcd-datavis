@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = dirname(fileURLToPath(import.meta.url));
 const src = await readFile(resolve(root, "ReportSearch.jsx"), "utf8");
 const css = await readFile(resolve(root, "styles.css"), "utf8");
+const filters = await readFile(resolve(root, "SearchFilters.jsx"), "utf8");
 const layout = await readFile(resolve(root, "../../components/Layout.jsx"), "utf8");
 
 test("Simple view hides the header typeahead", () => {
@@ -55,4 +56,12 @@ test("Simple view exposes clickable filters and splits returned rows", () => {
   assert.match(src, /Rest of the catalogue/);
   assert.match(css, /\.search-facet-pill\.is-selected/);
   assert.match(css, /\.search-group-title/);
+});
+
+test("search rows and category chips use the shared theme swatch", () => {
+  assert.match(src, /from "\.\.\/\.\.\/theme\/ThemeSwatch\.jsx"/);
+  assert.match(src, /className="search-row-theme"/);
+  assert.match(filters, /chip\.dimension === "categories"/);
+  assert.match(css, /\.search-row-theme/);
+  assert.match(css, /\.search-chip\.is-theme/);
 });

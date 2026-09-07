@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
+import { themeColor, themeForCategory } from "../../theme/categories.js";
+import ThemeSwatch from "../../theme/ThemeSwatch.jsx";
 import {
   appliedChips,
   buildIndex,
@@ -194,6 +196,9 @@ export default function ReportSearch() {
     const year = report.year ?? "—";
     const theme = report.category || "—";
     const type = report.projectType || "—";
+    const themeHex = themeForCategory(report.category)
+      ? themeColor(report.category)
+      : undefined;
     return (
       <li key={item.key}>
         <button
@@ -227,8 +232,12 @@ export default function ReportSearch() {
               <span className="sr-only">Year </span>
               {year}
             </span>
-            <span>
+            <span
+              className="search-row-theme"
+              style={themeHex ? { "--theme-color": themeHex } : undefined}
+            >
               <span className="sr-only">Theme </span>
+              {themeHex ? <ThemeSwatch category={report.category} /> : null}
               {theme}
             </span>
             <span>
@@ -254,6 +263,7 @@ export default function ReportSearch() {
           <label className="search-page-box">
             <span className="sr-only">Search all reports</span>
             <input
+              id="simple-view-search"
               ref={inputRef}
               type="search"
               value={query}

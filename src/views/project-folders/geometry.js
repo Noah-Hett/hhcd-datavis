@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { COVER_INK, coverColorFor } from "../../theme/categories.js";
 
 export const WALL = 0.034;
 export const FOLDER_LIP = 0.075;
@@ -41,30 +42,6 @@ const C_DARK = "#5A3E2A";
 const C_LABEL = "#F4EEE4";
 const C_PAGES = "#F7F3EC";
 const C_RINGS = "#1A120C";
-const C_INK = "#1C140C";
-
-/** Jacket colours — same pool as grouping.js; kept local so layout tests can import this module. */
-const COVER_POOL = [
-  "#F4EFE6",
-  "#F4EFE6",
-  "#F4EFE6",
-  "#F4EFE6",
-  "#F4EFE6",
-  "#F4EFE6",
-  "#E8C4B8",
-  "#C5D4E6",
-  "#D2E3C8",
-  "#EDD99A",
-];
-
-function coverColorFor(reportNo) {
-  const str = String(reportNo);
-  let hash = 0;
-  for (let i = 0; i < str.length; i += 1) {
-    hash = (hash * 31 + str.charCodeAt(i)) | 0;
-  }
-  return COVER_POOL[Math.abs(hash) % COVER_POOL.length];
-}
 
 function lambert(color, extra = {}) {
   return new THREE.MeshLambertMaterial({
@@ -277,7 +254,7 @@ function wrapTitle(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
 }
 
 export function createCoverTexture(report) {
-  const jacket = coverColorFor(report.reportNo);
+  const jacket = coverColorFor(report);
   const canvas = document.createElement("canvas");
   canvas.width = COVER_CANVAS_W;
   canvas.height = COVER_CANVAS_H;
@@ -286,14 +263,14 @@ export function createCoverTexture(report) {
   ctx.fillStyle = jacket;
   ctx.fillRect(0, 0, COVER_CANVAS_W, COVER_CANVAS_H);
 
-  ctx.fillStyle = "rgba(28, 20, 12, 0.08)";
+  ctx.fillStyle = "rgba(244, 238, 228, 0.12)";
   ctx.fillRect(0, 0, COVER_CANVAS_W, 92);
 
-  ctx.strokeStyle = "rgba(28, 20, 12, 0.16)";
+  ctx.strokeStyle = "rgba(244, 238, 228, 0.28)";
   ctx.lineWidth = 10;
   ctx.strokeRect(8, 8, COVER_CANVAS_W - 16, COVER_CANVAS_H - 16);
 
-  ctx.fillStyle = C_INK;
+  ctx.fillStyle = COVER_INK;
   ctx.textAlign = "left";
   ctx.font = "bold 40px ui-sans-serif, system-ui, sans-serif";
   ctx.fillText(`No. ${report.reportNo}`, 32, 68);
@@ -313,7 +290,7 @@ export function createCoverTexture(report) {
 export function createReportMesh(report, shared) {
   const group = new THREE.Group();
   const pickable = [];
-  const jacket = coverColorFor(report.reportNo);
+  const jacket = coverColorFor(report);
   const texture = createCoverTexture(report);
   const bindZ = -COVER_W / 2 + 0.018;
 
