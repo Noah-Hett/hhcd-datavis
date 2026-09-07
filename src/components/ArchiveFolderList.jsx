@@ -1,5 +1,7 @@
 import { groupingIdFromFolderId } from "../state/selection.js";
 import { useSelection } from "../state/SelectionContext.jsx";
+import ThemeSwatch from "../theme/ThemeSwatch.jsx";
+import { themeForCategory } from "../theme/categories.js";
 import { GROUPINGS, groupReports } from "../views/project-folders/grouping.js";
 
 export default function ArchiveFolderList({ titleId, headingRef }) {
@@ -43,7 +45,10 @@ export default function ArchiveFolderList({ titleId, headingRef }) {
                     : openFolder(folder.id, { openSidebar: true })
                 }
               >
-                <span className="folder-btn-label">{folder.label}</span>
+                <span className="folder-btn-label">
+                  {folder.color ? <ThemeSwatch color={folder.color} /> : null}
+                  {folder.label}
+                </span>
                 <span className="folder-btn-count">
                   {folder.count} {folder.count === 1 ? "report" : "reports"}
                 </span>
@@ -79,6 +84,9 @@ export default function ArchiveFolderList({ titleId, headingRef }) {
                         {report.year}
                         <span aria-hidden="true"> · </span>
                         <span className="sr-only">Theme: </span>
+                        {themeForCategory(report.category) ? (
+                          <ThemeSwatch category={report.category} />
+                        ) : null}{" "}
                         {report.category}
                       </span>
                       <span className="report-btn-title">{report.title}</span>

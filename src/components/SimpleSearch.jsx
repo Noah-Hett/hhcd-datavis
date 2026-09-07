@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { reports } from "../data/index.js";
 import { useSelection } from "../state/SelectionContext.jsx";
+import ThemeSwatch from "../theme/ThemeSwatch.jsx";
+import { themeForCategory } from "../theme/categories.js";
 import { buildIndex, buildVocab, search } from "../views/report-search/search.js";
 import { isEditableTarget } from "../views/report-search/listKeyboard.js";
 import "../views/report-search/simple-search.css";
@@ -168,6 +170,11 @@ export default function SimpleSearch() {
                   onMouseEnter={() => setActive(i)}
                   onClick={() => choose(item)}
                 >
+                  {themeForCategory(item.report.category) ? (
+                    <ThemeSwatch category={item.report.category} />
+                  ) : (
+                    <span className="theme-swatch is-empty" aria-hidden="true" />
+                  )}
                   <span className="simple-search-year">
                     {item.report.year ?? "—"}
                   </span>

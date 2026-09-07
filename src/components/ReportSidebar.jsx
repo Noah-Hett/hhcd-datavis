@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useSelection } from "../state/SelectionContext.jsx";
 import { reports } from "../data/index.js";
+import ThemeSwatch from "../theme/ThemeSwatch.jsx";
+import { themeForCategory } from "../theme/categories.js";
 import ArchiveFolderList from "./ArchiveFolderList.jsx";
 import "./report-sidebar-sheet.css";
 
@@ -166,7 +168,15 @@ export default function ReportSidebar() {
               <p className="report-sidebar-meta">
                 Report {report.reportNo}
                 {report.year != null ? ` · ${report.year}` : ""}
-                {report.category ? ` · ${report.category}` : ""}
+                {report.category ? (
+                  <>
+                    {" · "}
+                    {themeForCategory(report.category) ? (
+                      <ThemeSwatch category={report.category} />
+                    ) : null}
+                    {report.category}
+                  </>
+                ) : null}
               </p>
               <h2
                 id={titleId}

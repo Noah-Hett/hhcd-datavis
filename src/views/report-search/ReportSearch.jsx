@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
+import { themeColor, themeForCategory } from "../../theme/categories.js";
+import ThemeSwatch from "../../theme/ThemeSwatch.jsx";
 import { appliedChips, buildIndex, buildVocab, search } from "./search.js";
 import {
   isEditableTarget,
@@ -172,11 +174,25 @@ export default function ReportSearch() {
           </label>
           {chips.length > 0 ? (
             <ul className="search-chips" aria-label="Applied filters">
-              {chips.map((chip) => (
-                <li key={chip.key}>
-                  <span className="search-chip">{chip.label}</span>
-                </li>
-              ))}
+              {chips.map((chip) => {
+                const theme =
+                  chip.dimension === "categories"
+                    ? themeForCategory(chip.value)
+                    : null;
+                return (
+                  <li key={chip.key}>
+                    <span
+                      className={theme ? "search-chip is-theme" : "search-chip"}
+                      style={
+                        theme ? { "--theme-color": theme.color } : undefined
+                      }
+                    >
+                      {theme ? <ThemeSwatch category={chip.value} /> : null}
+                      {chip.label}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
           {result.corrections.length > 0 ? (
@@ -211,6 +227,9 @@ export default function ReportSearch() {
             const year = report.year ?? "—";
             const theme = report.category || "—";
             const type = report.projectType || "—";
+            const themeHex = themeForCategory(report.category)
+              ? themeColor(report.category)
+              : undefined;
             return (
               <li key={item.key}>
                 <button
@@ -245,8 +264,16 @@ export default function ReportSearch() {
                       <span className="sr-only">Year </span>
                       {year}
                     </span>
-                    <span>
+                    <span
+                      className="search-row-theme"
+                      style={
+                        themeHex ? { "--theme-color": themeHex } : undefined
+                      }
+                    >
                       <span className="sr-only">Theme </span>
+                      {themeHex ? (
+                        <ThemeSwatch category={report.category} />
+                      ) : null}
                       {theme}
                     </span>
                     <span>
