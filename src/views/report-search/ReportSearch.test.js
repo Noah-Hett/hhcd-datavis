@@ -41,3 +41,11 @@ test("search input autofocuses only when ?q= is present", () => {
 test("list aria-label follows the query", () => {
   assert.match(src, /result\.idle\s*\?\s*"All reports"\s*:\s*`Search results, \$\{rows\.length\} reports`/);
 });
+
+test("search rows and category chips use the shared theme swatch", () => {
+  assert.match(src, /from "\.\.\/\.\.\/theme\/ThemeSwatch\.jsx"/);
+  assert.match(src, /className="search-row-theme"/);
+  assert.match(src, /chip\.dimension === "categories"/);
+  assert.match(css, /\.search-row-theme/);
+  assert.match(css, /\.search-chip\.is-theme/);
+});

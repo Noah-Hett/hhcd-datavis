@@ -26,7 +26,8 @@
 .simple-search-option {
   width: 100%;
   display: grid;
-  grid-template-columns: 3.2rem 1fr;
+  grid-template-columns: 12px 3.2rem 1fr;
+  align-items: start;
   gap: 8px;
   min-height: 44px;
   padding: 8px 12px;
@@ -35,6 +36,10 @@
   text-align: left;
   cursor: pointer;
   color: inherit;
+}
+
+.simple-search-option .theme-swatch {
+  margin-top: 5px;
 }
 
 .simple-search-option.is-active,
