@@ -11,8 +11,10 @@ const css = await readFile(
   "utf8",
 );
 
-test("header suggestions show the shared theme swatch", () => {
-  assert.match(src, /from "\.\.\/theme\/ThemeSwatch\.jsx"/);
-  assert.match(src, /ThemeSwatch category=\{item\.report\.category\}/);
-  assert.match(css, /grid-template-columns:\s*12px 3\.2rem 1fr/);
+test("header suggestions name the theme with a labelled badge", () => {
+  assert.match(src, /from "\.\.\/theme\/ThemeBadge\.jsx"/);
+  assert.match(src, /<ThemeBadge/);
+  assert.match(src, /compact/);
+  assert.doesNotMatch(src, /ThemeSwatch/);
+  assert.match(css, /border-left:\s*6px solid var\(--theme-color/);
 });

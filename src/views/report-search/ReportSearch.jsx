@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import { themeColor, themeForCategory } from "../../theme/categories.js";
-import ThemeSwatch from "../../theme/ThemeSwatch.jsx";
+import ThemeBadge from "../../theme/ThemeBadge.jsx";
 import {
   appliedChips,
   buildIndex,
@@ -216,34 +216,35 @@ export default function ReportSearch() {
           ]
             .filter(Boolean)
             .join(" ")}
+          style={themeHex ? { "--theme-color": themeHex } : undefined}
           tabIndex={i === active ? 0 : -1}
           aria-current={current ? "true" : undefined}
           aria-label={`${report.title}, ${author}, ${year}, theme ${theme}, type ${type}`}
           onFocus={() => setActive(i)}
           onClick={(event) => openRow(item, event.currentTarget)}
         >
-          <span className="search-row-title">{report.title}</span>
-          <span className="search-row-meta">
-            <span>
-              <span className="sr-only">Author </span>
-              {author}
+          <span className="search-row-spine" aria-hidden="true" />
+          <span className="search-row-body">
+            <span className="search-row-title">{report.title}</span>
+            <span className="search-row-meta">
+              <span>
+                <span className="sr-only">Author </span>
+                {author}
+              </span>
+              <span>
+                <span className="sr-only">Year </span>
+                {year}
+              </span>
+              <span>
+                <span className="sr-only">Type </span>
+                {type}
+              </span>
             </span>
-            <span>
-              <span className="sr-only">Year </span>
-              {year}
-            </span>
-            <span
-              className="search-row-theme"
-              style={themeHex ? { "--theme-color": themeHex } : undefined}
-            >
-              <span className="sr-only">Theme </span>
-              {themeHex ? <ThemeSwatch category={report.category} /> : null}
-              {theme}
-            </span>
-            <span>
-              <span className="sr-only">Type </span>
-              {type}
-            </span>
+            {themeHex ? (
+              <ThemeBadge category={report.category} />
+            ) : (
+              <span className="search-row-theme">{theme}</span>
+            )}
           </span>
         </button>
       </li>
@@ -258,12 +259,12 @@ export default function ReportSearch() {
           <p className="search-page-lede">
             A keyboard-first list of every report — no 3D archive, no graph.
             Type to rank by meaning, or pick filters below. Arrow keys move,
-            Enter opens the shared sidebar, Escape returns here.
+            Enter opens the shared sidebar, Escape returns here. Theme colours
+            match the map dots and the archive jackets.
           </p>
           <label className="search-page-box">
             <span className="sr-only">Search all reports</span>
             <input
-              id="simple-view-search"
               ref={inputRef}
               type="search"
               value={query}

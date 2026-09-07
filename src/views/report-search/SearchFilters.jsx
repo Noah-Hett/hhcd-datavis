@@ -1,4 +1,3 @@
-import ThemeSwatch from "../../theme/ThemeSwatch.jsx";
 import { themeForCategory } from "../../theme/categories.js";
 import { FACET_GROUPS } from "./filters.js";
 
@@ -29,7 +28,6 @@ function FacetPills({ legend, dimension, options, selectedKeys, onToggle }) {
               aria-pressed={pressed}
               onClick={() => onToggle(dimension, value)}
             >
-              {theme ? <ThemeSwatch category={value} /> : null}
               {value}
               <span className="search-facet-count">{option.count}</span>
             </button>
@@ -89,10 +87,11 @@ export default function SearchFilters({
                       ? "search-chip is-applied is-theme"
                       : "search-chip is-applied"
                   }
-                  style={theme ? { "--theme-color": theme.color } : undefined}
+                  style={
+                    theme ? { "--theme-color": theme.color } : undefined
+                  }
                   onClick={() => onDismissChip(chip)}
                 >
-                  {theme ? <ThemeSwatch category={chip.value} /> : null}
                   {chip.label}
                   <span aria-hidden="true">×</span>
                   <span className="sr-only">Remove filter</span>

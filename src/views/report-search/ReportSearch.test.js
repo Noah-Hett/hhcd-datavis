@@ -58,10 +58,19 @@ test("Simple view exposes clickable filters and splits returned rows", () => {
   assert.match(css, /\.search-group-title/);
 });
 
-test("search rows and category chips use the shared theme swatch", () => {
-  assert.match(src, /from "\.\.\/\.\.\/theme\/ThemeSwatch\.jsx"/);
-  assert.match(src, /className="search-row-theme"/);
-  assert.match(filters, /chip\.dimension === "categories"/);
-  assert.match(css, /\.search-row-theme/);
-  assert.match(css, /\.search-chip\.is-theme/);
+test("category filter pills carry the shared theme colour", () => {
+  assert.match(filters, /dimension === "categories"/);
+  assert.match(filters, /themeForCategory/);
+  assert.match(filters, /is-theme/);
+  assert.doesNotMatch(filters, /ThemeSwatch/);
+});
+
+test("search rows name the theme with a labelled badge, not a colour-only swatch", () => {
+  assert.match(src, /from "\.\.\/\.\.\/theme\/ThemeBadge\.jsx"/);
+  assert.match(src, /className="search-row-spine"/);
+  assert.match(src, /<ThemeBadge category=\{report\.category\} \/>/);
+  assert.doesNotMatch(src, /ThemeSwatch/);
+  assert.doesNotMatch(src, /search-theme-key/);
+  assert.match(css, /\.search-row-spine/);
+  assert.match(css, /\.search-facet-pill\.is-theme/);
 });
