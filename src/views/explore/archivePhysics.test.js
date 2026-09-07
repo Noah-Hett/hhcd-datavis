@@ -4,12 +4,14 @@ import {
   FILED_THRESHOLD,
   ORGANIZE_SCALE,
   applyOrganizeDelta,
+  filingPhases,
   hashNeedsReplace,
   hashWasStripped,
   isArchiveFiled,
   isFiled,
   normalizeExploreHash,
   organizeFromScroll,
+  stepVisualOrganize,
   waypointFromScroll,
 } from "./archivePhysics.js";
 
@@ -97,4 +99,42 @@ test("hashWasStripped treats an emptied hash as a strip, not Home", () => {
   assert.equal(hashWasStripped("", "intro"), false);
   assert.equal(hashWasStripped("#map", "map"), false);
   assert.equal(hashWasStripped("#intro", "map"), false);
+});
+
+test("filingPhases stand before travel, folders last", () => {
+  const rest = filingPhases(0);
+  assert.equal(rest.stand, 0);
+  assert.equal(rest.travel, 0);
+  assert.equal(rest.folders, 0);
+  assert.equal(rest.cam, 0);
+
+  const early = filingPhases(0.2);
+  assert.ok(early.stand > 0.3);
+  assert.equal(early.travel, 0);
+  assert.equal(early.folders, 0);
+
+  const mid = filingPhases(0.5);
+  assert.equal(mid.stand, 1);
+  assert.ok(mid.travel > 0.05 && mid.travel < 0.95);
+  assert.ok(mid.folders > 0);
+  assert.ok(mid.folders < mid.travel + 0.2);
+
+  const done = filingPhases(1);
+  assert.equal(done.stand, 1);
+  assert.equal(done.travel, 1);
+  assert.equal(done.folders, 1);
+  assert.equal(done.cam, 1);
+});
+
+test("stepVisualOrganize eases a snap jump and tracks a scrub", () => {
+  let visual = 0;
+  for (let i = 0; i < 8; i += 1) visual = stepVisualOrganize(visual, 1);
+  assert.ok(visual > 0.3 && visual < 0.9);
+
+  visual = 0;
+  for (let i = 0; i < 90; i += 1) visual = stepVisualOrganize(visual, 1);
+  assert.ok(visual > 0.99);
+
+  assert.equal(stepVisualOrganize(0.5, 0.52), 0.5 + (0.52 - 0.5) * 0.5);
+  assert.equal(stepVisualOrganize(0.2, 1, true), 1);
 });
