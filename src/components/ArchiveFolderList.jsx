@@ -8,7 +8,7 @@ import {
 import { metaLineForGrouping } from "./sidebarBrowse.js";
 
 export default function ArchiveFolderList({ titleId, headingRef }) {
-  const { selectedFolderId, selectedReportNo, openFolder, openReport } =
+  const { selectedFolderId, selectedReportNo, openFolder, openReport, openHelp } =
     useSelection();
   const folderGrouping = groupingIdFromFolderId(selectedFolderId);
   const [browseGrouping, setBrowseGrouping] = useState(
@@ -60,6 +60,17 @@ export default function ArchiveFolderList({ titleId, headingRef }) {
         {title}
       </h2>
       <p className="report-sidebar-empty">{lede}</p>
+      {hub ? (
+        <p className="report-sidebar-empty">
+          <button
+            type="button"
+            className="report-sidebar-see-all"
+            onClick={() => openHelp()}
+          >
+            How to use this catalogue
+          </button>
+        </p>
+      ) : null}
 
       <fieldset className="sidebar-grouping">
         <legend className="sr-only">Browse reports by</legend>

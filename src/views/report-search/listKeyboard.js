@@ -19,7 +19,6 @@ export function isOverlayTarget(target) {
   if (!target?.closest) return false;
   return Boolean(
     target.closest("dialog[open]") ||
-      target.closest("#help-dialog") ||
       target.closest("#report-sidebar") ||
       target.closest(".report-sidebar-backdrop"),
   );

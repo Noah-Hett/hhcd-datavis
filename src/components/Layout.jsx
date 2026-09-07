@@ -1,6 +1,5 @@
-import { Suspense, useRef, useState } from "react";
+import { Suspense } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import HelpDialog from "./HelpDialog.jsx";
 import ReportSidebar from "./ReportSidebar.jsx";
 import SimpleSearch from "./SimpleSearch.jsx";
 import { modeFromLocation } from "./modeFromLocation.js";
@@ -80,9 +79,8 @@ const MODE_SEGMENTS = [
 
 export default function Layout() {
   const { pathname, search, hash } = useLocation();
-  const { sidebarOpen, setSidebarOpen } = useSelection();
-  const [helpOpen, setHelpOpen] = useState(false);
-  const helpButtonRef = useRef(null);
+  const { sidebarOpen, helpOpen, setSidebarOpen, openHelp, closeHelp } =
+    useSelection();
   const fill = !pathname.startsWith("/search");
   const query = keepSearch(search);
   const mode = modeFromLocation(pathname, hash);
@@ -141,12 +139,13 @@ export default function Layout() {
         <div className="app-chrome">
           <button
             type="button"
-            ref={helpButtonRef}
             className="chrome-btn"
-            aria-haspopup="dialog"
-            aria-expanded={helpOpen}
-            aria-controls="help-dialog"
-            onClick={() => setHelpOpen(true)}
+            aria-expanded={sidebarOpen && helpOpen}
+            aria-controls="report-sidebar"
+            onClick={() => {
+              if (sidebarOpen && helpOpen) closeHelp();
+              else openHelp();
+            }}
           >
             <ChromeIcon>
               <circle
@@ -198,13 +197,6 @@ export default function Layout() {
           </button>
         </div>
       </header>
-      <HelpDialog
-        open={helpOpen}
-        onClose={() => {
-          setHelpOpen(false);
-          helpButtonRef.current?.focus();
-        }}
-      />
       <div className="app-body">
         <main id="main" className={fill ? "app-main is-fill" : "app-main is-scroll"}>
           <Suspense

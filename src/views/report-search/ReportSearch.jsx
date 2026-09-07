@@ -79,7 +79,6 @@ export default function ReportSearch() {
       const inInput = event.target === inputRef.current;
       const overlayOpen =
         isOverlayTarget(event.target) ||
-        Boolean(document.querySelector("#help-dialog")?.open) ||
         Boolean(document.querySelector("#report-sidebar.is-open")) ||
         Boolean(document.querySelector("#report-sidebar[open]"));
       const action = searchListKeyAction({

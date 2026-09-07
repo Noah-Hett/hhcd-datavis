@@ -8,6 +8,7 @@ import {
 } from "../views/project-folders/grouping.js";
 import { folderIdForFacet } from "../views/project-folders/yearBuckets.js";
 import ArchiveFolderList from "./ArchiveFolderList.jsx";
+import HelpGuide from "./HelpGuide.jsx";
 import {
   browseFacetsFor,
   connectedReports,
@@ -243,9 +244,11 @@ export default function ReportSidebar() {
     selectedReportNo,
     selectedFolderId,
     sidebarOpen,
+    helpOpen,
     setSidebarOpen,
     backSidebar,
     openFolder,
+    closeHelp,
   } = useSelection();
   const headingRef = useRef(null);
   const asideRef = useRef(null);
@@ -253,8 +256,8 @@ export default function ReportSidebar() {
   const liveId = useId();
   const report = findReport(selectedReportNo);
   const open = sidebarOpen;
-  const showBack = Boolean(report && selectedFolderId);
-  const showBrowseBack = Boolean(!report && selectedFolderId);
+  const showBack = Boolean(helpOpen || (report && selectedFolderId));
+  const showBrowseBack = Boolean(!helpOpen && !report && selectedFolderId);
   const [sheet, setSheet] = useState(() =>
     typeof window !== "undefined" && window.matchMedia
       ? window.matchMedia(SHEET_QUERY).matches
@@ -268,6 +271,10 @@ export default function ReportSidebar() {
   };
   const closeRef = useRef(close);
   closeRef.current = close;
+  const helpOpenRef = useRef(helpOpen);
+  helpOpenRef.current = helpOpen;
+  const closeHelpRef = useRef(closeHelp);
+  closeHelpRef.current = closeHelp;
 
   useEffect(() => {
     const media = window.matchMedia(SHEET_QUERY);
@@ -280,6 +287,10 @@ export default function ReportSidebar() {
   useEffect(() => {
     if (!open) return undefined;
     const id = window.setTimeout(() => {
+      if (helpOpen) {
+        headingRef.current?.focus();
+        return;
+      }
       if (report) {
         headingRef.current?.focus();
         return;
@@ -291,15 +302,18 @@ export default function ReportSidebar() {
       headingRef.current?.focus();
     }, 40);
     return () => window.clearTimeout(id);
-  }, [open, report, selectedReportNo, selectedFolderId]);
+  }, [open, helpOpen, report, selectedReportNo, selectedFolderId]);
 
   useEffect(() => {
     const onKey = (event) => {
       if (event.key !== "Escape") return;
-      if (document.getElementById("help-dialog")?.open) return;
       const panel = asideRef.current;
       if (!panel?.classList.contains("is-open")) return;
       event.preventDefault();
+      if (helpOpenRef.current) {
+        closeHelpRef.current();
+        return;
+      }
       closeRef.current();
     };
     window.addEventListener("keydown", onKey, true);
@@ -311,21 +325,25 @@ export default function ReportSidebar() {
   const groupingMeta = BROWSE_GROUPINGS.find((item) => item.id === grouping);
 
   const liveText =
-    open && report
-      ? `Opened ${report.title} by ${report.author ?? "unknown author"}${
-          report.year != null ? `, ${report.year}` : ""
-        }.`
-      : open && selectedFolderId
-        ? `Opened ${openFolderMetaLabel ?? "folder"} list.`
-        : open
-          ? "Browse reports by theme, year, type, or method."
-          : "";
+    open && helpOpen
+      ? "Opened help for this catalogue."
+      : open && report
+        ? `Opened ${report.title} by ${report.author ?? "unknown author"}${
+            report.year != null ? `, ${report.year}` : ""
+          }.`
+        : open && selectedFolderId
+          ? `Opened ${openFolderMetaLabel ?? "folder"} list.`
+          : open
+            ? "Browse reports by theme, year, type, or method."
+            : "";
 
-  const kicker = report
-    ? "Report"
-    : groupingMeta
-      ? groupingMeta.label
-      : "Browse";
+  const kicker = helpOpen
+    ? "Help"
+    : report
+      ? "Report"
+      : groupingMeta
+        ? groupingMeta.label
+        : "Browse";
 
   return (
     <>
@@ -359,7 +377,7 @@ export default function ReportSidebar() {
               <button
                 type="button"
                 className="report-sidebar-close"
-                onClick={backSidebar}
+                onClick={helpOpen ? closeHelp : backSidebar}
               >
                 Back
               </button>
@@ -379,7 +397,9 @@ export default function ReportSidebar() {
           </div>
         </div>
         <div className="report-sidebar-body">
-          {report ? (
+          {helpOpen ? (
+            <HelpGuide titleId={titleId} headingRef={headingRef} />
+          ) : report ? (
             <ReportRecord
               report={report}
               headingRef={headingRef}
