@@ -105,6 +105,11 @@ export function SelectionProvider({ children }) {
       }
       return;
     }
+    // Already showing this report (e.g. we just wrote ?report=). Keep the
+    // folder so Back from a theme/type/year/method list still works.
+    if (String(selectedRef.current) === String(fromUrl) && sidebarOpenRef.current) {
+      return;
+    }
     applyUrlReport(fromUrl);
   }, [searchParams, applyUrlReport]);
 
