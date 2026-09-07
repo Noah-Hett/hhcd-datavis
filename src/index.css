@@ -648,13 +648,14 @@ select {
 
   .mode-toggle-seg {
     flex: 1 1 0;
-    padding: 0 6px;
+    padding: 0 4px;
     font-size: 12px;
-    gap: 0;
+    gap: 4px;
   }
 
   .mode-toggle-seg .chrome-btn-icon {
-    display: none;
+    width: 14px;
+    height: 14px;
   }
 
   .simple-search {
