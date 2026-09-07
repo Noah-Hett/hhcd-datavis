@@ -81,6 +81,13 @@ export default function HelpDialog({ open, onClose }) {
               It does not load the 3D archive or the year × type graph.
             </li>
           </ol>
+          <h3>Browse from a report</h3>
+          <p>
+            Theme, type, year, and method on a report are buttons. Choose
+            Health and wellbeing to see every report in that theme, then open
+            another. Connected reports and “More in this theme” work the same
+            way. Opening the Sidebar with nothing selected starts from Browse.
+          </p>
           <h3>Grouping and methods</h3>
           <p>
             Folder grouping (Theme / Year / Type) only changes the archive.

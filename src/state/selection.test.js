@@ -21,6 +21,7 @@ test("groupingIdFromFolderId reads the grouping prefix", () => {
   assert.equal(groupingIdFromFolderId("theme:Health and wellbeing"), "theme");
   assert.equal(groupingIdFromFolderId("year:2004-2008"), "year");
   assert.equal(groupingIdFromFolderId("type:Prototype"), "type");
+  assert.equal(groupingIdFromFolderId("method:Observation"), "method");
   assert.equal(groupingIdFromFolderId("nope"), null);
   assert.equal(groupingIdFromFolderId(null), null);
 });

@@ -16,7 +16,12 @@ export function groupingIdFromFolderId(folderId) {
   const colon = id.indexOf(":");
   if (colon <= 0) return null;
   const grouping = id.slice(0, colon);
-  if (grouping !== "theme" && grouping !== "year" && grouping !== "type") {
+  if (
+    grouping !== "theme" &&
+    grouping !== "year" &&
+    grouping !== "type" &&
+    grouping !== "method"
+  ) {
     return null;
   }
   return grouping;

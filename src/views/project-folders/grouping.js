@@ -1,4 +1,7 @@
 import { reports, yearRange } from "../../data/index.js";
+import { YEAR_BUCKETS, folderIdForFacet, yearBucketFor } from "./yearBuckets.js";
+
+export { YEAR_BUCKETS, folderIdForFacet, yearBucketFor };
 
 export const GROUPINGS = [
   {
@@ -24,12 +27,22 @@ export const GROUPINGS = [
   },
 ];
 
-export const YEAR_BUCKETS = [
-  { id: "2000-2003", label: "2000–2003", min: 2000, max: 2003 },
-  { id: "2004-2008", label: "2004–2008", min: 2004, max: 2008 },
-  { id: "2009-2012", label: "2009–2012", min: 2009, max: 2012 },
-  { id: "2013-2017", label: "2013–2017", min: 2013, max: 2017 },
+/** Sidebar browse includes methods; the 3D archive stays Theme / Year / Type. */
+export const BROWSE_GROUPINGS = [
+  ...GROUPINGS,
+  {
+    id: "method",
+    label: "Method",
+    hint: "How it was researched",
+    description:
+      "Reports that share a research method — interviews, observation, workshops, and the rest.",
+  },
 ];
+
+export const ARCHIVE_GROUPING_IDS = new Set(GROUPINGS.map((item) => item.id));
+export const BROWSE_GROUPING_IDS = new Set(
+  BROWSE_GROUPINGS.map((item) => item.id),
+);
 
 /** Dark cover colours kept for any text UI that still names a theme. */
 export const CATEGORY_PALETTE = [
@@ -77,13 +90,6 @@ export function categoryStyle(category) {
   );
 }
 
-function yearBucket(year) {
-  return (
-    YEAR_BUCKETS.find((bucket) => year >= bucket.min && year <= bucket.max) ??
-    YEAR_BUCKETS[YEAR_BUCKETS.length - 1]
-  );
-}
-
 function sortReports(list) {
   return [...list].sort((a, b) => {
     const year = (a.year ?? 0) - (b.year ?? 0);
@@ -104,13 +110,22 @@ export function groupReports(groupingId, source = reports) {
 
   for (const report of source) {
     if (groupingId === "year") {
-      const bucket = yearBucket(report.year);
+      const bucket = yearBucketFor(report.year);
       ensure(`year:${bucket.id}`, bucket.label, {
         period: bucket.label,
       }).reports.push(report);
     } else if (groupingId === "type") {
       const type = report.projectType || "Unspecified";
       ensure(`type:${type}`, type).reports.push(report);
+    } else if (groupingId === "method") {
+      const methods = report.methodsPrimary ?? [];
+      if (methods.length === 0) {
+        ensure("method:Unspecified", "Unspecified").reports.push(report);
+      } else {
+        for (const method of methods) {
+          ensure(`method:${method}`, method).reports.push(report);
+        }
+      }
     } else {
       const category = report.category || "Unspecified";
       const style = categoryStyle(category);

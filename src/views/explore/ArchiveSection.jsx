@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { reports } from "../../data/index.js";
+import { groupingIdFromFolderId } from "../../state/selection.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveScene from "../project-folders/ArchiveScene.jsx";
 import {
+  ARCHIVE_GROUPING_IDS,
   GROUPINGS,
   folderForReport,
   groupReports,
@@ -88,8 +90,26 @@ export default function ArchiveSection({
   const featuredReport = carouselReports[carouselIndex] ?? null;
 
   useEffect(() => {
+    const fromFolder = groupingIdFromFolderId(selectedFolderId);
+    if (
+      fromFolder &&
+      ARCHIVE_GROUPING_IDS.has(fromFolder) &&
+      fromFolder !== grouping
+    ) {
+      setGrouping(fromFolder);
+      if (!isArchiveFiled(organizeRef.current, reduceMotion)) {
+        setOrganize(1);
+      }
+    }
+    // setOrganize is recreated each render; organizeRef holds the live value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFolderId, grouping, reduceMotion]);
+
+  useEffect(() => {
     const next = folderForReport(grouping, selectedReportNo);
     if (selectedReportNo && next) {
+      const fromFolder = groupingIdFromFolderId(selectedFolderId);
+      if (fromFolder && !ARCHIVE_GROUPING_IDS.has(fromFolder)) return;
       if (next.id !== selectedFolderId) {
         openReport(selectedReportNo, {
           folderId: next.id,
@@ -98,6 +118,9 @@ export default function ArchiveSection({
       }
       return;
     }
+    const fromFolder = groupingIdFromFolderId(selectedFolderId);
+    if (fromFolder && fromFolder !== grouping) return;
+    if (fromFolder && !ARCHIVE_GROUPING_IDS.has(fromFolder)) return;
     if (
       selectedFolderId &&
       !folders.some((folder) => folder.id === selectedFolderId)
@@ -222,6 +245,12 @@ export default function ArchiveSection({
   const goToGrouping = (id) => {
     setGrouping(id);
     if (!isFiled) finishIntro();
+    if (!selectedReportNo && selectedFolderId) {
+      const currentPrefix = groupingIdFromFolderId(selectedFolderId);
+      if (currentPrefix && currentPrefix !== id) {
+        openFolder(null);
+      }
+    }
   };
 
   const selectFolder = (id) => {
