@@ -1,7 +1,12 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { reports } from "../../data/index.js";
-import { easeInOut, filingPhases, stepVisualOrganize } from "../explore/archivePhysics.js";
+import {
+  FILED_THRESHOLD,
+  easeInOut,
+  filingPhases,
+  stepVisualOrganize,
+} from "../explore/archivePhysics.js";
 import { GROUPINGS, groupReports } from "./grouping.js";
 import {
   FOLDER_BACK_H,
@@ -12,6 +17,9 @@ import {
   carouselOrigin,
   carouselSignedOffset,
   carouselSpan,
+  COVER_DETAIL_FULL,
+  COVER_DETAIL_MASS,
+  applyCoverDetail,
   computeArchiveLayout,
   computeCarouselPose,
   computeLayout,
@@ -122,9 +130,9 @@ function fitArchiveCamera(archive, aspect, outPos, outLook) {
   const distX = worldW / 2 / (Math.tan(fov / 2) * a);
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 6.4) * 1.06;
-  // Slightly less steep so stack height reads like library piles.
-  outPos.set(lookX - 0.26 * dist, lookY + 0.58 * dist, lookZ + 0.82 * dist);
+  const dist = Math.max(distX, distY, distZ, 6.4) * 1.22;
+  // Further and more overhead so the table reads as a mass of colour.
+  outPos.set(lookX - 0.18 * dist, lookY + 0.72 * dist, lookZ + 0.78 * dist);
 }
 
 function fitArchiveShadow(sun, archive) {
@@ -163,6 +171,7 @@ export default function ArchiveScene({
   carouselIndex = 0,
   onSelectFolder,
   onSelectReport,
+  onEnterArchive,
   onCarouselIndexChange,
   onWebglError,
 }) {
@@ -177,6 +186,7 @@ export default function ArchiveScene({
   const carouselIndexRef = useRef(carouselIndex);
   const onFolderRef = useRef(onSelectFolder);
   const onReportRef = useRef(onSelectReport);
+  const onEnterArchiveRef = useRef(onEnterArchive);
   const onCarouselIndexRef = useRef(onCarouselIndexChange);
 
   groupingRef.current = grouping;
@@ -187,6 +197,7 @@ export default function ArchiveScene({
   carouselIndexRef.current = carouselIndex;
   onFolderRef.current = onSelectFolder;
   onReportRef.current = onSelectReport;
+  onEnterArchiveRef.current = onEnterArchive;
   onCarouselIndexRef.current = onCarouselIndexChange;
   onErrorRef.current = onWebglError;
 
@@ -317,6 +328,19 @@ export default function ArchiveScene({
       reportEntries.push(entry);
     }
 
+    let coverDetail = COVER_DETAIL_MASS;
+    const sceneIsFiled = () =>
+      organizeRef.current >= FILED_THRESHOLD || reduceRef.current;
+    const syncCoverDetail = (filed) => {
+      const next = filed ? COVER_DETAIL_FULL : COVER_DETAIL_MASS;
+      if (next === coverDetail) return;
+      coverDetail = next;
+      for (const entry of reportEntries) {
+        applyCoverDetail(entry.texture, entry.report, next);
+      }
+    };
+    syncCoverDetail(sceneIsFiled());
+
     const featuredLabel = document.createElement("div");
     featuredLabel.className = "scene-label is-report is-featured";
     featuredLabel.setAttribute("aria-hidden", "true");
@@ -428,14 +452,12 @@ export default function ArchiveScene({
           const pose = layouts[transTo][twoRows ? "two" : "single"].reportPos[
             data.reportNo
           ];
-          const filed = organizeRef.current >= 0.95 || reduceRef.current;
-          if (!filed) return hit;
-          if (!pose) continue;
+          const filed = sceneIsFiled();
           if (
             !reportHitAllowed({
               filed,
               selectedFolderId: selectedFolderRef.current,
-              folderId: pose.folderId,
+              folderId: pose?.folderId,
             })
           ) {
             continue;
@@ -443,7 +465,7 @@ export default function ArchiveScene({
           return hit;
         }
         if (data.kind === "folder") {
-          if (organizeRef.current < 0.95 && !reduceRef.current) continue;
+          if (!sceneIsFiled()) continue;
           return hit;
         }
       }
@@ -479,6 +501,10 @@ export default function ArchiveScene({
         (event.clientX - downX) ** 2 + (event.clientY - downY) ** 2 >
         TAP_SLOP ** 2
       ) {
+        return;
+      }
+      if (!sceneIsFiled()) {
+        onEnterArchiveRef.current?.();
         return;
       }
       setPointer(event);
@@ -608,6 +634,7 @@ export default function ArchiveScene({
         reduce,
       );
       visualOrganize = organize;
+      syncCoverDetail(organize >= FILED_THRESHOLD || reduce);
       const { cam: camT, stand, travel, folders: folderT } = filingPhases(organize);
       const shelved = organize >= 0.995;
 

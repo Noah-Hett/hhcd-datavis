@@ -41,10 +41,50 @@
 }
 
 .intro-lead {
-  margin: 0;
+  margin: 0 0 8px;
   font-size: 0.95rem;
   line-height: 1.45;
   color: var(--archive-muted);
+}
+
+.intro-job {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  font-weight: 650;
+  color: var(--archive-ink);
+}
+
+.intro-enter {
+  pointer-events: auto;
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 5;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 1px solid var(--archive-line);
+  border-radius: 999px;
+  background: rgba(247, 241, 232, 0.94);
+  color: var(--archive-ink);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.intro-enter-chevron {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.intro-enter:focus-visible {
+  outline: 3px solid var(--archive-focus);
+  outline-offset: 2px;
 }
 
 .skip-link {
@@ -540,7 +580,14 @@
     font-size: 1.25rem;
   }
 
-  .intro-lead {
+  .intro-lead,
+  .intro-job {
+    font-size: 0.88rem;
+  }
+
+  .intro-enter {
+    bottom: 12px;
+    min-height: 44px;
     font-size: 0.88rem;
   }
 

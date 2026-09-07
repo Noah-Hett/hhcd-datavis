@@ -61,8 +61,9 @@ export default function HelpDialog({ open, onClose }) {
           </p>
           <ol>
             <li>
-              <strong>Home</strong> — the unsorted pile of reports at the top
-              of Explore. Scroll down to file them into folders.
+              <strong>Home</strong> — the unsorted pile at the top of Explore
+              is atmosphere, not a reading table. Scroll, tap the pile, or use
+              Folders / Map to enter. Reports open after you choose a way in.
             </li>
             <li>
               <strong>Folders</strong> — the archive once reports are filed
