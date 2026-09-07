@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { reports } from "../data/index.js";
 import {
   SOURCES,
@@ -15,8 +15,10 @@ import {
   applyClearReport,
   applyOpenFolder,
   applyOpenReport,
+  locationWithReportParam,
   normalizeFolderId,
   normalizeReportId,
+  reportParamNeedsReplace,
 } from "./selection.js";
 
 const SelectionContext = createContext(null);
@@ -28,7 +30,9 @@ function reportExists(reportNo) {
 }
 
 export function SelectionProvider({ children }) {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedReportNo, setSelectedReportNo] = useState(null);
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [sidebarOpen, setSidebarOpenState] = useState(false);
@@ -45,6 +49,7 @@ export function SelectionProvider({ children }) {
   const sidebarOpenRef = useRef(false);
   const sourceRef = useRef(null);
   const searchParamsRef = useRef(searchParams);
+  const locationRef = useRef(location);
   // Ignore the stale ?report= value we just dismissed until the URL drops it.
   const ignoreUrlReportRef = useRef(null);
   selectedRef.current = selectedReportNo;
@@ -52,6 +57,7 @@ export function SelectionProvider({ children }) {
   sidebarOpenRef.current = sidebarOpen;
   sourceRef.current = source;
   searchParamsRef.current = searchParams;
+  locationRef.current = location;
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return undefined;
@@ -81,7 +87,7 @@ export function SelectionProvider({ children }) {
 
   // Sync URL → selection only when searchParams change. Depending on
   // selectedReportNo is the Escape/?report= race: clearReport nulls the id
-  // before setSearchParams flushes, so the effect would re-apply the stale
+  // before the URL write flushes, so the effect would re-apply the stale
   // param and reopen the sidebar.
   useEffect(() => {
     const fromUrl = searchParams.get("report");
@@ -107,18 +113,14 @@ export function SelectionProvider({ children }) {
 
   const writeReportParam = useCallback(
     (reportNo) => {
-      setSearchParams(
-        (current) => {
-          const next = new URLSearchParams(current);
-          if (reportNo) next.set("report", String(reportNo));
-          else next.delete("report");
-          if (next.toString() === current.toString()) return current;
-          return next;
-        },
-        { replace: true },
-      );
+      const loc = locationRef.current;
+      if (!reportParamNeedsReplace(loc.search, reportNo)) return;
+      navigate(locationWithReportParam(loc, reportNo), {
+        replace: true,
+        preventScrollReset: true,
+      });
     },
-    [setSearchParams],
+    [navigate],
   );
 
   const rememberDismissedReport = useCallback(() => {

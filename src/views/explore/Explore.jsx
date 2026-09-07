@@ -4,6 +4,7 @@ import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveSection from "./ArchiveSection.jsx";
 import {
   hashNeedsReplace,
+  hashWasStripped,
   isFiled,
   normalizeExploreHash,
   organizeFromScroll,
@@ -35,6 +36,19 @@ export default function Explore() {
   }, [reduceMotion]);
 
   useEffect(() => {
+    if (hashWasStripped(hash, waypointRef.current)) {
+      skipHashScrollRef.current = true;
+      navigate(
+        {
+          pathname: "/",
+          search: searchRef.current || "",
+          hash: waypointRef.current,
+        },
+        { replace: true, preventScrollReset: true },
+      );
+      return undefined;
+    }
+
     const id = normalizeExploreHash(hash);
     waypointRef.current = id;
 
@@ -66,7 +80,7 @@ export default function Explore() {
       scroller?.removeEventListener("scrollend", releaseSuppress);
       releaseSuppress();
     };
-  }, [hash]);
+  }, [hash, navigate]);
 
   useEffect(() => {
     const scroller = scrollRef.current;
@@ -108,7 +122,7 @@ export default function Explore() {
           search: searchRef.current || "",
           hash: waypoint,
         },
-        { replace: true },
+        { replace: true, preventScrollReset: true },
       );
     };
 
