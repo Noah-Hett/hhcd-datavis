@@ -128,9 +128,9 @@ function fitArchiveCamera(archive, aspect, outPos, outLook) {
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
   const dist = Math.max(distX, distY, distZ, 6.4) * 1.06;
-  // Same distance as main’s filing morph. Sit low and off to the side so
-  // cover type is edge-on instead of a readable page.
-  outPos.set(lookX - 0.58 * dist, lookY + 0.16 * dist, lookZ + 0.82 * dist);
+  // Same distance as main’s filing morph. Almost table-height from the
+  // side so face-up covers are edge-on and type does not read.
+  outPos.set(lookX - 0.70 * dist, lookY + 0.10 * dist, lookZ + 0.72 * dist);
 }
 
 function fitArchiveShadow(sun, archive) {
