@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = dirname(fileURLToPath(import.meta.url));
 const layout = await readFile(resolve(root, "Layout.jsx"), "utf8");
 const css = await readFile(resolve(root, "../index.css"), "utf8");
-const help = await readFile(resolve(root, "HelpDialog.jsx"), "utf8");
+const help = await readFile(resolve(root, "HelpGuide.jsx"), "utf8");
 const search = await readFile(resolve(root, "SimpleSearch.jsx"), "utf8");
 const searchCss = await readFile(
   resolve(root, "../views/report-search/simple-search.css"),

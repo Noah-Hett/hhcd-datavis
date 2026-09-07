@@ -124,7 +124,6 @@ export default function ReportSearch() {
       const inFilters = Boolean(event.target?.closest?.(".search-filters"));
       const overlayOpen =
         isOverlayTarget(event.target) ||
-        Boolean(document.querySelector("#help-dialog")?.open) ||
         Boolean(document.querySelector("#report-sidebar.is-open")) ||
         Boolean(document.querySelector("#report-sidebar[open]"));
       const action = searchListKeyAction({
