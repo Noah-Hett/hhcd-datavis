@@ -224,6 +224,17 @@ select {
   color: var(--muted);
 }
 
+.app[data-view="search"] .simple-search {
+  display: none;
+}
+
+/* Keep the centred mode toggle when Simple view has no header search. */
+@media (min-width: 800px) {
+  .app[data-view="search"] .app-header::before {
+    content: "";
+  }
+}
+
 .chrome-btn {
   position: relative;
   display: inline-flex;
