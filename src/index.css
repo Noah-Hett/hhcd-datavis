@@ -140,6 +140,8 @@ select {
 
 .app-header {
   box-sizing: border-box;
+  position: relative;
+  z-index: 40;
   flex: 0 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -148,39 +150,6 @@ select {
   min-height: var(--app-header-h);
   padding: 8px 16px;
   background: transparent;
-}
-
-.app-header-start {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.app-brand {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  text-decoration: none;
-  color: var(--chrome-ink);
-  flex-shrink: 0;
-  border-radius: 999px;
-}
-
-.app-brand:hover,
-.app-brand:focus-visible {
-  background: var(--hover);
-}
-
-.app-brand[aria-current="page"] {
-  background: var(--chrome-ink);
-  color: var(--chrome);
-}
-
-.app-brand[aria-current="page"]:hover {
-  background: var(--chrome-ink);
 }
 
 .app-chrome {
@@ -235,13 +204,6 @@ select {
 
 .mode-toggle-seg[aria-current="true"]:hover {
   background: var(--chrome-ink);
-}
-
-.simple-search {
-  position: relative;
-  flex: 1 1 16rem;
-  min-width: 10rem;
-  max-width: 22rem;
 }
 
 .simple-search-label {
@@ -334,14 +296,6 @@ select {
 .explore-waypoints a[aria-current="true"] {
   background: var(--chrome-ink);
   color: var(--chrome);
-}
-
-@media (max-width: 640px) {
-  .mode-toggle-seg {
-    padding: 0 10px;
-    font-size: 12px;
-    gap: 4px;
-  }
 }
 
 .app-body {
@@ -705,33 +659,52 @@ select {
 
 @media (max-width: 799px) {
   .app-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-  }
-
-  .app-header-start {
-    flex: 1 1 auto;
-    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "toggle toggle"
+      "search help";
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 12px 12px;
   }
 
   .mode-toggle {
-    flex: 1 1 100%;
-    order: 3;
-    justify-content: center;
-    justify-self: unset;
+    grid-area: toggle;
+    width: 100%;
+    max-width: none;
+    justify-content: stretch;
+    justify-self: stretch;
+    order: unset;
   }
 
-  .app-chrome {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    justify-self: unset;
-    margin-left: auto;
+  .mode-toggle-seg {
+    flex: 1 1 0;
+    padding: 0 4px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .mode-toggle-seg .chrome-btn-icon {
+    width: 14px;
+    height: 14px;
   }
 
   .simple-search {
-    flex: 1 1 auto;
-    max-width: none;
+    grid-area: search;
+    justify-self: start;
+  }
+
+  .app-chrome {
+    grid-area: help;
+    justify-content: flex-end;
+    justify-self: end;
+    margin-left: 0;
+    flex-wrap: nowrap;
+  }
+
+  .chrome-btn-sidebar {
+    display: none;
   }
 
   .report-sidebar {

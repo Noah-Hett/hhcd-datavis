@@ -159,6 +159,7 @@ export default function ReportSearch() {
           <label className="search-page-box">
             <span className="sr-only">Search all reports</span>
             <input
+              id="simple-view-search"
               ref={inputRef}
               type="search"
               value={query}
