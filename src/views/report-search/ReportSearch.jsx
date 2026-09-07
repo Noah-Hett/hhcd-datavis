@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { reports } from "../../data/index.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
-import { themeColor, themeForCategory } from "../../theme/categories.js";
-import ThemeSwatch from "../../theme/ThemeSwatch.jsx";
+import { THEMES, themeColor, themeForCategory } from "../../theme/categories.js";
+import ThemeBadge from "../../theme/ThemeBadge.jsx";
 import { appliedChips, buildIndex, buildVocab, search } from "./search.js";
 import {
   isEditableTarget,
@@ -154,8 +154,15 @@ export default function ReportSearch() {
             A keyboard-first list of every report — no 3D archive, no graph.
             Type to rank by meaning; chips show the filters the query applied.
             Arrow keys move, Enter opens the shared sidebar, Escape returns
-            here.
+            here. Theme colours match the map dots and the archive jackets.
           </p>
+          <ul className="search-theme-key" aria-label="Research theme">
+            {THEMES.map((theme) => (
+              <li key={theme.id}>
+                <ThemeBadge category={theme.label} />
+              </li>
+            ))}
+          </ul>
           <label className="search-page-box">
             <span className="sr-only">Search all reports</span>
             <input
@@ -182,15 +189,11 @@ export default function ReportSearch() {
                     : null;
                 return (
                   <li key={chip.key}>
-                    <span
-                      className={theme ? "search-chip is-theme" : "search-chip"}
-                      style={
-                        theme ? { "--theme-color": theme.color } : undefined
-                      }
-                    >
-                      {theme ? <ThemeSwatch category={chip.value} /> : null}
-                      {chip.label}
-                    </span>
+                    {theme ? (
+                      <ThemeBadge category={chip.value} />
+                    ) : (
+                      <span className="search-chip">{chip.label}</span>
+                    )}
                   </li>
                 );
               })}
@@ -247,6 +250,7 @@ export default function ReportSearch() {
                   ]
                     .filter(Boolean)
                     .join(" ")}
+                  style={themeHex ? { "--theme-color": themeHex } : undefined}
                   tabIndex={i === active ? 0 : -1}
                   aria-current={current ? "true" : undefined}
                   aria-label={`${report.title}, ${author}, ${year}, theme ${theme}, type ${type}`}
@@ -255,32 +259,28 @@ export default function ReportSearch() {
                     openRow(item, event.currentTarget)
                   }
                 >
-                  <span className="search-row-title">{report.title}</span>
-                  <span className="search-row-meta">
-                    <span>
-                      <span className="sr-only">Author </span>
-                      {author}
+                  <span className="search-row-spine" aria-hidden="true" />
+                  <span className="search-row-body">
+                    <span className="search-row-title">{report.title}</span>
+                    <span className="search-row-meta">
+                      <span>
+                        <span className="sr-only">Author </span>
+                        {author}
+                      </span>
+                      <span>
+                        <span className="sr-only">Year </span>
+                        {year}
+                      </span>
+                      <span>
+                        <span className="sr-only">Type </span>
+                        {type}
+                      </span>
                     </span>
-                    <span>
-                      <span className="sr-only">Year </span>
-                      {year}
-                    </span>
-                    <span
-                      className="search-row-theme"
-                      style={
-                        themeHex ? { "--theme-color": themeHex } : undefined
-                      }
-                    >
-                      <span className="sr-only">Theme </span>
-                      {themeHex ? (
-                        <ThemeSwatch category={report.category} />
-                      ) : null}
-                      {theme}
-                    </span>
-                    <span>
-                      <span className="sr-only">Type </span>
-                      {type}
-                    </span>
+                    {themeHex ? (
+                      <ThemeBadge category={report.category} />
+                    ) : (
+                      <span className="search-row-theme">{theme}</span>
+                    )}
                   </span>
                 </button>
               </li>

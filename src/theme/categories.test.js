@@ -56,6 +56,16 @@ test("cover type is cream so it reads on the theme jackets", () => {
   assert.equal(COVER_INK, "#F4EEE4");
 });
 
+test("theme badges keep dark text on a tinted wash, not colour-only dots", async () => {
+  const css = await readFile(resolve(root, "../index.css"), "utf8");
+  assert.match(css, /\.theme-badge\s*\{/);
+  assert.match(
+    css,
+    /\.theme-badge\s*\{[^}]*color:\s*var\(--text\)/s,
+  );
+  assert.match(css, /color-mix\(in srgb, var\(--theme-color\) 22%/);
+});
+
 test("archive jackets paint the shared theme colour, not a hash of report number", async () => {
   const geometry = await readFile(resolve(root, "../views/project-folders/geometry.js"), "utf8");
   const grouping = await readFile(resolve(root, "../views/project-folders/grouping.js"), "utf8");

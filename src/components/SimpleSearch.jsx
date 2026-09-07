@@ -2,8 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { reports } from "../data/index.js";
 import { useSelection } from "../state/SelectionContext.jsx";
-import ThemeSwatch from "../theme/ThemeSwatch.jsx";
 import { themeForCategory } from "../theme/categories.js";
+import ThemeBadge from "../theme/ThemeBadge.jsx";
 import { buildIndex, buildVocab, search } from "../views/report-search/search.js";
 import { isEditableTarget } from "../views/report-search/listKeyboard.js";
 import "../views/report-search/simple-search.css";
@@ -190,37 +190,44 @@ export default function SimpleSearch() {
             role="listbox"
             aria-label="Search suggestions"
           >
-            {items.map((item, i) => (
-              <li key={item.key} role="presentation">
-                <button
-                  type="button"
-                  id={`${listId}-${item.key}`}
-                  role="option"
-                  aria-selected={i === active}
-                  className={
-                    i === active
-                      ? "simple-search-option is-active"
-                      : "simple-search-option"
-                  }
-                  onMouseDown={(event) => event.preventDefault()}
-                  onMouseEnter={() => setActive(i)}
-                  onClick={() => choose(item)}
-                >
-                  {themeForCategory(item.report.category) ? (
-                    <ThemeSwatch category={item.report.category} />
-                  ) : (
-                    <span className="theme-swatch is-empty" aria-hidden="true" />
-                  )}
-                  <span className="simple-search-year">
-                    {item.report.year ?? "—"}
-                  </span>
-                  <span className="simple-search-copy">
-                    <strong>{item.report.title}</strong>
-                    <em>{item.report.author}</em>
-                  </span>
-                </button>
-              </li>
-            ))}
+            {items.map((item, i) => {
+              const theme = themeForCategory(item.report.category);
+              return (
+                <li key={item.key} role="presentation">
+                  <button
+                    type="button"
+                    id={`${listId}-${item.key}`}
+                    role="option"
+                    aria-selected={i === active}
+                    className={
+                      i === active
+                        ? "simple-search-option is-active"
+                        : "simple-search-option"
+                    }
+                    style={
+                      theme ? { "--theme-color": theme.color } : undefined
+                    }
+                    onMouseDown={(event) => event.preventDefault()}
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => choose(item)}
+                  >
+                    <span className="simple-search-year">
+                      {item.report.year ?? "—"}
+                    </span>
+                    <span className="simple-search-copy">
+                      <strong>{item.report.title}</strong>
+                      <em>{item.report.author}</em>
+                      {theme ? (
+                        <ThemeBadge
+                          category={item.report.category}
+                          compact
+                        />
+                      ) : null}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
           {items.length === 0 ? (
             <p className="simple-search-empty">No close matches yet.</p>
