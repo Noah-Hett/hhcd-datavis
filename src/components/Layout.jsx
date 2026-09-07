@@ -115,7 +115,7 @@ export default function Layout() {
         </a>
       ) : null}
       <header className="app-header">
-        <SimpleSearch />
+        {mode === "simple" ? null : <SimpleSearch />}
 
         <div className="mode-toggle" role="group" aria-label="View">
           {MODE_SEGMENTS.map((segment) => {

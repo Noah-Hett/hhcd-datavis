@@ -22,7 +22,7 @@ test("Home lives in the Folders/Map/Simple toggle, not a separate brand", () => 
 });
 
 test("header Search is a compact button on mobile and Sidebar is hidden there", () => {
-  assert.match(layout, /<SimpleSearch \/>/);
+  assert.match(layout, /mode === "simple" \? null : <SimpleSearch/);
   assert.match(layout, /className="chrome-btn chrome-btn-sidebar"/);
   assert.match(css, /\.chrome-btn-sidebar\s*\{\s*display:\s*none;/);
   assert.match(css, /grid-template-areas:\s*"toggle toggle"\s*"search help"/);

@@ -105,4 +105,26 @@ test("slash, arrows, and Enter drive the list without wrapping helpers", () => {
     }),
     { type: "move", key: "Home" },
   );
+  assert.equal(
+    searchListKeyAction({
+      key: "ArrowDown",
+      typing: false,
+      inInput: false,
+      overlayOpen: false,
+      inFilters: true,
+      length: 8,
+    }),
+    null,
+  );
+  assert.equal(
+    searchListKeyAction({
+      key: "Enter",
+      typing: false,
+      inInput: false,
+      overlayOpen: false,
+      inFilters: true,
+      length: 8,
+    }),
+    null,
+  );
 });

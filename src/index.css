@@ -248,6 +248,10 @@ select {
   color: var(--muted);
 }
 
+.app[data-view="search"] .simple-search {
+  display: none;
+}
+
 .chrome-btn {
   position: relative;
   display: inline-flex;
