@@ -291,6 +291,7 @@ export default function ArchiveSection({
     <div className="view-folders archive-section">
       <div
         className={`archive is-wide ${isFiled ? "is-filed" : "is-unfiled"}`}
+        style={{ "--organize": organize }}
         data-organize={organize}
         data-filed={isFiled ? "true" : "false"}
       >
