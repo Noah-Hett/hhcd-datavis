@@ -276,13 +276,7 @@ function wrapTitle(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
   });
 }
 
-export const COVER_DETAIL_MASS = "mass";
-export const COVER_DETAIL_FULL = "full";
-export const COVER_ANISOTROPY_MASS = 1;
-export const COVER_ANISOTROPY_FULL = 8;
-
-/** Jacket colour, stripe, and border — no type, so Home stays unreadable. */
-export function paintCoverMass(ctx, report) {
+export function paintCover(ctx, report) {
   const jacket = coverColorFor(report.reportNo);
   ctx.fillStyle = jacket;
   ctx.fillRect(0, 0, COVER_CANVAS_W, COVER_CANVAS_H);
@@ -293,10 +287,7 @@ export function paintCoverMass(ctx, report) {
   ctx.strokeStyle = "rgba(28, 20, 12, 0.16)";
   ctx.lineWidth = 10;
   ctx.strokeRect(8, 8, COVER_CANVAS_W - 16, COVER_CANVAS_H - 16);
-}
 
-/** Report number, title, and year — painted once the archive is filed. */
-export function paintCoverType(ctx, report) {
   ctx.fillStyle = C_INK;
   ctx.textAlign = "left";
   ctx.font = "bold 40px ui-sans-serif, system-ui, sans-serif";
@@ -309,32 +300,17 @@ export function paintCoverType(ctx, report) {
   ctx.fillText(String(report.year ?? ""), 32, 712);
 }
 
-export function paintCover(ctx, report, detail = COVER_DETAIL_MASS) {
-  paintCoverMass(ctx, report);
-  if (detail === COVER_DETAIL_FULL) paintCoverType(ctx, report);
-}
-
-export function createCoverTexture(report, detail = COVER_DETAIL_MASS) {
+export function createCoverTexture(report) {
   const canvas = document.createElement("canvas");
   canvas.width = COVER_CANVAS_W;
   canvas.height = COVER_CANVAS_H;
   const ctx = canvas.getContext("2d");
-  paintCover(ctx, report, detail);
+  paintCover(ctx, report);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy =
-    detail === COVER_DETAIL_FULL ? COVER_ANISOTROPY_FULL : COVER_ANISOTROPY_MASS;
+  texture.anisotropy = 8;
   return texture;
-}
-
-export function applyCoverDetail(texture, report, detail) {
-  const canvas = texture?.image;
-  if (!canvas?.getContext) return;
-  paintCover(canvas.getContext("2d"), report, detail);
-  texture.anisotropy =
-    detail === COVER_DETAIL_FULL ? COVER_ANISOTROPY_FULL : COVER_ANISOTROPY_MASS;
-  texture.needsUpdate = true;
 }
 
 export function createReportMesh(report, shared) {

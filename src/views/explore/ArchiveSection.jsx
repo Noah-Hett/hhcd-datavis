@@ -335,22 +335,18 @@ export default function ArchiveSection({
                     Helen Hamlyn Centre for Design — graduate and associate
                     research that was never a public catalogue.
                   </p>
-                  <p className="intro-job">
-                    Scroll to file them, or choose Folders or Map.
-                  </p>
+                  <p className="intro-job">Scroll to file them into folders.</p>
                 </>
               )}
             </section>
             {isFiled ? null : (
               <button
                 type="button"
-                className="intro-enter"
+                className="intro-scroll"
                 onClick={enterArchive}
+                aria-label="Scroll to file into folders"
               >
-                File into folders
-                <span className="intro-enter-chevron" aria-hidden="true">
-                  ↓
-                </span>
+                <span className="intro-scroll-chevron" aria-hidden="true" />
               </button>
             )}
             <div className="scene-frame">

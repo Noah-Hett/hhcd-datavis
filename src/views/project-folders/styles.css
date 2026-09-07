@@ -55,36 +55,57 @@
   color: var(--archive-ink);
 }
 
-.intro-enter {
+.intro-scroll {
   pointer-events: auto;
   position: absolute;
   left: 50%;
-  bottom: 20px;
+  bottom: 16px;
   z-index: 5;
   transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 10px 18px;
-  border: 1px solid var(--archive-line);
-  border-radius: 999px;
-  background: rgba(247, 241, 232, 0.94);
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--archive-ink);
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 650;
   cursor: pointer;
 }
 
-.intro-enter-chevron {
-  font-size: 1.1rem;
-  line-height: 1;
+.intro-scroll-chevron {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 6px auto 0;
+  border-right: 2.5px solid currentColor;
+  border-bottom: 2.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.55;
+  animation: intro-scroll-bounce 1.4s ease-in-out infinite;
 }
 
-.intro-enter:focus-visible {
+@keyframes intro-scroll-bounce {
+  0%,
+  100% {
+    translate: 0 0;
+    opacity: 0.35;
+  }
+  50% {
+    translate: 0 8px;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-scroll-chevron {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+.intro-scroll:focus-visible {
   outline: 3px solid var(--archive-focus);
   outline-offset: 2px;
+  border-radius: 8px;
 }
 
 .skip-link {
@@ -585,10 +606,8 @@
     font-size: 0.88rem;
   }
 
-  .intro-enter {
-    bottom: 12px;
-    min-height: 44px;
-    font-size: 0.88rem;
+  .intro-scroll {
+    bottom: 10px;
   }
 
   .stage {

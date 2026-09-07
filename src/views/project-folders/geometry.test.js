@@ -35,8 +35,6 @@ import {
   folderSpacing,
   reportHitAllowed,
   paintCover,
-  COVER_DETAIL_FULL,
-  COVER_DETAIL_MASS,
   selectPeekSlot,
   shortestAngleDelta,
   shouldUseTwoRows,
@@ -435,29 +433,11 @@ function coverTexts(ctx) {
   return ctx.calls.filter((call) => call[0] === "fillText").map((call) => call[1]);
 }
 
-test("paintCover mass keeps colour and omits title, number, and year", () => {
+test("paintCover always paints number, title, and year", () => {
   const ctx = fakeCoverCtx();
-  paintCover(
-    ctx,
-    { reportNo: 11, title: "e-scape", year: 2001 },
-    COVER_DETAIL_MASS,
-  );
+  paintCover(ctx, { reportNo: 11, title: "e-scape", year: 2001 });
   assert.ok(ctx.calls.some((call) => call[0] === "fillRect"));
   assert.ok(ctx.calls.some((call) => call[0] === "strokeRect"));
-  const texts = coverTexts(ctx);
-  assert.equal(texts.length, 0);
-  assert.equal(texts.some((text) => text.includes("e-scape")), false);
-  assert.equal(texts.some((text) => text.includes("2001")), false);
-  assert.equal(texts.some((text) => text.includes("11")), false);
-});
-
-test("paintCover full paints number, title, and year", () => {
-  const ctx = fakeCoverCtx();
-  paintCover(
-    ctx,
-    { reportNo: 11, title: "e-scape", year: 2001 },
-    COVER_DETAIL_FULL,
-  );
   const texts = coverTexts(ctx);
   assert.ok(texts.some((text) => text.includes("No. 11")));
   assert.ok(texts.some((text) => text.includes("e-scape")));

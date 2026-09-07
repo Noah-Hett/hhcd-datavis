@@ -17,9 +17,6 @@ import {
   carouselOrigin,
   carouselSignedOffset,
   carouselSpan,
-  COVER_DETAIL_FULL,
-  COVER_DETAIL_MASS,
-  applyCoverDetail,
   computeArchiveLayout,
   computeCarouselPose,
   computeLayout,
@@ -130,9 +127,10 @@ function fitArchiveCamera(archive, aspect, outPos, outLook) {
   const distX = worldW / 2 / (Math.tan(fov / 2) * a);
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 6.4) * 1.22;
-  // Further and more overhead so the table reads as a mass of colour.
-  outPos.set(lookX - 0.18 * dist, lookY + 0.72 * dist, lookZ + 0.78 * dist);
+  const dist = Math.max(distX, distY, distZ, 6.4) * 1.06;
+  // Same distance as the filing morph on main; a grazing side tilt so
+  // cover type foreshortens instead of reading as a document.
+  outPos.set(lookX - 0.44 * dist, lookY + 0.36 * dist, lookZ + 0.86 * dist);
 }
 
 function fitArchiveShadow(sun, archive) {
@@ -328,18 +326,8 @@ export default function ArchiveScene({
       reportEntries.push(entry);
     }
 
-    let coverDetail = COVER_DETAIL_MASS;
     const sceneIsFiled = () =>
       organizeRef.current >= FILED_THRESHOLD || reduceRef.current;
-    const syncCoverDetail = (filed) => {
-      const next = filed ? COVER_DETAIL_FULL : COVER_DETAIL_MASS;
-      if (next === coverDetail) return;
-      coverDetail = next;
-      for (const entry of reportEntries) {
-        applyCoverDetail(entry.texture, entry.report, next);
-      }
-    };
-    syncCoverDetail(sceneIsFiled());
 
     const featuredLabel = document.createElement("div");
     featuredLabel.className = "scene-label is-report is-featured";
@@ -634,7 +622,6 @@ export default function ArchiveScene({
         reduce,
       );
       visualOrganize = organize;
-      syncCoverDetail(organize >= FILED_THRESHOLD || reduce);
       const { cam: camT, stand, travel, folders: folderT } = filingPhases(organize);
       const shelved = organize >= 0.995;
 
