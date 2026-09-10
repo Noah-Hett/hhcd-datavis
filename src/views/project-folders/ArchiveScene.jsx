@@ -9,9 +9,8 @@ import {
 } from "../explore/archivePhysics.js";
 import { GROUPINGS, groupReports } from "./grouping.js";
 import {
-  FOLDER_BACK_H,
-  REPORT_H,
   CAROUSEL_FEATURED_SCALE,
+  REPORT_H,
   carouselOrigin,
   carouselSignedOffset,
   carouselSpan,
@@ -24,9 +23,10 @@ import {
   disposeSharedResources,
   folderBoxCorners,
   folderGridMode,
-  folderLabelScreenPos,
   layoutExtents,
   reportHitAllowed,
+  rowCameraFov,
+  rowCameraTarget,
   screenBoxFromPoints,
   separateOverlayLabels,
   shortestAngleDelta,
@@ -40,7 +40,6 @@ const EXIT_X = 12;
 const EXIT_INTRO = 5.4;
 const MORPH_MS = 900;
 const CAM_FOV = 22;
-const STACK_FOV = 38;
 const TAP_SLOP = 18;
 /** Same as `--archive-bg` / `--bg` so the canvas matches the page, not a darker well. */
 const SCENE_CLEAR = "#c9dce0";
@@ -79,34 +78,10 @@ function folderTarget(fromLayout, toLayout, id, entry) {
   };
 }
 
-function rowCameraFov(layout, aspect) {
-  return layout.mode === "stack" || aspect < 0.9 ? STACK_FOV : CAM_FOV;
-}
-
 function fitRowCamera(layout, aspect, outPos, outLook) {
-  const ext = layoutExtents(layout);
-  const stack = layout.mode === "stack" || aspect < 0.9;
-  const padX = stack ? 0.62 : 1.15;
-  const padZ = stack ? 1.15 : 0.95;
-  const worldW = ext.width + padX * 2;
-  const worldH = FOLDER_BACK_H + (stack ? 0.7 : 1.55);
-  const worldD = ext.depth + padZ * 2;
-  const fov = rowCameraFov(layout, aspect) * (Math.PI / 180);
-  const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, stack ? 0.5 : 0.4));
-  const distY = worldH / 2 / Math.tan(fov / 2);
-  const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist =
-    Math.max(distX, stack ? distY * 0.7 : distY, stack ? distZ * 0.42 : distZ, stack ? 4.6 : 7.2) *
-    (stack ? 1.02 : 1.08);
-
-  const lookY = stack ? 0.9 : 1.18;
-  const lookZ = stack
-    ? ext.minZ + ext.depth * 0.62
-    : (ext.minZ + ext.maxZ) / 2;
-  outLook.set((ext.minX + ext.maxX) / 2, lookY, lookZ);
-  const side = stack ? 0.04 : 0.36;
-  const lift = stack ? 0.58 : 0.5;
-  outPos.set(outLook.x - side * dist, outLook.y + lift * dist, outLook.z + dist);
+  const pose = rowCameraTarget(layout, aspect);
+  outLook.set(pose.lookX, pose.lookY, pose.lookZ);
+  outPos.set(pose.posX, pose.posY, pose.posZ);
 }
 
 function folderReportCount(layout, folderId) {
@@ -805,28 +780,12 @@ export default function ArchiveScene({
           continue;
         }
         const box = screenBoxFromPoints(corners);
-        const size = {
-          w: Math.max(label.offsetWidth, 72),
-          h: Math.max(label.offsetHeight, 28),
-        };
-        const pos =
-          toLayout.mode === "stack"
-            ? folderLabelScreenPos(box, size, {
-                width: mount.clientWidth,
-                height: mount.clientHeight,
-                pad: 10,
-                gap: 14,
-              })
-            : {
-                x: (box.minX + box.maxX) / 2,
-                y: box.maxY + 8,
-              };
         pendingLabels.push({
           label,
-          x: pos.x,
-          y: pos.y,
-          w: size.w,
-          h: size.h,
+          x: (box.minX + box.maxX) / 2,
+          y: box.maxY + 8,
+          w: Math.max(label.offsetWidth, 72),
+          h: Math.max(label.offsetHeight, 28),
         });
       }
 

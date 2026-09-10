@@ -361,8 +361,12 @@ export function createReportMesh(report, shared) {
 }
 
 const ROW_GAP_Z = FOLDER_D + 0.72;
-/** Extra aisle on portrait so HTML labels sit in front of each sleeve. */
-const STACK_ROW_GAP_Z = FOLDER_D + 1.7;
+/** Aisle between portrait rows — enough for a label, not a long hallway. */
+const STACK_ROW_GAP_Z = FOLDER_D + 1.05;
+
+export const ROW_CAM_FOV = 22;
+/** Milder than a corridor FOV so perspective does not shrink the back row. */
+export const STACK_CAM_FOV = 28;
 
 /** Desk-height for a report lying cover-up (rz ≈ −π/2). */
 const FLAT_GROUND_Y = 0.042;
@@ -602,6 +606,64 @@ export function folderGridMode(width, height, previous = "row") {
     previous === "split" || previous === "stack",
   );
   return two ? "split" : "row";
+}
+
+export function rowCameraFov(modeOrLayout, aspect) {
+  const mode =
+    typeof modeOrLayout === "string" ? modeOrLayout : modeOrLayout?.mode;
+  return mode === "stack" || aspect < 0.9 ? STACK_CAM_FOV : ROW_CAM_FOV;
+}
+
+/**
+ * Frame the whole folder grid from a high, centred isometric so every
+ * sleeve sits at a similar distance. Portrait used to look down an aisle
+ * and the front row ate the screen.
+ */
+export function rowCameraTarget(layout, aspect) {
+  const ext = layoutExtents(layout);
+  const stack = layout.mode === "stack" || aspect < 0.9;
+  const fovDeg = rowCameraFov(layout.mode ?? (stack ? "stack" : "row"), aspect);
+  const half = Math.tan((fovDeg * Math.PI) / 180 / 2);
+  const padX = stack ? 0.72 : 1.15;
+  const padZ = stack ? 1.25 : 0.95;
+  const worldW = ext.width + padX * 2;
+  const worldH = FOLDER_BACK_H + (stack ? 0.35 : 1.55);
+  const worldD = ext.depth + padZ * 2;
+  const a = Math.max(aspect, stack ? 0.48 : 0.4);
+  const distX = worldW / 2 / (half * a);
+  const distY = worldH / 2 / half;
+  const distZ = worldD / 2 / half;
+  const dist = Math.max(distX, distY, distZ, 7.2) * (stack ? 1.1 : 1.08);
+
+  const lookX = (ext.minX + ext.maxX) / 2;
+  const lookY = stack ? FOLDER_BACK_H * 0.32 : 1.18;
+  const lookZ = (ext.minZ + ext.maxZ) / 2;
+
+  if (!stack) {
+    return {
+      fov: fovDeg,
+      lookX,
+      lookY,
+      lookZ,
+      posX: lookX - 0.36 * dist,
+      posY: lookY + 0.5 * dist,
+      posZ: lookZ + dist,
+    };
+  }
+
+  const side = 0.18;
+  const lift = 1.08;
+  const back = 0.7;
+  const scale = dist / Math.hypot(side, lift, back);
+  return {
+    fov: fovDeg,
+    lookX,
+    lookY,
+    lookZ,
+    posX: lookX - side * scale,
+    posY: lookY + lift * scale,
+    posZ: lookZ + back * scale,
+  };
 }
 
 /** World point just in front of a sleeve so the HTML label sits off the jacket. */

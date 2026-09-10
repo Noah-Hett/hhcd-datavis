@@ -40,6 +40,7 @@ import {
   layoutColumns,
   reportHitAllowed,
   paintCover,
+  rowCameraTarget,
   selectPeekSlot,
   separateOverlayLabels,
   shortestAngleDelta,
@@ -369,6 +370,32 @@ test("portrait stack is three rows for five folders and sleeves stay apart", () 
       assert.equal(overlapX && overlapZ, false);
     }
   }
+});
+
+test("portrait stack camera keeps every folder at a similar distance", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4, 4, 4, 4, 4]), {
+    mode: "stack",
+  });
+  const pose = rowCameraTarget(layout, 390 / 640);
+  const dists = Object.values(layout.folderPos).map((pos) =>
+    Math.hypot(
+      pose.posX - (pos.x + FOLDER_W * 0.5),
+      pose.posY - FOLDER_BACK_H * 0.5,
+      pose.posZ - (pos.z + FOLDER_D * 0.5),
+    ),
+  );
+  const min = Math.min(...dists);
+  const max = Math.max(...dists);
+  assert.ok(min > 0);
+  assert.ok(
+    max / min < 1.4,
+    `front/back distance ratio ${max / min} should stay even`,
+  );
+  const midX = Object.values(layout.folderPos).reduce(
+    (sum, pos) => sum + pos.x + FOLDER_W * 0.5,
+    0,
+  ) / layout.count;
+  assert.ok(Math.abs(pose.lookX - midX) < 0.35);
 });
 
 test("folder labels anchor in front of the sleeve, not on the jacket", () => {
