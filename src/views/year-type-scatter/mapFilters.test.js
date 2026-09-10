@@ -69,11 +69,11 @@ test("map Y labels are left-aligned and narrow on thin screens", async () => {
   );
   const css = await readFile(new URL("./styles.css", import.meta.url), "utf8");
   assert.match(source, /Y_COL_NARROW/);
-  assert.match(source, /<span>\{band\.label\}<\/span>/);
+  assert.match(source, /yLabelLines/);
   assert.match(css, /\.y-label\s*\{[^}]*text-align:\s*left/s);
   assert.match(css, /\.y-label\s*\{[^}]*justify-content:\s*flex-start/s);
   assert.doesNotMatch(css, /text-align:\s*right/);
-  assert.match(css, /--map-y-col:\s*112px/);
+  assert.match(css, /--map-y-col:\s*122px/);
 });
 
 test("portaled map tooltip styles are global, not nested under .view-year-type", async () => {

@@ -535,7 +535,7 @@
 }
 
 @media (max-width: 799px) {
-  --map-y-col: 112px;
+  --map-y-col: 122px;
 
   .chart-row {
     flex-direction: column;

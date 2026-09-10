@@ -1,6 +1,12 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
-import { Y_COL, Y_COL_NARROW, Y_COL_NARROW_MAX, plotLayout } from "./plotLayout.js";
+import {
+  Y_COL,
+  Y_COL_NARROW,
+  Y_COL_NARROW_MAX,
+  plotLayout,
+  yLabelLines,
+} from "./plotLayout.js";
 import {
   DOT_HOVER_PAD,
   dotIsDimmed,
@@ -187,6 +193,8 @@ export default function ScatterPlot({
           >
             {Y_BANDS.map((band) => {
               const y = yForBand(band.id, layout);
+              const lines =
+                yCol === Y_COL_NARROW ? yLabelLines(band.label) : [band.label];
               return (
                 <foreignObject
                   key={band.id}
@@ -196,7 +204,14 @@ export default function ScatterPlot({
                   height={44}
                 >
                   <div xmlns="http://www.w3.org/1999/xhtml" className="y-label">
-                    <span>{band.label}</span>
+                    <span>
+                      {lines.map((line, index) => (
+                        <span key={line}>
+                          {index > 0 ? <br /> : null}
+                          {line}
+                        </span>
+                      ))}
+                    </span>
                   </div>
                 </foreignObject>
               );
