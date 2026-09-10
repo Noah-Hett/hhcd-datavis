@@ -136,28 +136,27 @@ function ReportRecord({ report, headingRef, titleId }) {
           className="report-sidebar-facets"
           aria-label="Explore related reports"
         >
-          {facets.map((facet) => (
-            <button
-              key={`${facet.kind}:${facet.label}`}
-              type="button"
-              className="report-sidebar-facet"
-              onClick={() => openFacet(facet.folderId)}
-              aria-label={`Browse ${facet.count} ${
-                facet.count === 1 ? "report" : "reports"
-              } in ${facet.kindLabel.toLowerCase()} ${facet.label}`}
-            >
-              <span className="report-sidebar-facet-kind">{facet.kindLabel}</span>
-              <span className="report-sidebar-facet-label">
-                {facet.kind === "theme" && themeForCategory(facet.label) ? (
-                  <ThemeSwatch category={facet.label} />
-                ) : null}
-                {facet.label}
-              </span>
-              <span className="report-sidebar-facet-count">
-                {facet.count} {facet.count === 1 ? "report" : "reports"}
-              </span>
-            </button>
-          ))}
+          {facets.map((facet) => {
+            const theme =
+              facet.kind === "theme" ? themeForCategory(facet.label) : null;
+            return (
+              <button
+                key={`${facet.kind}:${facet.label}`}
+                type="button"
+                className={
+                  theme ? "report-sidebar-facet is-theme" : "report-sidebar-facet"
+                }
+                style={theme ? { "--theme-color": theme.color } : undefined}
+                onClick={() => openFacet(facet.folderId)}
+                aria-label={`Browse ${facet.count} ${
+                  facet.count === 1 ? "report" : "reports"
+                } in ${facet.kindLabel.toLowerCase()} ${facet.label}`}
+              >
+                <span className="report-sidebar-facet-label">{facet.label}</span>
+                <span className="report-sidebar-facet-count">{facet.count}</span>
+              </button>
+            );
+          })}
         </nav>
       ) : null}
 
