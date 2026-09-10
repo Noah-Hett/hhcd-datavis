@@ -32,10 +32,15 @@ import {
   computeArchiveLayout,
   computeCarouselPose,
   computeLayout,
+  folderGridMode,
+  folderLabelAnchor,
+  folderRowGap,
   folderSpacing,
+  layoutColumns,
   reportHitAllowed,
   paintCover,
   selectPeekSlot,
+  separateOverlayLabels,
   shortestAngleDelta,
   shouldUseTwoRows,
   stepCarouselIndex,
@@ -328,6 +333,67 @@ test("shouldUseTwoRows ignores a sidebar-sized squeeze and holds through a resiz
   assert.equal(shouldUseTwoRows(720, 800, false), true);
   assert.equal(shouldUseTwoRows(740, 800, true), true);
   assert.equal(shouldUseTwoRows(1100, 800, true), false);
+});
+
+test("folderGridMode stacks two columns on a phone and keeps a split on a square canvas", () => {
+  assert.equal(folderGridMode(390, 844), "stack");
+  assert.equal(folderGridMode(390, 700, "stack"), "stack");
+  assert.equal(folderGridMode(864, 844), "split");
+  assert.equal(folderGridMode(1440, 900), "row");
+  assert.equal(layoutColumns(5, "stack"), 2);
+  assert.equal(layoutColumns(5, "split"), 3);
+  assert.equal(layoutColumns(5, false), 5);
+});
+
+test("portrait stack is three rows for five folders and sleeves stay apart", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4, 4, 4]), { mode: "stack" });
+  assert.equal(layout.mode, "stack");
+  const zs = [
+    ...new Set(
+      Object.values(layout.folderPos).map((pos) => Number(pos.z.toFixed(4))),
+    ),
+  ].sort((a, b) => a - b);
+  assert.equal(zs.length, 3);
+  assert.ok(zs[1] - zs[0] >= folderRowGap(3, "stack") - 1e-6);
+  const boxes = Object.values(layout.folderPos).map((pos) => ({
+    minZ: pos.z,
+    maxZ: pos.z + FOLDER_D,
+    minX: pos.x,
+    maxX: pos.x + FOLDER_W,
+  }));
+  for (let i = 0; i < boxes.length; i += 1) {
+    for (let j = i + 1; j < boxes.length; j += 1) {
+      const overlapX = boxes[i].minX < boxes[j].maxX && boxes[j].minX < boxes[i].maxX;
+      const overlapZ = boxes[i].minZ < boxes[j].maxZ && boxes[j].minZ < boxes[i].maxZ;
+      assert.equal(overlapX && overlapZ, false);
+    }
+  }
+});
+
+test("folder labels anchor in front of the sleeve, not on the jacket", () => {
+  const layout = computeLayout(fakeFolders([3]), { mode: "row" });
+  const pos = Object.values(layout.folderPos)[0];
+  const anchor = folderLabelAnchor(pos);
+  assert.ok(anchor.z > pos.z + FOLDER_D);
+  assert.equal(anchor.x, pos.x + FOLDER_W * 0.5);
+});
+
+test("separateOverlayLabels pushes overlapping pills apart and stays in bounds", () => {
+  const moved = separateOverlayLabels(
+    [
+      { x: 100, y: 40, w: 120, h: 28 },
+      { x: 110, y: 44, w: 120, h: 28 },
+    ],
+    { width: 390, height: 700, pad: 8, gap: 8 },
+  );
+  assert.ok(moved[1].y >= moved[0].y + 28 + 8 - 1e-6);
+  assert.ok(moved[0].x >= 8 + 60);
+  assert.ok(moved[1].x <= 390 - 8 - 60);
+  const clamped = separateOverlayLabels(
+    [{ x: 40, y: 680, w: 80, h: 28 }],
+    { width: 390, height: 700, pad: 8, bottomReserve: 60 },
+  );
+  assert.ok(clamped[0].y + 28 <= 700 - 60 - 8 + 1e-6);
 });
 
 test("shortestAngleDelta takes the short way around", () => {

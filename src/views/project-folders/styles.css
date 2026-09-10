@@ -610,6 +610,12 @@
     bottom: 10px;
   }
 
+  .scene-label {
+    max-width: 8.5rem;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
   .stage {
     flex: none;
     flex-direction: column;

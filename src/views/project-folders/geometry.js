@@ -361,6 +361,8 @@ export function createReportMesh(report, shared) {
 }
 
 const ROW_GAP_Z = FOLDER_D + 0.72;
+/** Extra aisle on portrait so HTML labels sit in front of each sleeve. */
+const STACK_ROW_GAP_Z = FOLDER_D + 1.15;
 
 /** Desk-height for a report lying cover-up (rz ≈ −π/2). */
 const FLAT_GROUND_Y = 0.042;
@@ -524,13 +526,30 @@ export function folderSpacing(count) {
   return Math.max(1.05, min);
 }
 
-export function layoutColumns(folderCount, twoRows) {
-  if (!twoRows) return folderCount;
-  return Math.ceil(folderCount / 2);
+/** row = one line; split = two rows; stack = 2-wide portrait grid. */
+export function resolveFolderGridMode(mode, twoRows = false) {
+  if (mode === "stack" || mode === "split" || mode === "row") return mode;
+  return twoRows ? "split" : "row";
 }
 
-function folderGridPosition(index, n, twoRows) {
-  if (!twoRows) {
+export function folderRowGap(rows, mode = "split") {
+  if (rows <= 1) return 0;
+  return mode === "stack" ? STACK_ROW_GAP_Z : ROW_GAP_Z;
+}
+
+export function layoutColumns(folderCount, modeOrTwoRows = false) {
+  const n = Math.max(folderCount, 0);
+  const mode =
+    modeOrTwoRows === true || modeOrTwoRows === false
+      ? resolveFolderGridMode(null, modeOrTwoRows)
+      : resolveFolderGridMode(modeOrTwoRows);
+  if (mode === "stack") return Math.min(2, n);
+  if (mode === "split") return Math.ceil(n / 2);
+  return n;
+}
+
+function folderGridPosition(index, n, mode) {
+  if (mode === "row" || n <= 1) {
     const spacing = folderSpacing(n);
     return {
       x: -((n - 1) * spacing) / 2 + index * spacing,
@@ -539,15 +558,18 @@ function folderGridPosition(index, n, twoRows) {
       spacing,
     };
   }
-  const cols = Math.ceil(n / 2);
-  const row = index < cols ? 0 : 1;
-  const col = row === 0 ? index : index - cols;
-  const rowCount = row === 0 ? Math.min(cols, n) : n - cols;
+  const cols = layoutColumns(n, mode);
+  const rows = Math.ceil(n / cols);
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  const rowCount = row === rows - 1 ? n - row * cols : cols;
   const spacing = folderSpacing(Math.max(rowCount, 1));
+  const gap = folderRowGap(rows, mode);
+  const z0 = -((rows - 1) * gap) / 2;
   return {
     x: -((rowCount - 1) * spacing) / 2 + col * spacing,
     y: 0,
-    z: row === 0 ? -ROW_GAP_Z / 2 : ROW_GAP_Z / 2,
+    z: z0 + row * gap,
     spacing,
   };
 }
@@ -560,6 +582,80 @@ export function shouldUseTwoRows(width, height, previous = false) {
     return w < 760 || ratio < 1.28;
   }
   return w < 700 || ratio < 1.15;
+}
+
+/**
+ * Portrait phones use a tall 2-column stack. Squarish / squeezed canvases
+ * keep the existing two-row split. Wide screens stay on a single row.
+ */
+export function folderGridMode(width, height, previous = "row") {
+  const w = Math.max(width, 1);
+  const h = Math.max(height, 1);
+  const ratio = w / h;
+  const holdStack = previous === "stack" && w < 700 && ratio < 1.15;
+  const enterStack = w < 560 || (w < 640 && ratio < 0.92);
+  if (holdStack || (previous !== "stack" && enterStack)) return "stack";
+  const two = shouldUseTwoRows(
+    width,
+    height,
+    previous === "split" || previous === "stack",
+  );
+  return two ? "split" : "row";
+}
+
+/** World point just in front of a sleeve so the HTML label sits off the jacket. */
+export function folderLabelAnchor(folderPos) {
+  return {
+    x: folderPos.x + FOLDER_W * 0.5,
+    y: 0.08,
+    z: folderPos.z + FOLDER_D + 0.22,
+  };
+}
+
+/**
+ * Nudge top-centre screen labels so they do not cover each other or the
+ * bottom chrome. `x,y` is the top-centre of each pill.
+ */
+export function separateOverlayLabels(items, bounds = {}) {
+  const width = Math.max(bounds.width ?? 0, 1);
+  const height = Math.max(bounds.height ?? 0, 1);
+  const pad = bounds.pad ?? 8;
+  const gap = bounds.gap ?? 8;
+  const bottom = height - (bounds.bottomReserve ?? 0);
+  const placed = items.map((item) => {
+    const w = Math.max(item.w ?? 0, 1);
+    const h = Math.max(item.h ?? 0, 1);
+    const half = w / 2;
+    return {
+      x: Math.min(width - pad - half, Math.max(pad + half, item.x ?? 0)),
+      y: item.y ?? 0,
+      w,
+      h,
+    };
+  });
+
+  const order = placed
+    .map((_, index) => index)
+    .sort((a, b) => placed[a].y - placed[b].y || placed[a].x - placed[b].x);
+
+  for (let a = 0; a < order.length; a += 1) {
+    const current = placed[order[a]];
+    for (let b = 0; b < a; b += 1) {
+      const other = placed[order[b]];
+      const overlapX =
+        Math.abs(current.x - other.x) < (current.w + other.w) / 2 + gap;
+      const overlapY =
+        current.y < other.y + other.h + gap &&
+        current.y + current.h + gap > other.y;
+      if (overlapX && overlapY) {
+        current.y = other.y + other.h + gap;
+      }
+    }
+    const maxY = bottom - current.h - pad;
+    current.y = Math.min(Math.max(current.y, pad), Math.max(pad, maxY));
+  }
+
+  return placed.map(({ x, y }) => ({ x, y }));
 }
 
 export function layoutExtents(layout) {
@@ -604,14 +700,15 @@ export function carouselOrigin(layout) {
   };
 }
 
-export function computeLayout(folders, { twoRows = false } = {}) {
+export function computeLayout(folders, { twoRows = false, mode } = {}) {
   const n = folders.length;
+  const gridMode = resolveFolderGridMode(mode, twoRows);
   const folderPos = {};
   const reportPos = {};
-  let spacing = folderSpacing(layoutColumns(n, twoRows));
+  let spacing = folderSpacing(layoutColumns(n, gridMode));
 
   folders.forEach((folder, index) => {
-    const grid = folderGridPosition(index, n, twoRows);
+    const grid = folderGridPosition(index, n, gridMode);
     spacing = grid.spacing;
     folderPos[folder.id] = { x: grid.x, y: grid.y, z: grid.z, folder };
     const count = folder.reports.length;
@@ -640,7 +737,15 @@ export function computeLayout(folders, { twoRows = false } = {}) {
     });
   });
 
-  return { folderPos, reportPos, folders, spacing, count: n, twoRows };
+  return {
+    folderPos,
+    reportPos,
+    folders,
+    spacing,
+    count: n,
+    mode: gridMode,
+    twoRows: gridMode !== "row",
+  };
 }
 
 function reportSeed(reportNo) {

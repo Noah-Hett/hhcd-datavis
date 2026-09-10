@@ -10,8 +10,6 @@ import {
 import { GROUPINGS, groupReports } from "./grouping.js";
 import {
   FOLDER_BACK_H,
-  FOLDER_D,
-  FOLDER_W,
   REPORT_H,
   CAROUSEL_FEATURED_SCALE,
   carouselOrigin,
@@ -24,10 +22,12 @@ import {
   createReportMesh,
   createSharedResources,
   disposeSharedResources,
+  folderGridMode,
+  folderLabelAnchor,
   layoutExtents,
   reportHitAllowed,
+  separateOverlayLabels,
   shortestAngleDelta,
-  shouldUseTwoRows,
 } from "./geometry.js";
 
 function sideSign(x) {
@@ -78,19 +78,30 @@ function folderTarget(fromLayout, toLayout, id, entry) {
 
 function fitRowCamera(layout, aspect, outPos, outLook) {
   const ext = layoutExtents(layout);
-  const padX = 1.15;
-  const padZ = 0.95;
+  const stack = layout.mode === "stack" || aspect < 0.9;
+  const padX = stack ? 0.7 : 1.15;
+  const padZ = stack ? 1.85 : 0.95;
   const worldW = ext.width + padX * 2;
-  const worldH = FOLDER_BACK_H + 1.55;
+  const worldH = FOLDER_BACK_H + (stack ? 1.15 : 1.55);
   const worldD = ext.depth + padZ * 2;
   const fov = CAM_FOV * (Math.PI / 180);
   const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, 0.4));
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 7.2) * 1.08;
+  // Depth is along the view, so do not let it yank the camera back on a
+  // tall phone grid — elevation already shows the extra rows.
+  const dist =
+    Math.max(distX, distY, stack ? distZ * 0.5 : distZ, stack ? 6.2 : 7.2) *
+    (stack ? 1.06 : 1.08);
 
-  outLook.set((ext.minX + ext.maxX) / 2, 1.18, (ext.minZ + ext.maxZ) / 2);
-  outPos.set(outLook.x - 0.36 * dist, outLook.y + 0.5 * dist, outLook.z + dist);
+  const lookY = stack ? 0.72 : 1.18;
+  const lookZ = stack
+    ? ext.minZ + ext.depth * 0.58
+    : (ext.minZ + ext.maxZ) / 2;
+  outLook.set((ext.minX + ext.maxX) / 2, lookY, lookZ);
+  const side = stack ? 0.05 : 0.36;
+  const lift = stack ? 0.78 : 0.5;
+  outPos.set(outLook.x - side * dist, outLook.y + lift * dist, outLook.z + dist);
 }
 
 function folderReportCount(layout, folderId) {
@@ -257,15 +268,17 @@ export default function ArchiveScene({
     for (const item of GROUPINGS) {
       const foldersFor = groupReports(item.id);
       layouts[item.id] = {
-        single: computeLayout(foldersFor, { twoRows: false }),
-        two: computeLayout(foldersFor, { twoRows: true }),
+        row: computeLayout(foldersFor, { mode: "row" }),
+        split: computeLayout(foldersFor, { mode: "split" }),
+        stack: computeLayout(foldersFor, { mode: "stack" }),
       };
     }
 
     const allFolderIds = new Set();
     for (const pair of Object.values(layouts)) {
-      for (const id of Object.keys(pair.single.folderPos)) allFolderIds.add(id);
-      for (const id of Object.keys(pair.two.folderPos)) allFolderIds.add(id);
+      for (const id of Object.keys(pair.row.folderPos)) allFolderIds.add(id);
+      for (const id of Object.keys(pair.split.folderPos)) allFolderIds.add(id);
+      for (const id of Object.keys(pair.stack.folderPos)) allFolderIds.add(id);
     }
 
     const shared = createSharedResources();
@@ -298,7 +311,7 @@ export default function ArchiveScene({
     }
 
     const archiveLayout = computeArchiveLayout(reports);
-    const startLayout = layouts.theme.single;
+    const startLayout = layouts.theme.row;
     for (const report of reports) {
       const { group, pickable, texture, coverMat } = createReportMesh(
         report,
@@ -402,9 +415,9 @@ export default function ArchiveScene({
     let downX = 0;
     let downY = 0;
     let raf = 0;
-    let twoRows = shouldUseTwoRows(
-      window.innerWidth,
-      window.innerHeight,
+    let gridMode = folderGridMode(
+      mount.clientWidth || window.innerWidth,
+      mount.clientHeight || window.innerHeight,
     );
     let transFrom = "theme";
     let transTo = "theme";
@@ -437,7 +450,7 @@ export default function ArchiveScene({
         }
         if (hidden) continue;
         if (data.kind === "report") {
-          const pose = layouts[transTo][twoRows ? "two" : "single"].reportPos[
+          const pose = layouts[transTo][gridMode].reportPos[
             data.reportNo
           ];
           const filed = sceneIsFiled();
@@ -501,7 +514,7 @@ export default function ArchiveScene({
       if (data?.kind === "report") {
         const selected = selectedFolderRef.current;
         const pose =
-          layouts[transTo][twoRows ? "two" : "single"].reportPos[data.reportNo];
+          layouts[transTo][gridMode].reportPos[data.reportNo];
         if (
           selected &&
           pose?.folderId === selected &&
@@ -527,10 +540,10 @@ export default function ArchiveScene({
     let resizeRaf = 0;
     let sizeDirty = false;
     const applyRowMode = () => {
-      twoRows = shouldUseTwoRows(
-        window.innerWidth,
-        window.innerHeight,
-        twoRows,
+      gridMode = folderGridMode(
+        mount.clientWidth || window.innerWidth,
+        mount.clientHeight || window.innerHeight,
+        gridMode,
       );
     };
     const applySize = () => {
@@ -607,7 +620,7 @@ export default function ArchiveScene({
         ? 1
         : easeInOut(transFrom === transTo ? 1 : Math.min(1, elapsed / MORPH_MS));
       const shuffling = transFrom !== transTo && blend < 1;
-      const rowKey = twoRows ? "two" : "single";
+      const rowKey = gridMode;
       const fromLayout = layouts[transFrom]?.[rowKey];
       const toLayout = layouts[transTo]?.[rowKey];
       if (!fromLayout || !toLayout) {
@@ -669,6 +682,7 @@ export default function ArchiveScene({
           ? carouselOrigin(toLayout)
           : null;
 
+      const pendingLabels = [];
       for (const [id, entry] of folders) {
         const slide = folderTarget(fromLayout, toLayout, id, entry);
         const label = labelNodes.get(id);
@@ -759,16 +773,37 @@ export default function ArchiveScene({
           ? `${slide.meta.label} (${slide.meta.count})`
           : "";
         label.classList.toggle("is-selected", selected);
-        projected.set(
-          entry.group.position.x + FOLDER_W * 0.5,
-          -0.1,
-          entry.group.position.z + FOLDER_D * 0.55,
-        );
+        const anchor = folderLabelAnchor({
+          x: entry.group.position.x,
+          z: entry.group.position.z,
+        });
+        projected.set(anchor.x, anchor.y, anchor.z);
         projected.project(camera);
-        const lx = (projected.x * 0.5 + 0.5) * mount.clientWidth;
-        const ly = (-projected.y * 0.5 + 0.5) * mount.clientHeight;
-        label.style.opacity = projected.z > 1 ? "0" : "1";
-        label.style.transform = `translate(-50%, 0) translate(${lx}px, ${ly}px)`;
+        if (projected.z > 1) {
+          label.style.opacity = "0";
+          continue;
+        }
+        pendingLabels.push({
+          label,
+          x: (projected.x * 0.5 + 0.5) * mount.clientWidth,
+          y: (-projected.y * 0.5 + 0.5) * mount.clientHeight,
+          w: Math.max(label.offsetWidth, 72),
+          h: Math.max(label.offsetHeight, 28),
+        });
+      }
+
+      if (pendingLabels.length) {
+        const separated = separateOverlayLabels(pendingLabels, {
+          width: mount.clientWidth,
+          height: mount.clientHeight,
+          pad: 10,
+          gap: 8,
+        });
+        pendingLabels.forEach((item, index) => {
+          const pos = separated[index];
+          item.label.style.opacity = "1";
+          item.label.style.transform = `translate(-50%, 0) translate(${pos.x}px, ${pos.y}px)`;
+        });
       }
 
       for (const entry of reportEntries) {
