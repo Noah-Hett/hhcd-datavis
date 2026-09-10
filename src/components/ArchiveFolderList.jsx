@@ -156,16 +156,6 @@ export default function ArchiveFolderList({ titleId, headingRef }) {
       <p className="report-sidebar-empty">
         Pick a theme, year, type, or method.
       </p>
-      <p className="report-sidebar-empty">
-        <button
-          type="button"
-          className="report-sidebar-see-all"
-          onClick={() => openHelp()}
-        >
-          How to use this catalogue
-        </button>
-      </p>
-
       <GroupingTabs grouping={grouping} onGroupingChange={onGroupingChange} />
 
       <ul className="folder-list" id="archive-list" tabIndex={-1}>
@@ -186,6 +176,16 @@ export default function ArchiveFolderList({ titleId, headingRef }) {
           </li>
         ))}
       </ul>
+
+      <p className="report-sidebar-empty">
+        <button
+          type="button"
+          className="report-sidebar-see-all"
+          onClick={() => openHelp()}
+        >
+          How to use this catalogue
+        </button>
+      </p>
     </div>
   );
 }
