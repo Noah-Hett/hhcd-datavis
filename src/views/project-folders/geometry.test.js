@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import * as THREE from "three";
 import {
   ARCHIVE_PILE_RECIPE,
   CAROUSEL_FACE_YAW,
@@ -12,6 +13,7 @@ import {
   COVER_CANVAS_W,
   COVER_W,
   FOLDER_BACK_H,
+  FOLDER_FRONT_H,
   FOLDER_D,
   FOLDER_PAD,
   FOLDER_W,
@@ -388,7 +390,7 @@ test("portrait stack camera keeps every folder at a similar distance", () => {
   const max = Math.max(...dists);
   assert.ok(min > 0);
   assert.ok(
-    max / min < 1.4,
+    max / min < 1.2,
     `front/back distance ratio ${max / min} should stay even`,
   );
   const midX = Object.values(layout.folderPos).reduce(
@@ -396,6 +398,62 @@ test("portrait stack camera keeps every folder at a similar distance", () => {
     0,
   ) / layout.count;
   assert.ok(Math.abs(pose.lookX - midX) < 0.35);
+});
+
+test("portrait stack camera fits every sleeve in frame at a similar size", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4, 4, 4, 4, 4]), {
+    mode: "stack",
+  });
+  const aspect = 390 / 640;
+  const pose = rowCameraTarget(layout, aspect);
+  const camera = new THREE.PerspectiveCamera(pose.fov, aspect, 0.1, 80);
+  camera.up.set(pose.upX ?? 0, pose.upY ?? 1, pose.upZ ?? 0);
+  camera.position.set(pose.posX, pose.posY, pose.posZ);
+  camera.lookAt(pose.lookX, pose.lookY, pose.lookZ);
+  camera.updateMatrixWorld(true);
+  const point = new THREE.Vector3();
+  const widths = [];
+  for (const pos of Object.values(layout.folderPos)) {
+    const corners = [
+      [pos.x, 0, pos.z],
+      [pos.x + FOLDER_W, 0, pos.z],
+      [pos.x, 0, pos.z + FOLDER_D],
+      [pos.x + FOLDER_W, 0, pos.z + FOLDER_D],
+      [pos.x, FOLDER_FRONT_H, pos.z + FOLDER_D],
+      [pos.x + FOLDER_W, FOLDER_FRONT_H, pos.z + FOLDER_D],
+    ];
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const [x, y, z] of corners) {
+      point.set(x, y, z).project(camera);
+      const sx = (point.x * 0.5 + 0.5) * 390;
+      const sy = (-point.y * 0.5 + 0.5) * 640;
+      minX = Math.min(minX, sx);
+      maxX = Math.max(maxX, sx);
+      minY = Math.min(minY, sy);
+      maxY = Math.max(maxY, sy);
+    }
+    assert.ok(minX > -20 && maxX < 410, `sleeve x ${minX}..${maxX} off canvas`);
+    assert.ok(minY > -20 && maxY < 660, `sleeve y ${minY}..${maxY} off canvas`);
+    widths.push(maxX - minX);
+  }
+  const minW = Math.min(...widths);
+  const maxW = Math.max(...widths);
+  assert.ok(
+    maxW / minW < 1.25,
+    `screen width ratio ${maxW / minW} should stay even`,
+  );
+});
+
+test("wide row camera still sits to the side of the shelf", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4, 4]));
+  const pose = rowCameraTarget(layout, 16 / 9);
+  const dist = pose.posZ - pose.lookZ;
+  assert.ok(dist > 0);
+  assert.ok(Math.abs(pose.posX - (pose.lookX - 0.36 * dist)) < 1e-9);
+  assert.ok(Math.abs(pose.posY - (pose.lookY + 0.5 * dist)) < 1e-9);
 });
 
 test("folder labels anchor in front of the sleeve, not on the jacket", () => {

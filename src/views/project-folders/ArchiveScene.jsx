@@ -78,10 +78,13 @@ function folderTarget(fromLayout, toLayout, id, entry) {
   };
 }
 
-function fitRowCamera(layout, aspect, outPos, outLook) {
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
+
+function fitRowCamera(layout, aspect, outPos, outLook, outUp) {
   const pose = rowCameraTarget(layout, aspect);
   outLook.set(pose.lookX, pose.lookY, pose.lookZ);
   outPos.set(pose.posX, pose.posY, pose.posZ);
+  outUp?.set(pose.upX ?? 0, pose.upY ?? 1, pose.upZ ?? 0);
 }
 
 function folderReportCount(layout, folderId) {
@@ -346,6 +349,7 @@ export default function ArchiveScene({
     const introLook = new THREE.Vector3();
     const destPos = new THREE.Vector3();
     const destLook = new THREE.Vector3();
+    const destUp = new THREE.Vector3(0, 1, 0);
     const projected = new THREE.Vector3();
     const parentScratch = new THREE.Vector3();
     const qFrom = new THREE.Quaternion();
@@ -385,7 +389,7 @@ export default function ArchiveScene({
     };
 
     fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
-    fitRowCamera(startLayout, camera.aspect, destPos, destLook);
+    fitRowCamera(startLayout, camera.aspect, destPos, destLook, destUp);
     camera.position.copy(introPos);
     camera.lookAt(introLook);
     fitArchiveShadow(sun, archiveLayout);
@@ -631,13 +635,15 @@ export default function ArchiveScene({
       fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
       if (selectedFolder && shelved && !shuffling) {
         fitCarouselCamera(toLayout, camera.aspect, selectedFolder, destPos, destLook);
+        destUp.copy(WORLD_UP);
       } else {
-        fitRowCamera(toLayout, camera.aspect, destPos, destLook);
+        fitRowCamera(toLayout, camera.aspect, destPos, destLook, destUp);
       }
       if (!shelved) {
         camPos.lerpVectors(introPos, destPos, camT);
         camLook.lerpVectors(introLook, destLook, camT);
         camPos.y += Math.sin(Math.PI * camT) * 0.55;
+        camera.up.copy(WORLD_UP).lerp(destUp, camT).normalize();
         camera.position.copy(camPos);
         camera.lookAt(camLook);
       } else {
@@ -648,8 +654,10 @@ export default function ArchiveScene({
         } else {
           camera.position.lerp(camPos, 0.08);
         }
+        camera.up.copy(destUp);
         camera.lookAt(camLook);
       }
+      camera.updateMatrixWorld();
       sizeDirty = false;
 
       if (!shelved) {
@@ -790,12 +798,15 @@ export default function ArchiveScene({
       }
 
       if (pendingLabels.length) {
-        const separated = separateOverlayLabels(pendingLabels, {
-          width: mount.clientWidth,
-          height: mount.clientHeight,
-          pad: 10,
-          gap: 8,
-        });
+        const separated =
+          gridMode === "stack"
+            ? pendingLabels
+            : separateOverlayLabels(pendingLabels, {
+                width: mount.clientWidth,
+                height: mount.clientHeight,
+                pad: 10,
+                gap: 8,
+              });
         pendingLabels.forEach((item, index) => {
           const pos = separated[index];
           item.label.style.opacity = "1";

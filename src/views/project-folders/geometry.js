@@ -365,8 +365,16 @@ const ROW_GAP_Z = FOLDER_D + 0.72;
 const STACK_ROW_GAP_Z = FOLDER_D + 1.05;
 
 export const ROW_CAM_FOV = 22;
-/** Milder than a corridor FOV so perspective does not shrink the back row. */
-export const STACK_CAM_FOV = 28;
+/** Narrower than a corridor FOV so perspective does not shrink the back row. */
+export const STACK_CAM_FOV = 26;
+/** High 3/4: enough lift that every sleeve is a similar size, enough back that lookAt stays stable. */
+const STACK_CAM_SIDE = 0.08;
+const STACK_CAM_LIFT = 1.38;
+const STACK_CAM_BACK = 0.52;
+/** Use most of the frustum so the grid fills the phone, not a tiny island. */
+const STACK_CAM_FILL = 0.9;
+/** Extra depth in front of the nearest sleeve so HTML pills can sit below it. */
+const STACK_CAM_LABEL_Z = 0.7;
 
 /** Desk-height for a report lying cover-up (rz ≈ −π/2). */
 const FLAT_GROUND_Y = 0.042;
@@ -614,6 +622,67 @@ export function rowCameraFov(modeOrLayout, aspect) {
   return mode === "stack" || aspect < 0.9 ? STACK_CAM_FOV : ROW_CAM_FOV;
 }
 
+function stackCameraBasis(nX, nY, nZ) {
+  const xX = nZ;
+  const xY = 0;
+  const xZ = -nX;
+  const xLen = Math.hypot(xX, xZ) || 1;
+  const rx = xX / xLen;
+  const rz = xZ / xLen;
+  return {
+    xX: rx,
+    xY: 0,
+    xZ: rz,
+    yX: nY * rz,
+    yY: nZ * rx - nX * rz,
+    yZ: -nY * rx,
+  };
+}
+
+function fitStackCameraDistance(layout, lookX, lookY, lookZ, nX, nY, nZ, halfH, halfV) {
+  const basis = stackCameraBasis(nX, nY, nZ);
+  const fillH = halfH * STACK_CAM_FILL;
+  const fillV = halfV * STACK_CAM_FILL;
+  let dist = 6.5;
+  const consider = (px, py, pz) => {
+    const relX = px - lookX;
+    const relY = py - lookY;
+    const relZ = pz - lookZ;
+    const cx = relX * basis.xX + relY * basis.xY + relZ * basis.xZ;
+    const cy = relX * basis.yX + relY * basis.yY + relZ * basis.yZ;
+    const along = relX * nX + relY * nY + relZ * nZ;
+    dist = Math.max(
+      dist,
+      along + 1.4,
+      along + Math.abs(cx) / fillH,
+      along + Math.abs(cy) / fillV,
+    );
+  };
+  const positions = Object.values(layout.folderPos);
+  if (!positions.length) {
+    consider(-FOLDER_W, 0, 0);
+    consider(FOLDER_W, FOLDER_BACK_H, FOLDER_D + STACK_CAM_LABEL_Z);
+    return dist;
+  }
+  for (const pos of positions) {
+    const x0 = pos.x;
+    const x1 = pos.x + FOLDER_W;
+    const z0 = pos.z;
+    const z1 = pos.z + FOLDER_D;
+    consider(x0, 0, z0);
+    consider(x1, 0, z0);
+    consider(x0, 0, z1);
+    consider(x1, 0, z1);
+    consider(x0, FOLDER_BACK_H, z0);
+    consider(x1, FOLDER_BACK_H, z0);
+    consider(x0, FOLDER_FRONT_H, z1);
+    consider(x1, FOLDER_FRONT_H, z1);
+    consider(x0, 0, z1 + STACK_CAM_LABEL_Z);
+    consider(x1, 0, z1 + STACK_CAM_LABEL_Z);
+  }
+  return dist;
+}
+
 /**
  * Frame the whole folder grid from a high, centred isometric so every
  * sleeve sits at a similar distance. Portrait used to look down an aisle
@@ -624,22 +693,20 @@ export function rowCameraTarget(layout, aspect) {
   const stack = layout.mode === "stack" || aspect < 0.9;
   const fovDeg = rowCameraFov(layout.mode ?? (stack ? "stack" : "row"), aspect);
   const half = Math.tan((fovDeg * Math.PI) / 180 / 2);
-  const padX = stack ? 0.72 : 1.15;
-  const padZ = stack ? 1.25 : 0.95;
-  const worldW = ext.width + padX * 2;
-  const worldH = FOLDER_BACK_H + (stack ? 0.35 : 1.55);
-  const worldD = ext.depth + padZ * 2;
-  const a = Math.max(aspect, stack ? 0.48 : 0.4);
-  const distX = worldW / 2 / (half * a);
-  const distY = worldH / 2 / half;
-  const distZ = worldD / 2 / half;
-  const dist = Math.max(distX, distY, distZ, 7.2) * (stack ? 1.1 : 1.08);
 
   const lookX = (ext.minX + ext.maxX) / 2;
-  const lookY = stack ? FOLDER_BACK_H * 0.32 : 1.18;
+  const lookY = stack ? FOLDER_BACK_H * 0.3 : 1.18;
   const lookZ = (ext.minZ + ext.maxZ) / 2;
 
   if (!stack) {
+    const worldW = ext.width + 1.15 * 2;
+    const worldH = FOLDER_BACK_H + 1.55;
+    const worldD = ext.depth + 0.95 * 2;
+    const a = Math.max(aspect, 0.4);
+    const distX = worldW / 2 / (half * a);
+    const distY = worldH / 2 / half;
+    const distZ = worldD / 2 / half;
+    const dist = Math.max(distX, distY, distZ, 7.2) * 1.08;
     return {
       fov: fovDeg,
       lookX,
@@ -648,21 +715,39 @@ export function rowCameraTarget(layout, aspect) {
       posX: lookX - 0.36 * dist,
       posY: lookY + 0.5 * dist,
       posZ: lookZ + dist,
+      upX: 0,
+      upY: 1,
+      upZ: 0,
     };
   }
 
-  const side = 0.18;
-  const lift = 1.08;
-  const back = 0.7;
-  const scale = dist / Math.hypot(side, lift, back);
+  const dirLen = Math.hypot(STACK_CAM_SIDE, STACK_CAM_LIFT, STACK_CAM_BACK);
+  const nX = -STACK_CAM_SIDE / dirLen;
+  const nY = STACK_CAM_LIFT / dirLen;
+  const nZ = STACK_CAM_BACK / dirLen;
+  const a = Math.max(aspect, 0.42);
+  const dist = fitStackCameraDistance(
+    layout,
+    lookX,
+    lookY,
+    lookZ,
+    nX,
+    nY,
+    nZ,
+    half * a,
+    half,
+  );
   return {
     fov: fovDeg,
     lookX,
     lookY,
     lookZ,
-    posX: lookX - side * scale,
-    posY: lookY + lift * scale,
-    posZ: lookZ + back * scale,
+    posX: lookX + nX * dist,
+    posY: lookY + nY * dist,
+    posZ: lookZ + nZ * dist,
+    upX: 0,
+    upY: 1,
+    upZ: 0,
   };
 }
 
