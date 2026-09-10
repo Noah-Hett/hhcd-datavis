@@ -38,6 +38,22 @@ test("header Search is one field that shrinks on mobile and Sidebar is hidden th
     searchCss,
     /@media \(max-width: 799px\)[\s\S]*\.simple-search \{[\s\S]*width: 8rem;/,
   );
+  assert.match(
+    searchCss,
+    /@media \(max-width: 799px\)[\s\S]*\.simple-search \.simple-search-input \{[\s\S]*font-size: 16px;/,
+  );
+  assert.match(
+    searchCss,
+    /@media \(max-width: 799px\)[\s\S]*\.simple-search:focus-within \{[\s\S]*grid-column: 1 \/ -1;/,
+  );
+  assert.doesNotMatch(
+    searchCss,
+    /@media \(max-width: 799px\)[\s\S]*\.simple-search:focus-within \.simple-search-label[\s\S]*position: absolute;/,
+  );
+  assert.match(
+    css,
+    /\.app-header:has\(\.simple-search:focus-within\) \.app-chrome\s*\{\s*display:\s*none;/,
+  );
 });
 
 test("help copy describes Home inside the mode toggle", () => {

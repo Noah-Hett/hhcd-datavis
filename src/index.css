@@ -242,6 +242,8 @@ select {
   border-radius: 999px;
   background: var(--chrome);
   color: var(--chrome-ink);
+  /* Keep >=16px so mobile browsers do not zoom the layout on focus. */
+  font-size: 16px;
 }
 
 .simple-search-input::placeholder {
@@ -874,6 +876,11 @@ select {
     justify-self: end;
     margin-left: 0;
     flex-wrap: nowrap;
+  }
+
+  /* Give focused search the full second row; Help returns when search blurs. */
+  .app-header:has(.simple-search:focus-within) .app-chrome {
+    display: none;
   }
 
   .chrome-btn-sidebar {
