@@ -677,9 +677,11 @@ select {
 }
 
 .report-sidebar .sidebar-grouping label {
+  position: relative;
   min-height: 40px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 0 12px;
   border-radius: 999px;
@@ -704,16 +706,15 @@ select {
 }
 
 .report-sidebar .sidebar-grouping input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--text);
-  flex-shrink: 0;
-}
-
-.report-sidebar .sidebar-grouping label.is-active input,
-.report-sidebar .sidebar-grouping label:has(:checked) input {
-  accent-color: var(--chrome);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .report-sidebar .folder-list,
