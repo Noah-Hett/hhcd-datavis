@@ -809,12 +809,6 @@ export default function ArchiveScene({
           w: Math.max(label.offsetWidth, 72),
           h: Math.max(label.offsetHeight, 28),
         };
-        const bounds = {
-          width: mount.clientWidth,
-          height: mount.clientHeight,
-          pad: 10,
-          gap: 8,
-        };
         const pos =
           toLayout.mode === "stack"
             ? folderLabelScreenPos(box, size, {
