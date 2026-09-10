@@ -691,41 +691,22 @@ export function screenBoxFromPoints(points) {
   return { minX, maxX, minY, maxY };
 }
 
-export function overlayRectFromTopCenter(x, y, w, h) {
-  return {
-    minX: x - w / 2,
-    maxX: x + w / 2,
-    minY: y,
-    maxY: y + h,
-  };
-}
-
-export function rectsOverlap(a, b, gap = 0) {
-  return (
-    a.minX < b.maxX + gap &&
-    a.maxX + gap > b.minX &&
-    a.minY < b.maxY + gap &&
-    a.maxY + gap > b.minY
-  );
-}
-
-/** Drop each pill below any folder silhouette it still covers. */
-export function pushLabelsOffBoxes(labels, boxes, gap = 8) {
-  const next = labels.map((item) => ({ ...item }));
-  for (let pass = 0; pass < 8; pass += 1) {
-    let moved = false;
-    for (const label of next) {
-      const rect = overlayRectFromTopCenter(label.x, label.y, label.w, label.h);
-      for (const box of boxes) {
-        if (rectsOverlap(rect, box, gap)) {
-          label.y = box.maxY + gap;
-          moved = true;
-        }
-      }
-    }
-    if (!moved) break;
-  }
-  return next;
+/** Place a pill to the left or right of a folder’s screen box, vertically centred. */
+export function folderLabelScreenPos(box, size, bounds = {}) {
+  const w = Math.max(size.w ?? 0, 1);
+  const h = Math.max(size.h ?? 0, 1);
+  const width = Math.max(bounds.width ?? 0, 1);
+  const height = Math.max(bounds.height ?? 0, 1);
+  const pad = bounds.pad ?? 8;
+  const gap = bounds.gap ?? 8;
+  const folderCx = (box.minX + box.maxX) / 2;
+  const folderCy = (box.minY + box.maxY) / 2;
+  const left = folderCx < width * 0.5;
+  const x = left
+    ? Math.max(pad + w / 2, box.minX - w / 2 - gap)
+    : Math.min(width - pad - w / 2, box.maxX + w / 2 + gap);
+  const y = Math.min(height - pad - h, Math.max(pad, folderCy - h / 2));
+  return { x, y };
 }
 
 export function layoutExtents(layout) {

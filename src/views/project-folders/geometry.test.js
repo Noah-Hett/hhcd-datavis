@@ -34,12 +34,12 @@ import {
   computeLayout,
   folderGridMode,
   folderLabelAnchor,
+  folderLabelScreenPos,
   folderRowGap,
   folderSpacing,
   layoutColumns,
   reportHitAllowed,
   paintCover,
-  pushLabelsOffBoxes,
   selectPeekSlot,
   separateOverlayLabels,
   shortestAngleDelta,
@@ -397,11 +397,19 @@ test("separateOverlayLabels pushes overlapping pills apart and stays in bounds",
   assert.ok(clamped[0].y + 28 <= 700 - 60 - 8 + 1e-6);
 });
 
-test("pushLabelsOffBoxes drops a pill below the folder silhouette it covers", () => {
-  const labels = [{ x: 100, y: 40, w: 80, h: 24 }];
-  const boxes = [{ minX: 60, maxX: 140, minY: 20, maxY: 80 }];
-  const moved = pushLabelsOffBoxes(labels, boxes, 8);
-  assert.ok(moved[0].y >= 88);
+test("folderLabelScreenPos parks a pill beside the sleeve, not on it", () => {
+  const left = folderLabelScreenPos(
+    { minX: 80, maxX: 160, minY: 40, maxY: 200 },
+    { w: 72, h: 28 },
+    { width: 390, height: 700, pad: 8, gap: 8 },
+  );
+  assert.ok(left.x + 36 <= 80, "left-column label sits left of the box");
+  const right = folderLabelScreenPos(
+    { minX: 220, maxX: 300, minY: 40, maxY: 200 },
+    { w: 72, h: 28 },
+    { width: 390, height: 700, pad: 8, gap: 8 },
+  );
+  assert.ok(right.x - 36 >= 300, "right-column label sits right of the box");
 });
 
 test("shortestAngleDelta takes the short way around", () => {

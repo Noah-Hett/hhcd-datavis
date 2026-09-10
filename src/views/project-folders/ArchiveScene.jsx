@@ -22,10 +22,10 @@ import {
   createReportMesh,
   createSharedResources,
   disposeSharedResources,
-  folderGridMode,
   folderBoxCorners,
+  folderGridMode,
+  folderLabelScreenPos,
   layoutExtents,
-  pushLabelsOffBoxes,
   reportHitAllowed,
   screenBoxFromPoints,
   separateOverlayLabels,
@@ -86,7 +86,7 @@ function rowCameraFov(layout, aspect) {
 function fitRowCamera(layout, aspect, outPos, outLook) {
   const ext = layoutExtents(layout);
   const stack = layout.mode === "stack" || aspect < 0.9;
-  const padX = stack ? 0.32 : 1.15;
+  const padX = stack ? 0.62 : 1.15;
   const padZ = stack ? 1.15 : 0.95;
   const worldW = ext.width + padX * 2;
   const worldH = FOLDER_BACK_H + (stack ? 0.7 : 1.55);
@@ -805,37 +805,43 @@ export default function ArchiveScene({
           continue;
         }
         const box = screenBoxFromPoints(corners);
-        pendingLabels.push({
-          label,
-          x: (box.minX + box.maxX) / 2,
-          y: box.maxY + 8,
+        const size = {
           w: Math.max(label.offsetWidth, 72),
           h: Math.max(label.offsetHeight, 28),
-          box,
+        };
+        const bounds = {
+          width: mount.clientWidth,
+          height: mount.clientHeight,
+          pad: 10,
+          gap: 8,
+        };
+        const pos =
+          toLayout.mode === "stack"
+            ? folderLabelScreenPos(box, size, bounds)
+            : {
+                x: (box.minX + box.maxX) / 2,
+                y: box.maxY + 8,
+              };
+        pendingLabels.push({
+          label,
+          x: pos.x,
+          y: pos.y,
+          w: size.w,
+          h: size.h,
         });
       }
 
       if (pendingLabels.length) {
-        const boxes = pendingLabels.map((item) => item.box);
-        const cleared = pushLabelsOffBoxes(pendingLabels, boxes, 8);
-        const separated = separateOverlayLabels(cleared, {
+        const separated = separateOverlayLabels(pendingLabels, {
           width: mount.clientWidth,
           height: mount.clientHeight,
           pad: 10,
           gap: 8,
         });
-        const final = pushLabelsOffBoxes(
-          separated.map((pos, index) => ({
-            ...cleared[index],
-            x: pos.x,
-            y: pos.y,
-          })),
-          boxes,
-          8,
-        );
-        final.forEach((item) => {
+        pendingLabels.forEach((item, index) => {
+          const pos = separated[index];
           item.label.style.opacity = "1";
-          item.label.style.transform = `translate(-50%, 0) translate(${item.x}px, ${item.y}px)`;
+          item.label.style.transform = `translate(-50%, 0) translate(${pos.x}px, ${pos.y}px)`;
         });
       }
 
