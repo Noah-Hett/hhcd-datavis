@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useSelection } from "../state/SelectionContext.jsx";
 import { groupingIdFromFolderId } from "../state/selection.js";
 import { reports } from "../data/index.js";
-import ThemeSwatch from "../theme/ThemeSwatch.jsx";
 import { themeForCategory } from "../theme/categories.js";
 import {
   BROWSE_GROUPINGS,
@@ -14,7 +13,6 @@ import HelpGuide from "./HelpGuide.jsx";
 import {
   browseFacetsFor,
   connectedReports,
-  siblingReports,
 } from "./sidebarBrowse.js";
 import "./report-sidebar-sheet.css";
 
@@ -65,6 +63,7 @@ function folderLabel(folderId) {
 function ReportRow({ report, folderId, source = "archive" }) {
   const { selectedReportNo, openReport } = useSelection();
   const current = String(report.reportNo) === String(selectedReportNo);
+  const meta = [report.year, report.projectType].filter(Boolean).join(" · ");
   return (
     <button
       type="button"
@@ -78,36 +77,43 @@ function ReportRow({ report, folderId, source = "archive" }) {
         })
       }
     >
-      <span className="report-btn-meta">
-        {report.year}
-        {report.category ? (
-          <>
-            <span aria-hidden="true"> · </span>
-            <span className="sr-only">Theme: </span>
-            {themeForCategory(report.category) ? (
-              <ThemeSwatch category={report.category} />
-            ) : null}{" "}
-            {report.category}
-          </>
-        ) : null}
-      </span>
       <span className="report-btn-title">{report.title}</span>
-      <span className="report-btn-author">{report.author}</span>
+      {meta ? <span className="report-btn-meta">{meta}</span> : null}
+    </button>
+  );
+}
+
+function FacetButton({ facet, className, showCount = false }) {
+  const { openFolder } = useSelection();
+  const theme =
+    facet.kind === "theme" ? themeForCategory(facet.label) : null;
+  return (
+    <button
+      type="button"
+      className={theme ? `${className} is-theme` : className}
+      style={theme ? { "--theme-color": theme.color } : undefined}
+      onClick={() => openFolder(facet.folderId, { openSidebar: true })}
+      aria-label={`Browse ${facet.count} ${
+        facet.count === 1 ? "report" : "reports"
+      } in ${facet.kindLabel.toLowerCase()} ${facet.label}`}
+    >
+      <span className="report-sidebar-facet-label">{facet.label}</span>
+      {showCount ? (
+        <span className="report-sidebar-facet-count">{facet.count}</span>
+      ) : null}
     </button>
   );
 }
 
 function ReportRecord({ report, headingRef, titleId }) {
-  const { openFolder } = useSelection();
   const facets = browseFacetsFor(report, reports);
   const linked = connectedReports(report, reports);
-  const siblings = siblingReports(report, reports);
   const themeFolderId = folderIdForFacet("theme", report.category);
-
-  const openFacet = (folderId) => {
-    if (!folderId) return;
-    openFolder(folderId, { openSidebar: true });
-  };
+  const themeFacets = facets.filter((facet) => facet.kind === "theme");
+  const placeFacets = facets.filter(
+    (facet) => facet.kind === "type" || facet.kind === "year",
+  );
+  const methodFacets = facets.filter((facet) => facet.kind === "method");
 
   return (
     <article aria-labelledby={titleId}>
@@ -127,38 +133,41 @@ function ReportRecord({ report, headingRef, titleId }) {
       >
         {report.title}
       </h2>
-      <p className="report-sidebar-meta">
-        Catalogue no. {report.reportNo}
-      </p>
 
-      {facets.length > 0 ? (
+      {themeFacets.length > 0 || placeFacets.length > 0 ? (
         <nav
           className="report-sidebar-facets"
           aria-label="Explore related reports"
         >
-          {facets.map((facet) => (
-            <button
+          {themeFacets.map((facet) => (
+            <FacetButton
               key={`${facet.kind}:${facet.label}`}
-              type="button"
+              facet={facet}
               className="report-sidebar-facet"
-              onClick={() => openFacet(facet.folderId)}
-              aria-label={`Browse ${facet.count} ${
-                facet.count === 1 ? "report" : "reports"
-              } in ${facet.kindLabel.toLowerCase()} ${facet.label}`}
-            >
-              <span className="report-sidebar-facet-kind">{facet.kindLabel}</span>
-              <span className="report-sidebar-facet-label">
-                {facet.kind === "theme" && themeForCategory(facet.label) ? (
-                  <ThemeSwatch category={facet.label} />
-                ) : null}
-                {facet.label}
-              </span>
-              <span className="report-sidebar-facet-count">
-                {facet.count} {facet.count === 1 ? "report" : "reports"}
-              </span>
-            </button>
+              showCount
+            />
+          ))}
+          {placeFacets.map((facet) => (
+            <FacetButton
+              key={`${facet.kind}:${facet.label}`}
+              facet={facet}
+              className="report-sidebar-facet"
+            />
           ))}
         </nav>
+      ) : null}
+
+      {methodFacets.length > 0 ? (
+        <p className="report-sidebar-methods">
+          <span className="sr-only">Methods</span>
+          {methodFacets.map((facet) => (
+            <FacetButton
+              key={`${facet.kind}:${facet.label}`}
+              facet={facet}
+              className="report-sidebar-method"
+            />
+          ))}
+        </p>
       ) : null}
 
       {!isEmpty(report.description) ? (
@@ -174,21 +183,9 @@ function ReportRecord({ report, headingRef, titleId }) {
         ),
       )}
 
-      {CONTEXT_FIELDS.filter((field) => !isEmpty(report[field.key])).map(
-        (field) => (
-          <section key={field.key} className="report-sidebar-field">
-            <h3>{field.label}</h3>
-            <FieldValue value={report[field.key]} />
-          </section>
-        ),
-      )}
-
       {linked.length > 0 ? (
         <section className="report-sidebar-field">
           <h3>Connected reports</h3>
-          <p className="report-sidebar-related-copy">
-            Linked in the catalogue — open one to keep reading.
-          </p>
           <ul className="report-list report-sidebar-related">
             {linked.map((item) => (
               <li key={item.reportNo}>
@@ -204,31 +201,14 @@ function ReportRecord({ report, headingRef, titleId }) {
         </section>
       ) : null}
 
-      {siblings.total > 0 ? (
-        <section className="report-sidebar-field">
-          <h3>More in {report.category}</h3>
-          <p className="report-sidebar-related-copy">
-            {siblings.total} other{" "}
-            {siblings.total === 1 ? "report" : "reports"} in this theme.
-          </p>
-          <ul className="report-list report-sidebar-related">
-            {siblings.reports.map((item) => (
-              <li key={item.reportNo}>
-                <ReportRow report={item} folderId={themeFolderId} />
-              </li>
-            ))}
-          </ul>
-          {themeFolderId ? (
-            <button
-              type="button"
-              className="report-sidebar-see-all"
-              onClick={() => openFolder(themeFolderId, { openSidebar: true })}
-            >
-              See all {siblings.total + 1} {report.category} reports
-            </button>
-          ) : null}
-        </section>
-      ) : null}
+      {CONTEXT_FIELDS.filter((field) => !isEmpty(report[field.key])).map(
+        (field) => (
+          <section key={field.key} className="report-sidebar-field">
+            <h3>{field.label}</h3>
+            <FieldValue value={report[field.key]} />
+          </section>
+        ),
+      )}
 
       {isHttpUrl(report.website) ? (
         <p className="report-sidebar-field">
@@ -251,6 +231,9 @@ function ReportRecord({ report, headingRef, titleId }) {
             Author contact (opens in a new tab)
           </a>
         </p>
+      ) : null}
+      {report.reportNo != null && String(report.reportNo).trim() !== "" ? (
+        <p className="report-sidebar-meta">No. {report.reportNo}</p>
       ) : null}
     </article>
   );
