@@ -127,4 +127,26 @@ test("slash, arrows, and Enter drive the list without wrapping helpers", () => {
     }),
     null,
   );
+  assert.equal(
+    searchListKeyAction({
+      key: "Escape",
+      typing: false,
+      inInput: false,
+      overlayOpen: false,
+      inFilters: true,
+      length: 8,
+    }),
+    null,
+  );
+  assert.deepEqual(
+    searchListKeyAction({
+      key: "/",
+      typing: false,
+      inInput: false,
+      overlayOpen: false,
+      inFilters: true,
+      length: 8,
+    }),
+    { type: "focus-input" },
+  );
 });

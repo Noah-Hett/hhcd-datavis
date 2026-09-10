@@ -68,10 +68,10 @@ export default function HelpGuide({ titleId, headingRef }) {
         as Simple view. On a phone that same field shrinks so the chrome stays
         compact, then grows again while you type. Choosing a match opens the
         shared sidebar. A footer link opens Simple view with that query. Simple
-        view hides that header field and uses its own search box, plus filter
-        pills for theme, type, method, and year. Search results are split into
-        reports that were returned and the rest of the catalogue. You can read
-        the catalogue without touching the 3D scene or the graph.
+        view hides that header field and uses its own search box, plus four
+        filter menus for theme, type, method, and year. Search results are
+        split into reports that were returned and the rest of the catalogue.
+        You can read the catalogue without touching the 3D scene or the graph.
       </p>
       <h3>Keyboard</h3>
       <ul className="help-keys">

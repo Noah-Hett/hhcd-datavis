@@ -7,6 +7,8 @@ import {
   facetKey,
   filterContains,
   removeFilter,
+  selectValueForDimension,
+  setDimension,
   toggleFacet,
 } from "./filters.js";
 
@@ -74,4 +76,69 @@ test("clearFacetState drops manual picks and suppresses parsed chips", () => {
   const next = clearFacetState(parsedFilters);
   assert.deepEqual(next.manual.categories, []);
   assert.deepEqual(next.suppressed.sort(), ["categories:Transport", "years:2001"]);
+});
+
+test("setDimension keeps one value per menu and can clear it", () => {
+  const first = setDimension({
+    dimension: "methods",
+    value: "Observation",
+    manual: emptyFilters(),
+    suppressed: [],
+    parsedFilters: emptyFilters(),
+  });
+  assert.deepEqual(first.manual.methods, ["Observation"]);
+  const swapped = setDimension({
+    dimension: "methods",
+    value: "Cultural Probes",
+    manual: first.manual,
+    suppressed: first.suppressed,
+    parsedFilters: emptyFilters(),
+  });
+  assert.deepEqual(swapped.manual.methods, ["Cultural Probes"]);
+  const cleared = setDimension({
+    dimension: "methods",
+    value: "",
+    manual: swapped.manual,
+    suppressed: swapped.suppressed,
+    parsedFilters: emptyFilters(),
+  });
+  assert.deepEqual(cleared.manual.methods, []);
+});
+
+test("setDimension suppresses a query-parsed year without rewriting the query", () => {
+  const parsedFilters = emptyFilters();
+  parsedFilters.years = [2001];
+  const cleared = setDimension({
+    dimension: "years",
+    value: "",
+    manual: emptyFilters(),
+    suppressed: [],
+    parsedFilters,
+  });
+  assert.deepEqual(cleared.suppressed, ["years:2001"]);
+  assert.deepEqual(cleared.manual.years, []);
+  const restored = setDimension({
+    dimension: "years",
+    value: "2001",
+    manual: cleared.manual,
+    suppressed: cleared.suppressed,
+    parsedFilters,
+  });
+  assert.deepEqual(restored.suppressed, []);
+  assert.deepEqual(restored.manual.years, []);
+});
+
+test("selectValueForDimension reads the applied chip", () => {
+  assert.equal(selectValueForDimension([], "categories"), "");
+  assert.equal(
+    selectValueForDimension(
+      [{ dimension: "categories", value: "Transport", key: "categories:Transport" }],
+      "categories",
+    ),
+    "Transport",
+  );
+  assert.equal(
+    selectValueForDimension([{ dimension: "years", value: 2001, key: "years:2001" }], "years"),
+    "2001",
+  );
 });

@@ -9,7 +9,7 @@ share one mint chrome, one report sidebar, and one catalogue (`src/data/`):
   the year × type map (band tracks + method pills). The 3D scene is lazy-loaded
   on this route only.
 - **Simple** (`/search`) — a keyboard-first list of every report, ranked by
-  the existing NLP search. Filter pills sit on this page. Header typeahead
+  the existing NLP search. Four filter menus sit on this page. Header typeahead
   is Explore-only.
 
 Deep links: `/folders` → `/#archive`, `/year-type` → `/#map`, `?report=` opens

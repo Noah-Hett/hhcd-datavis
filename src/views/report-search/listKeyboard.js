@@ -37,11 +37,14 @@ export function searchListKeyAction({
   length,
 }) {
   if (overlayOpen) return null;
+  if (inFilters) {
+    if (key === "/" && !typing) return { type: "focus-input" };
+    return null;
+  }
   if (key === "/" && !typing) return { type: "focus-input" };
   if (key === "Escape") {
     return inInput ? { type: "escape-input" } : { type: "focus-input" };
   }
-  if (inFilters) return null;
   if (!length) return null;
   if (inInput && typing && key === "ArrowDown") {
     return { type: "focus-row", index: 0 };

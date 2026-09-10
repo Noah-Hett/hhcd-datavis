@@ -16,4 +16,6 @@ test("Help opens in the report sidebar, not a dialog", () => {
   assert.match(layout, /aria-controls="report-sidebar"/);
   assert.match(sidebar, /HelpGuide/);
   assert.match(help, /How to use this catalogue/);
+  assert.match(help, /four\s+filter menus/);
+  assert.equal(help.includes("filter pills"), false);
 });
