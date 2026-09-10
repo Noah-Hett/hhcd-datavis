@@ -38,6 +38,10 @@ test("header Search is one field that shrinks on mobile and Sidebar is hidden th
     searchCss,
     /@media \(max-width: 799px\)[\s\S]*\.simple-search \{[\s\S]*width: 8rem;/,
   );
+  assert.match(
+    searchCss,
+    /@media \(max-width: 799px\)[\s\S]*\.simple-search \.simple-search-input \{[\s\S]*font-size: 16px;/,
+  );
 });
 
 test("help copy describes Home inside the mode toggle", () => {
