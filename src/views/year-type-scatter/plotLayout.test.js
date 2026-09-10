@@ -3,8 +3,13 @@ import test from "node:test";
 import {
   LEFT,
   RIGHT,
+  Y_COL,
+  Y_COL_NARROW,
+  Y_COL_NARROW_MAX,
   minInnerWidth,
   plotLayout,
+  yColumnWidth,
+  yLabelLines,
 } from "./plotLayout.js";
 
 const YEAR_MIN = 2000;
@@ -41,4 +46,35 @@ test("narrow pane keeps the min width and is scrollable", () => {
   assert.equal(layout.innerWidth, floor);
   assert.equal(layout.plotWidth, LEFT + floor + RIGHT);
   assert.ok(layout.plotWidth > viewportWidth + 1);
+});
+
+test("y column stays wide on desktop and narrows on thin viewports", () => {
+  assert.equal(yColumnWidth(Y_COL_NARROW_MAX + 1), Y_COL);
+  assert.equal(yColumnWidth(Y_COL_NARROW_MAX), Y_COL_NARROW);
+  assert.equal(yColumnWidth(390), Y_COL_NARROW);
+  assert.ok(Y_COL_NARROW < Y_COL);
+  assert.equal(Y_COL_NARROW, 122);
+});
+
+test("narrow Y labels split to two lines at a slash or last space", () => {
+  assert.deepEqual(yLabelLines("Design guidelines / Policy guidelines"), [
+    "Design guidelines /",
+    "Policy guidelines",
+  ]);
+  assert.deepEqual(yLabelLines("Physical prototypes"), [
+    "Physical",
+    "prototypes",
+  ]);
+  assert.deepEqual(yLabelLines("Conceptual framework"), [
+    "Conceptual",
+    "framework",
+  ]);
+  assert.deepEqual(yLabelLines("Products / Media campaign"), [
+    "Products /",
+    "Media campaign",
+  ]);
+  assert.deepEqual(yLabelLines("Business model / Design concepts"), [
+    "Business model /",
+    "Design concepts",
+  ]);
 });

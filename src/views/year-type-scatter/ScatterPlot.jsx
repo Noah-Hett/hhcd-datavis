@@ -1,6 +1,12 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Y_BANDS, clusterAriaLabel } from "./mapReports.js";
-import { Y_COL, plotLayout } from "./plotLayout.js";
+import {
+  Y_COL,
+  Y_COL_NARROW,
+  Y_COL_NARROW_MAX,
+  plotLayout,
+  yLabelLines,
+} from "./plotLayout.js";
 import {
   DOT_HOVER_PAD,
   dotIsDimmed,
@@ -28,18 +34,25 @@ function yForBand(yBand, layout) {
 function usePlotSize() {
   const frameRef = useRef(null);
   const scrollRef = useRef(null);
-  const [size, setSize] = useState({ viewportWidth: 0, height: 0 });
+  const [size, setSize] = useState({
+    viewportWidth: 0,
+    height: 0,
+    yCol: Y_COL,
+  });
 
   useLayoutEffect(() => {
     const frame = frameRef.current;
     const scroll = scrollRef.current;
     if (!frame || !scroll) return undefined;
 
+    const narrow = window.matchMedia(`(max-width: ${Y_COL_NARROW_MAX}px)`);
+
     const read = () => {
+      const yCol = narrow.matches ? Y_COL_NARROW : Y_COL;
       // Prefer frame width minus the fixed Y column so a leftover horizontal
       // scrollbar cannot shrink clientWidth and keep the plot "scrollable".
       const frameWidth = Math.round(frame.clientWidth);
-      const fromFrame = frameWidth - Y_COL;
+      const fromFrame = frameWidth - yCol;
       const fromScroll = Math.round(scroll.clientWidth);
       const viewportWidth = Math.max(
         fromFrame > 1 ? fromFrame : fromScroll,
@@ -51,9 +64,10 @@ function usePlotSize() {
       if (height < 2 || viewportWidth < 2) return;
       setSize((prev) =>
         Math.abs(prev.viewportWidth - viewportWidth) < 0.5 &&
-        Math.abs(prev.height - height) < 0.5
+        Math.abs(prev.height - height) < 0.5 &&
+        prev.yCol === yCol
           ? prev
-          : { viewportWidth, height },
+          : { viewportWidth, height, yCol },
       );
     };
 
@@ -63,10 +77,12 @@ function usePlotSize() {
     observer.observe(frame);
     observer.observe(scroll);
     window.addEventListener("resize", read);
+    narrow.addEventListener("change", read);
     return () => {
       cancelAnimationFrame(raf);
       observer.disconnect();
       window.removeEventListener("resize", read);
+      narrow.removeEventListener("change", read);
     };
   }, []);
 
@@ -103,6 +119,7 @@ export default function ScatterPlot({
   onDotRef,
 }) {
   const { frameRef, scrollRef, size } = usePlotSize();
+  const yCol = size.yCol || Y_COL;
   const layout = plotLayout(size.viewportWidth, size.height, yearMin, yearMax);
   const ready = size.viewportWidth > 1 && size.height > 1;
   const painted = useMemo(
@@ -167,25 +184,34 @@ export default function ScatterPlot({
         {ready ? (
           <svg
             className="scatter-y"
-            width={Y_COL}
+            width={yCol}
             height={layout.height}
-            viewBox={`0 0 ${Y_COL} ${layout.height}`}
+            viewBox={`0 0 ${yCol} ${layout.height}`}
             overflow="visible"
             aria-hidden="true"
-            style={{ width: Y_COL, height: layout.height }}
+            style={{ width: yCol, height: layout.height }}
           >
             {Y_BANDS.map((band) => {
               const y = yForBand(band.id, layout);
+              const lines =
+                yCol === Y_COL_NARROW ? yLabelLines(band.label) : [band.label];
               return (
                 <foreignObject
                   key={band.id}
                   x={8}
                   y={y - 22}
-                  width={Y_COL - 16}
+                  width={yCol - 16}
                   height={44}
                 >
                   <div xmlns="http://www.w3.org/1999/xhtml" className="y-label">
-                    {band.label}
+                    <span>
+                      {lines.map((line, index) => (
+                        <span key={line}>
+                          {index > 0 ? <br /> : null}
+                          {line}
+                        </span>
+                      ))}
+                    </span>
                   </div>
                 </foreignObject>
               );

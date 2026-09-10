@@ -1,10 +1,30 @@
 export const Y_COL = 168;
+/** Narrower Y labels on thin viewports so every type sits on two lines. */
+export const Y_COL_NARROW = 122;
+export const Y_COL_NARROW_MAX = 799;
 export const LEFT = 20;
 export const RIGHT = 40;
 export const TOP = 28;
 export const BOTTOM = 28;
 export const PX_PER_YEAR = 48;
 export const MIN_INNER_FLOOR = 692;
+
+export function yColumnWidth(viewportWidth) {
+  return viewportWidth <= Y_COL_NARROW_MAX ? Y_COL_NARROW : Y_COL;
+}
+
+/** Two-line split for the narrow Y column: at " / ", otherwise at the last space. */
+export function yLabelLines(label) {
+  const slash = label.indexOf(" / ");
+  if (slash >= 0) {
+    return [label.slice(0, slash + 2), label.slice(slash + 3)];
+  }
+  const space = label.lastIndexOf(" ");
+  if (space >= 0) {
+    return [label.slice(0, space), label.slice(space + 1)];
+  }
+  return [label];
+}
 
 /** Minimum inner plot width so year spacing stays readable when scrolling. */
 export function minInnerWidth(yearMin, yearMax) {
