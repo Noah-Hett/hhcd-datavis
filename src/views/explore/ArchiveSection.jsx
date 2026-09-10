@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { reports } from "../../data/index.js";
+import { useLocation, useNavigate } from "react-router-dom";
+import { reports, yearRange } from "../../data/index.js";
+import { groupingIdFromFolderId } from "../../state/selection.js";
 import { useSelection } from "../../state/SelectionContext.jsx";
 import ArchiveScene from "../project-folders/ArchiveScene.jsx";
 import {
+  ARCHIVE_GROUPING_IDS,
   GROUPINGS,
   folderForReport,
   groupReports,
@@ -38,6 +41,8 @@ export default function ArchiveSection({
     openFolder,
     clearReport,
   } = useSelection();
+  const { search } = useLocation();
+  const navigate = useNavigate();
   const stageRef = useRef(null);
   const organizeRef = useRef(0);
   const [grouping, setGrouping] = useState("theme");
@@ -88,8 +93,26 @@ export default function ArchiveSection({
   const featuredReport = carouselReports[carouselIndex] ?? null;
 
   useEffect(() => {
+    const fromFolder = groupingIdFromFolderId(selectedFolderId);
+    if (
+      fromFolder &&
+      ARCHIVE_GROUPING_IDS.has(fromFolder) &&
+      fromFolder !== grouping
+    ) {
+      setGrouping(fromFolder);
+      if (!isArchiveFiled(organizeRef.current, reduceMotion)) {
+        setOrganize(1);
+      }
+    }
+    // setOrganize is recreated each render; organizeRef holds the live value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFolderId, grouping, reduceMotion]);
+
+  useEffect(() => {
     const next = folderForReport(grouping, selectedReportNo);
     if (selectedReportNo && next) {
+      const fromFolder = groupingIdFromFolderId(selectedFolderId);
+      if (fromFolder && !ARCHIVE_GROUPING_IDS.has(fromFolder)) return;
       if (next.id !== selectedFolderId) {
         openReport(selectedReportNo, {
           folderId: next.id,
@@ -98,6 +121,9 @@ export default function ArchiveSection({
       }
       return;
     }
+    const fromFolder = groupingIdFromFolderId(selectedFolderId);
+    if (fromFolder && fromFolder !== grouping) return;
+    if (fromFolder && !ARCHIVE_GROUPING_IDS.has(fromFolder)) return;
     if (
       selectedFolderId &&
       !folders.some((folder) => folder.id === selectedFolderId)
@@ -219,13 +245,30 @@ export default function ArchiveSection({
 
   const finishIntro = () => setOrganize(1);
 
+  const enterArchive = () => {
+    navigate({
+      pathname: "/",
+      search: search || "",
+      hash: "archive",
+    });
+  };
+
   const goToGrouping = (id) => {
     setGrouping(id);
-    if (!isFiled) finishIntro();
+    if (!isFiled) enterArchive();
+    if (!selectedReportNo && selectedFolderId) {
+      const currentPrefix = groupingIdFromFolderId(selectedFolderId);
+      if (currentPrefix && currentPrefix !== id) {
+        openFolder(null);
+      }
+    }
   };
 
   const selectFolder = (id) => {
-    if (!isFiled) finishIntro();
+    if (!isFiled) {
+      enterArchive();
+      return;
+    }
     if (!id || id === selectedFolderId) {
       openFolder(null);
       return;
@@ -234,7 +277,10 @@ export default function ArchiveSection({
   };
 
   const selectReport = (reportNo, trigger) => {
-    if (!isFiled) finishIntro();
+    if (!isFiled) {
+      enterArchive();
+      return;
+    }
     if (!reportNo) {
       clearReport();
       return;
@@ -309,15 +355,29 @@ export default function ArchiveSection({
                 id="archive-intro-title"
                 className={isFiled ? "intro-title sr-only" : "intro-title"}
               >
-                HHCD Graduate and Associate Research Reports
+                {reports.length} inclusive design reports, {yearRange.min}–
+                {yearRange.max}
               </h1>
               {isFiled ? null : (
-                <p className="intro-lead">
-                  An unsorted heap. Scroll to file the reports into folders,
-                  then choose Theme, Year, or Type — or tap a folder.
-                </p>
+                <>
+                  <p className="intro-lead">
+                    Helen Hamlyn Centre for Design — graduate and associate
+                    research that was never a public catalogue.
+                  </p>
+                  <p className="intro-job">Scroll to file them into folders.</p>
+                </>
               )}
             </section>
+            {isFiled ? null : (
+              <button
+                type="button"
+                className="intro-scroll"
+                onClick={enterArchive}
+                aria-label="Scroll to file into folders"
+              >
+                <span className="intro-scroll-chevron" aria-hidden="true" />
+              </button>
+            )}
             <div className="scene-frame">
               <div
                 className="scene-stage"
@@ -362,6 +422,7 @@ export default function ArchiveSection({
                     carouselIndex={carouselIndex}
                     onSelectFolder={(id) => selectFolder(id)}
                     onSelectReport={(reportNo) => selectReport(reportNo)}
+                    onEnterArchive={enterArchive}
                     onCarouselIndexChange={setCarouselIndex}
                     onWebglError={() => setWebglFailed(true)}
                   />

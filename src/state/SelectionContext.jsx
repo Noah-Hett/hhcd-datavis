@@ -36,6 +36,7 @@ export function SelectionProvider({ children }) {
   const [selectedReportNo, setSelectedReportNo] = useState(null);
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [sidebarOpen, setSidebarOpenState] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [source, setSource] = useState(null);
   const [osReduceMotion, setOsReduceMotion] = useState(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -81,6 +82,7 @@ export function SelectionProvider({ children }) {
     setSelectedReportNo(id);
     setSelectedFolderId(null);
     setSidebarOpenState(true);
+    setHelpOpen(false);
     setSource((current) => current ?? "url");
     return true;
   }, []);
@@ -104,8 +106,14 @@ export function SelectionProvider({ children }) {
         setSelectedReportNo(null);
         setSelectedFolderId(null);
         setSidebarOpenState(false);
+        setHelpOpen(false);
         setSource(null);
       }
+      return;
+    }
+    // Already showing this report (e.g. we just wrote ?report=). Keep the
+    // folder so Back from a theme/type/year/method list still works.
+    if (String(selectedRef.current) === String(fromUrl) && sidebarOpenRef.current) {
       return;
     }
     applyUrlReport(fromUrl);
@@ -157,6 +165,7 @@ export function SelectionProvider({ children }) {
       }
       ignoreUrlReportRef.current = null;
       applySelection(applyOpenReport({ selectedFolderId: selectedFolderRef.current }, id, options));
+      setHelpOpen(false);
       writeReportParam(id);
     },
     [applySelection, writeReportParam],
@@ -164,6 +173,7 @@ export function SelectionProvider({ children }) {
 
   const clearReport = useCallback(() => {
     rememberDismissedReport();
+    setHelpOpen(false);
     applySelection(applyClearReport());
     writeReportParam(null);
     restoreReturnFocus();
@@ -180,10 +190,12 @@ export function SelectionProvider({ children }) {
       };
       const next = applyOpenFolder(current, folderId, options);
       if (!folderId) {
+        setHelpOpen(false);
         applySelection(next);
         return;
       }
       rememberDismissedReport();
+      setHelpOpen(false);
       applySelection(next);
       writeReportParam(null);
     },
@@ -213,10 +225,23 @@ export function SelectionProvider({ children }) {
         clearReport();
         return;
       }
+      setHelpOpen(false);
       setSidebarOpenState(true);
     },
     [clearReport],
   );
+
+  const openHelp = useCallback(() => {
+    if (typeof document !== "undefined" && !returnFocusRef.current) {
+      returnFocusRef.current = document.activeElement;
+    }
+    setHelpOpen(true);
+    setSidebarOpenState(true);
+  }, []);
+
+  const closeHelp = useCallback(() => {
+    setHelpOpen(false);
+  }, []);
 
   const setReduceMotion = useCallback((value) => {
     setUserReduceMotion(Boolean(value));
@@ -227,10 +252,13 @@ export function SelectionProvider({ children }) {
       selectedReportNo,
       selectedFolderId,
       sidebarOpen,
+      helpOpen,
       source,
       reduceMotion,
       openReport,
       openFolder,
+      openHelp,
+      closeHelp,
       backSidebar,
       clearReport,
       setSidebarOpen,
@@ -240,10 +268,13 @@ export function SelectionProvider({ children }) {
       selectedReportNo,
       selectedFolderId,
       sidebarOpen,
+      helpOpen,
       source,
       reduceMotion,
       openReport,
       openFolder,
+      openHelp,
+      closeHelp,
       backSidebar,
       clearReport,
       setSidebarOpen,
