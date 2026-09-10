@@ -130,24 +130,18 @@
     font-weight: 650;
   }
 
+  /* Grow in-flow across the header row instead of absolutely covering Help. */
   .simple-search:focus-within {
-    z-index: 70;
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
   }
 
-  .simple-search:focus-within .simple-search-label,
   .simple-search:focus-within .simple-search-pop {
-    position: absolute;
     left: 0;
-    width: min(22rem, calc(100vw - 24px));
-  }
-
-  .simple-search:focus-within .simple-search-label {
-    top: 0;
-  }
-
-  .simple-search:focus-within .simple-search-pop {
-    top: calc(100% + 6px);
-    right: auto;
+    right: 0;
+    width: 100%;
     min-width: 0;
   }
 }

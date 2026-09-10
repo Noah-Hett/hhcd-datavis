@@ -878,6 +878,11 @@ select {
     flex-wrap: nowrap;
   }
 
+  /* Give focused search the full second row; Help returns when search blurs. */
+  .app-header:has(.simple-search:focus-within) .app-chrome {
+    display: none;
+  }
+
   .chrome-btn-sidebar {
     display: none;
   }
