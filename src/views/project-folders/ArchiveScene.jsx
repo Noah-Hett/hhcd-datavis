@@ -817,7 +817,12 @@ export default function ArchiveScene({
         };
         const pos =
           toLayout.mode === "stack"
-            ? folderLabelScreenPos(box, size, bounds)
+            ? folderLabelScreenPos(box, size, {
+                width: mount.clientWidth,
+                height: mount.clientHeight,
+                pad: 10,
+                gap: 14,
+              })
             : {
                 x: (box.minX + box.maxX) / 2,
                 y: box.maxY + 8,

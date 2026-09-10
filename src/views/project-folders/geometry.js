@@ -691,7 +691,8 @@ export function screenBoxFromPoints(points) {
   return { minX, maxX, minY, maxY };
 }
 
-/** Place a pill to the left or right of a folder’s screen box, vertically centred. */
+/** Place a pill to the left or right of a folder’s screen box, vertically centred.
+ * Prefer hanging off the canvas to covering the sleeve. */
 export function folderLabelScreenPos(box, size, bounds = {}) {
   const w = Math.max(size.w ?? 0, 1);
   const h = Math.max(size.h ?? 0, 1);
@@ -702,9 +703,8 @@ export function folderLabelScreenPos(box, size, bounds = {}) {
   const folderCx = (box.minX + box.maxX) / 2;
   const folderCy = (box.minY + box.maxY) / 2;
   const left = folderCx < width * 0.5;
-  const x = left
-    ? Math.max(pad + w / 2, box.minX - w / 2 - gap)
-    : Math.min(width - pad - w / 2, box.maxX + w / 2 + gap);
+  let x = left ? box.minX - w / 2 - gap : box.maxX + w / 2 + gap;
+  x = Math.min(width - w * 0.2, Math.max(w * 0.2, x));
   const y = Math.min(height - pad - h, Math.max(pad, folderCy - h / 2));
   return { x, y };
 }
