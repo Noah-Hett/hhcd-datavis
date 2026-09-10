@@ -553,8 +553,9 @@ select {
 .report-sidebar-facets {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  margin: 4px 0 16px;
+  margin: 4px 0 8px;
 }
 
 .report-sidebar-facet {
@@ -599,6 +600,35 @@ select {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   opacity: 0.72;
+}
+
+.report-sidebar-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 12px;
+  margin: 0 0 16px;
+}
+
+.report-sidebar-method {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.report-sidebar-method:hover,
+.report-sidebar-method:focus-visible {
+  color: var(--text);
 }
 
 .report-sidebar-field {

@@ -50,11 +50,11 @@ export default function HelpGuide({ titleId, headingRef }) {
       </ol>
       <h3>Browse from a report</h3>
       <p>
-        Theme, type, year, and method on a report are buttons. Choose Health
-        and wellbeing to see every report in that theme, then open another.
-        Connected reports and “More in this theme” work the same way. Opening
-        Sidebar with nothing selected starts from Browse. Help lives in this
-        same panel.
+        Theme is the main way on — choose Health and wellbeing to see every
+        report in that theme, then open another. Type, year, and methods are
+        quieter links on the same record. Connected reports open a linked
+        record. Opening Sidebar with nothing selected starts from Browse. Help
+        lives in this same panel.
       </p>
       <h3>Grouping and methods</h3>
       <p>
