@@ -39,6 +39,7 @@ import {
   layoutColumns,
   reportHitAllowed,
   paintCover,
+  pushLabelsOffBoxes,
   selectPeekSlot,
   separateOverlayLabels,
   shortestAngleDelta,
@@ -394,6 +395,13 @@ test("separateOverlayLabels pushes overlapping pills apart and stays in bounds",
     { width: 390, height: 700, pad: 8, bottomReserve: 60 },
   );
   assert.ok(clamped[0].y + 28 <= 700 - 60 - 8 + 1e-6);
+});
+
+test("pushLabelsOffBoxes drops a pill below the folder silhouette it covers", () => {
+  const labels = [{ x: 100, y: 40, w: 80, h: 24 }];
+  const boxes = [{ minX: 60, maxX: 140, minY: 20, maxY: 80 }];
+  const moved = pushLabelsOffBoxes(labels, boxes, 8);
+  assert.ok(moved[0].y >= 88);
 });
 
 test("shortestAngleDelta takes the short way around", () => {

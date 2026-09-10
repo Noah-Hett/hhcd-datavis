@@ -23,9 +23,11 @@ import {
   createSharedResources,
   disposeSharedResources,
   folderGridMode,
-  folderLabelAnchor,
+  folderBoxCorners,
   layoutExtents,
+  pushLabelsOffBoxes,
   reportHitAllowed,
+  screenBoxFromPoints,
   separateOverlayLabels,
   shortestAngleDelta,
 } from "./geometry.js";
@@ -38,6 +40,7 @@ const EXIT_X = 12;
 const EXIT_INTRO = 5.4;
 const MORPH_MS = 900;
 const CAM_FOV = 22;
+const STACK_FOV = 38;
 const TAP_SLOP = 18;
 /** Same as `--archive-bg` / `--bg` so the canvas matches the page, not a darker well. */
 const SCENE_CLEAR = "#c9dce0";
@@ -76,31 +79,33 @@ function folderTarget(fromLayout, toLayout, id, entry) {
   };
 }
 
+function rowCameraFov(layout, aspect) {
+  return layout.mode === "stack" || aspect < 0.9 ? STACK_FOV : CAM_FOV;
+}
+
 function fitRowCamera(layout, aspect, outPos, outLook) {
   const ext = layoutExtents(layout);
   const stack = layout.mode === "stack" || aspect < 0.9;
-  const padX = stack ? 0.7 : 1.15;
-  const padZ = stack ? 1.85 : 0.95;
+  const padX = stack ? 0.32 : 1.15;
+  const padZ = stack ? 1.15 : 0.95;
   const worldW = ext.width + padX * 2;
-  const worldH = FOLDER_BACK_H + (stack ? 1.15 : 1.55);
+  const worldH = FOLDER_BACK_H + (stack ? 0.7 : 1.55);
   const worldD = ext.depth + padZ * 2;
-  const fov = CAM_FOV * (Math.PI / 180);
-  const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, 0.4));
+  const fov = rowCameraFov(layout, aspect) * (Math.PI / 180);
+  const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, stack ? 0.5 : 0.4));
   const distY = worldH / 2 / Math.tan(fov / 2);
   const distZ = worldD / 2 / Math.tan(fov / 2);
-  // Depth is along the view, so do not let it yank the camera back on a
-  // tall phone grid — elevation already shows the extra rows.
   const dist =
-    Math.max(distX, distY, stack ? distZ * 0.5 : distZ, stack ? 6.2 : 7.2) *
-    (stack ? 1.06 : 1.08);
+    Math.max(distX, stack ? distY * 0.7 : distY, stack ? distZ * 0.42 : distZ, stack ? 4.6 : 7.2) *
+    (stack ? 1.02 : 1.08);
 
-  const lookY = stack ? 0.72 : 1.18;
+  const lookY = stack ? 0.9 : 1.18;
   const lookZ = stack
-    ? ext.minZ + ext.depth * 0.58
+    ? ext.minZ + ext.depth * 0.62
     : (ext.minZ + ext.maxZ) / 2;
   outLook.set((ext.minX + ext.maxX) / 2, lookY, lookZ);
-  const side = stack ? 0.05 : 0.36;
-  const lift = stack ? 0.78 : 0.5;
+  const side = stack ? 0.04 : 0.36;
+  const lift = stack ? 0.58 : 0.5;
   outPos.set(outLook.x - side * dist, outLook.y + lift * dist, outLook.z + dist);
 }
 
@@ -638,6 +643,16 @@ export default function ArchiveScene({
       const { cam: camT, stand, travel, folders: folderT } = filingPhases(organize);
       const shelved = organize >= 0.995;
 
+      const destFov =
+        selectedFolder && shelved && !shuffling
+          ? CAM_FOV
+          : rowCameraFov(toLayout, camera.aspect);
+      const wantFov = shelved ? destFov : CAM_FOV + (destFov - CAM_FOV) * camT;
+      if (Math.abs(camera.fov - wantFov) > 0.05) {
+        camera.fov = wantFov;
+        camera.updateProjectionMatrix();
+      }
+
       fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
       if (selectedFolder && shelved && !shuffling) {
         fitCarouselCamera(toLayout, camera.aspect, selectedFolder, destPos, destLook);
@@ -773,36 +788,54 @@ export default function ArchiveScene({
           ? `${slide.meta.label} (${slide.meta.count})`
           : "";
         label.classList.toggle("is-selected", selected);
-        const anchor = folderLabelAnchor({
+        const corners = folderBoxCorners({
           x: entry.group.position.x,
           z: entry.group.position.z,
+        }).map((corner) => {
+          projected.set(corner.x, corner.y, corner.z);
+          projected.project(camera);
+          return {
+            x: (projected.x * 0.5 + 0.5) * mount.clientWidth,
+            y: (-projected.y * 0.5 + 0.5) * mount.clientHeight,
+            clip: projected.z > 1,
+          };
         });
-        projected.set(anchor.x, anchor.y, anchor.z);
-        projected.project(camera);
-        if (projected.z > 1) {
+        if (corners.every((corner) => corner.clip)) {
           label.style.opacity = "0";
           continue;
         }
+        const box = screenBoxFromPoints(corners);
         pendingLabels.push({
           label,
-          x: (projected.x * 0.5 + 0.5) * mount.clientWidth,
-          y: (-projected.y * 0.5 + 0.5) * mount.clientHeight,
+          x: (box.minX + box.maxX) / 2,
+          y: box.maxY + 8,
           w: Math.max(label.offsetWidth, 72),
           h: Math.max(label.offsetHeight, 28),
+          box,
         });
       }
 
       if (pendingLabels.length) {
-        const separated = separateOverlayLabels(pendingLabels, {
+        const boxes = pendingLabels.map((item) => item.box);
+        const cleared = pushLabelsOffBoxes(pendingLabels, boxes, 8);
+        const separated = separateOverlayLabels(cleared, {
           width: mount.clientWidth,
           height: mount.clientHeight,
           pad: 10,
           gap: 8,
         });
-        pendingLabels.forEach((item, index) => {
-          const pos = separated[index];
+        const final = pushLabelsOffBoxes(
+          separated.map((pos, index) => ({
+            ...cleared[index],
+            x: pos.x,
+            y: pos.y,
+          })),
+          boxes,
+          8,
+        );
+        final.forEach((item) => {
           item.label.style.opacity = "1";
-          item.label.style.transform = `translate(-50%, 0) translate(${pos.x}px, ${pos.y}px)`;
+          item.label.style.transform = `translate(-50%, 0) translate(${item.x}px, ${item.y}px)`;
         });
       }
 

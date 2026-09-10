@@ -362,7 +362,7 @@ export function createReportMesh(report, shared) {
 
 const ROW_GAP_Z = FOLDER_D + 0.72;
 /** Extra aisle on portrait so HTML labels sit in front of each sleeve. */
-const STACK_ROW_GAP_Z = FOLDER_D + 1.15;
+const STACK_ROW_GAP_Z = FOLDER_D + 1.7;
 
 /** Desk-height for a report lying cover-up (rz ≈ −π/2). */
 const FLAT_GROUND_Y = 0.042;
@@ -518,8 +518,9 @@ export function computeCarouselPose(offset, count = CAROUSEL_RADIUS * 2 + 1) {
   };
 }
 
-export function folderSpacing(count) {
-  const min = FOLDER_W + 0.36;
+export function folderSpacing(count, mode = "row") {
+  const min = FOLDER_W + (mode === "stack" ? 0.5 : 0.36);
+  if (mode === "stack") return min;
   if (count <= 3) return Math.max(1.72, min);
   if (count <= 4) return Math.max(1.42, min);
   if (count <= 5) return Math.max(1.22, min);
@@ -550,7 +551,7 @@ export function layoutColumns(folderCount, modeOrTwoRows = false) {
 
 function folderGridPosition(index, n, mode) {
   if (mode === "row" || n <= 1) {
-    const spacing = folderSpacing(n);
+    const spacing = folderSpacing(n, mode);
     return {
       x: -((n - 1) * spacing) / 2 + index * spacing,
       y: 0,
@@ -563,7 +564,7 @@ function folderGridPosition(index, n, mode) {
   const row = Math.floor(index / cols);
   const col = index % cols;
   const rowCount = row === rows - 1 ? n - row * cols : cols;
-  const spacing = folderSpacing(Math.max(rowCount, 1));
+  const spacing = folderSpacing(Math.max(rowCount, 1), mode);
   const gap = folderRowGap(rows, mode);
   const z0 = -((rows - 1) * gap) / 2;
   return {
@@ -658,6 +659,75 @@ export function separateOverlayLabels(items, bounds = {}) {
   return placed.map(({ x, y }) => ({ x, y }));
 }
 
+export function folderBoxCorners(folderPos) {
+  const x = folderPos.x;
+  const z = folderPos.z;
+  return [
+    { x, y: 0, z },
+    { x: x + FOLDER_W, y: 0, z },
+    { x, y: 0, z: z + FOLDER_D },
+    { x: x + FOLDER_W, y: 0, z: z + FOLDER_D },
+    { x, y: FOLDER_FRONT_H, z: z + FOLDER_D },
+    { x: x + FOLDER_W, y: FOLDER_FRONT_H, z: z + FOLDER_D },
+    { x, y: FOLDER_BACK_H * 0.55, z },
+    { x: x + FOLDER_W, y: FOLDER_BACK_H * 0.55, z },
+  ];
+}
+
+export function screenBoxFromPoints(points) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const point of points) {
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
+  }
+  if (!Number.isFinite(minX)) {
+    return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+  }
+  return { minX, maxX, minY, maxY };
+}
+
+export function overlayRectFromTopCenter(x, y, w, h) {
+  return {
+    minX: x - w / 2,
+    maxX: x + w / 2,
+    minY: y,
+    maxY: y + h,
+  };
+}
+
+export function rectsOverlap(a, b, gap = 0) {
+  return (
+    a.minX < b.maxX + gap &&
+    a.maxX + gap > b.minX &&
+    a.minY < b.maxY + gap &&
+    a.maxY + gap > b.minY
+  );
+}
+
+/** Drop each pill below any folder silhouette it still covers. */
+export function pushLabelsOffBoxes(labels, boxes, gap = 8) {
+  const next = labels.map((item) => ({ ...item }));
+  for (let pass = 0; pass < 8; pass += 1) {
+    let moved = false;
+    for (const label of next) {
+      const rect = overlayRectFromTopCenter(label.x, label.y, label.w, label.h);
+      for (const box of boxes) {
+        if (rectsOverlap(rect, box, gap)) {
+          label.y = box.maxY + gap;
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+  return next;
+}
+
 export function layoutExtents(layout) {
   const positions = Object.values(layout.folderPos);
   if (!positions.length) {
@@ -705,7 +775,7 @@ export function computeLayout(folders, { twoRows = false, mode } = {}) {
   const gridMode = resolveFolderGridMode(mode, twoRows);
   const folderPos = {};
   const reportPos = {};
-  let spacing = folderSpacing(layoutColumns(n, gridMode));
+  let spacing = folderSpacing(layoutColumns(n, gridMode), gridMode);
 
   folders.forEach((folder, index) => {
     const grid = folderGridPosition(index, n, gridMode);
