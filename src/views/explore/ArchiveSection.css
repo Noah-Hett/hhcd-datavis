@@ -139,6 +139,27 @@
   padding: 0;
 }
 
+@media (max-width: 799px) {
+  .archive-section .grouping-tabs {
+    position: relative;
+    left: auto;
+    top: auto;
+    align-self: center;
+    flex-direction: row;
+    width: max-content;
+    max-width: calc(100% - 16px);
+    margin: 8px 8px 12px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  .archive-section .grouping-tabs label {
+    min-height: 44px;
+    font-size: 13px;
+    padding: 0 10px;
+  }
+}
+
 @media (max-width: 860px) {
   .archive-section .stage {
     flex: 1 1 auto;

@@ -9,11 +9,8 @@ import {
 } from "../explore/archivePhysics.js";
 import { GROUPINGS, groupReports } from "./grouping.js";
 import {
-  FOLDER_BACK_H,
-  FOLDER_D,
-  FOLDER_W,
-  REPORT_H,
   CAROUSEL_FEATURED_SCALE,
+  REPORT_H,
   carouselOrigin,
   carouselSignedOffset,
   carouselSpan,
@@ -24,10 +21,15 @@ import {
   createReportMesh,
   createSharedResources,
   disposeSharedResources,
+  folderBoxCorners,
+  folderGridMode,
   layoutExtents,
   reportHitAllowed,
+  rowCameraFov,
+  rowCameraTarget,
+  screenBoxFromPoints,
+  separateOverlayLabels,
   shortestAngleDelta,
-  shouldUseTwoRows,
 } from "./geometry.js";
 
 function sideSign(x) {
@@ -76,21 +78,13 @@ function folderTarget(fromLayout, toLayout, id, entry) {
   };
 }
 
-function fitRowCamera(layout, aspect, outPos, outLook) {
-  const ext = layoutExtents(layout);
-  const padX = 1.15;
-  const padZ = 0.95;
-  const worldW = ext.width + padX * 2;
-  const worldH = FOLDER_BACK_H + 1.55;
-  const worldD = ext.depth + padZ * 2;
-  const fov = CAM_FOV * (Math.PI / 180);
-  const distX = worldW / 2 / (Math.tan(fov / 2) * Math.max(aspect, 0.4));
-  const distY = worldH / 2 / Math.tan(fov / 2);
-  const distZ = worldD / 2 / Math.tan(fov / 2);
-  const dist = Math.max(distX, distY, distZ, 7.2) * 1.08;
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
-  outLook.set((ext.minX + ext.maxX) / 2, 1.18, (ext.minZ + ext.maxZ) / 2);
-  outPos.set(outLook.x - 0.36 * dist, outLook.y + 0.5 * dist, outLook.z + dist);
+function fitRowCamera(layout, aspect, outPos, outLook, outUp) {
+  const pose = rowCameraTarget(layout, aspect);
+  outLook.set(pose.lookX, pose.lookY, pose.lookZ);
+  outPos.set(pose.posX, pose.posY, pose.posZ);
+  outUp?.set(pose.upX ?? 0, pose.upY ?? 1, pose.upZ ?? 0);
 }
 
 function folderReportCount(layout, folderId) {
@@ -257,15 +251,17 @@ export default function ArchiveScene({
     for (const item of GROUPINGS) {
       const foldersFor = groupReports(item.id);
       layouts[item.id] = {
-        single: computeLayout(foldersFor, { twoRows: false }),
-        two: computeLayout(foldersFor, { twoRows: true }),
+        row: computeLayout(foldersFor, { mode: "row" }),
+        split: computeLayout(foldersFor, { mode: "split" }),
+        stack: computeLayout(foldersFor, { mode: "stack" }),
       };
     }
 
     const allFolderIds = new Set();
     for (const pair of Object.values(layouts)) {
-      for (const id of Object.keys(pair.single.folderPos)) allFolderIds.add(id);
-      for (const id of Object.keys(pair.two.folderPos)) allFolderIds.add(id);
+      for (const id of Object.keys(pair.row.folderPos)) allFolderIds.add(id);
+      for (const id of Object.keys(pair.split.folderPos)) allFolderIds.add(id);
+      for (const id of Object.keys(pair.stack.folderPos)) allFolderIds.add(id);
     }
 
     const shared = createSharedResources();
@@ -298,7 +294,7 @@ export default function ArchiveScene({
     }
 
     const archiveLayout = computeArchiveLayout(reports);
-    const startLayout = layouts.theme.single;
+    const startLayout = layouts.theme.row;
     for (const report of reports) {
       const { group, pickable, texture, coverMat } = createReportMesh(
         report,
@@ -353,6 +349,7 @@ export default function ArchiveScene({
     const introLook = new THREE.Vector3();
     const destPos = new THREE.Vector3();
     const destLook = new THREE.Vector3();
+    const destUp = new THREE.Vector3(0, 1, 0);
     const projected = new THREE.Vector3();
     const parentScratch = new THREE.Vector3();
     const qFrom = new THREE.Quaternion();
@@ -392,7 +389,7 @@ export default function ArchiveScene({
     };
 
     fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
-    fitRowCamera(startLayout, camera.aspect, destPos, destLook);
+    fitRowCamera(startLayout, camera.aspect, destPos, destLook, destUp);
     camera.position.copy(introPos);
     camera.lookAt(introLook);
     fitArchiveShadow(sun, archiveLayout);
@@ -402,9 +399,9 @@ export default function ArchiveScene({
     let downX = 0;
     let downY = 0;
     let raf = 0;
-    let twoRows = shouldUseTwoRows(
-      window.innerWidth,
-      window.innerHeight,
+    let gridMode = folderGridMode(
+      mount.clientWidth || window.innerWidth,
+      mount.clientHeight || window.innerHeight,
     );
     let transFrom = "theme";
     let transTo = "theme";
@@ -437,7 +434,7 @@ export default function ArchiveScene({
         }
         if (hidden) continue;
         if (data.kind === "report") {
-          const pose = layouts[transTo][twoRows ? "two" : "single"].reportPos[
+          const pose = layouts[transTo][gridMode].reportPos[
             data.reportNo
           ];
           const filed = sceneIsFiled();
@@ -501,7 +498,7 @@ export default function ArchiveScene({
       if (data?.kind === "report") {
         const selected = selectedFolderRef.current;
         const pose =
-          layouts[transTo][twoRows ? "two" : "single"].reportPos[data.reportNo];
+          layouts[transTo][gridMode].reportPos[data.reportNo];
         if (
           selected &&
           pose?.folderId === selected &&
@@ -527,10 +524,10 @@ export default function ArchiveScene({
     let resizeRaf = 0;
     let sizeDirty = false;
     const applyRowMode = () => {
-      twoRows = shouldUseTwoRows(
-        window.innerWidth,
-        window.innerHeight,
-        twoRows,
+      gridMode = folderGridMode(
+        mount.clientWidth || window.innerWidth,
+        mount.clientHeight || window.innerHeight,
+        gridMode,
       );
     };
     const applySize = () => {
@@ -607,7 +604,7 @@ export default function ArchiveScene({
         ? 1
         : easeInOut(transFrom === transTo ? 1 : Math.min(1, elapsed / MORPH_MS));
       const shuffling = transFrom !== transTo && blend < 1;
-      const rowKey = twoRows ? "two" : "single";
+      const rowKey = gridMode;
       const fromLayout = layouts[transFrom]?.[rowKey];
       const toLayout = layouts[transTo]?.[rowKey];
       if (!fromLayout || !toLayout) {
@@ -625,16 +622,28 @@ export default function ArchiveScene({
       const { cam: camT, stand, travel, folders: folderT } = filingPhases(organize);
       const shelved = organize >= 0.995;
 
+      const destFov =
+        selectedFolder && shelved && !shuffling
+          ? CAM_FOV
+          : rowCameraFov(toLayout, camera.aspect);
+      const wantFov = shelved ? destFov : CAM_FOV + (destFov - CAM_FOV) * camT;
+      if (Math.abs(camera.fov - wantFov) > 0.05) {
+        camera.fov = wantFov;
+        camera.updateProjectionMatrix();
+      }
+
       fitArchiveCamera(archiveLayout, camera.aspect, introPos, introLook);
       if (selectedFolder && shelved && !shuffling) {
         fitCarouselCamera(toLayout, camera.aspect, selectedFolder, destPos, destLook);
+        destUp.copy(WORLD_UP);
       } else {
-        fitRowCamera(toLayout, camera.aspect, destPos, destLook);
+        fitRowCamera(toLayout, camera.aspect, destPos, destLook, destUp);
       }
       if (!shelved) {
         camPos.lerpVectors(introPos, destPos, camT);
         camLook.lerpVectors(introLook, destLook, camT);
         camPos.y += Math.sin(Math.PI * camT) * 0.55;
+        camera.up.copy(WORLD_UP).lerp(destUp, camT).normalize();
         camera.position.copy(camPos);
         camera.lookAt(camLook);
       } else {
@@ -645,8 +654,10 @@ export default function ArchiveScene({
         } else {
           camera.position.lerp(camPos, 0.08);
         }
+        camera.up.copy(destUp);
         camera.lookAt(camLook);
       }
+      camera.updateMatrixWorld();
       sizeDirty = false;
 
       if (!shelved) {
@@ -669,6 +680,7 @@ export default function ArchiveScene({
           ? carouselOrigin(toLayout)
           : null;
 
+      const pendingLabels = [];
       for (const [id, entry] of folders) {
         const slide = folderTarget(fromLayout, toLayout, id, entry);
         const label = labelNodes.get(id);
@@ -759,16 +771,47 @@ export default function ArchiveScene({
           ? `${slide.meta.label} (${slide.meta.count})`
           : "";
         label.classList.toggle("is-selected", selected);
-        projected.set(
-          entry.group.position.x + FOLDER_W * 0.5,
-          -0.1,
-          entry.group.position.z + FOLDER_D * 0.55,
-        );
-        projected.project(camera);
-        const lx = (projected.x * 0.5 + 0.5) * mount.clientWidth;
-        const ly = (-projected.y * 0.5 + 0.5) * mount.clientHeight;
-        label.style.opacity = projected.z > 1 ? "0" : "1";
-        label.style.transform = `translate(-50%, 0) translate(${lx}px, ${ly}px)`;
+        const corners = folderBoxCorners({
+          x: entry.group.position.x,
+          z: entry.group.position.z,
+        }).map((corner) => {
+          projected.set(corner.x, corner.y, corner.z);
+          projected.project(camera);
+          return {
+            x: (projected.x * 0.5 + 0.5) * mount.clientWidth,
+            y: (-projected.y * 0.5 + 0.5) * mount.clientHeight,
+            clip: projected.z > 1,
+          };
+        });
+        if (corners.every((corner) => corner.clip)) {
+          label.style.opacity = "0";
+          continue;
+        }
+        const box = screenBoxFromPoints(corners);
+        pendingLabels.push({
+          label,
+          x: (box.minX + box.maxX) / 2,
+          y: box.maxY + 8,
+          w: Math.max(label.offsetWidth, 72),
+          h: Math.max(label.offsetHeight, 28),
+        });
+      }
+
+      if (pendingLabels.length) {
+        const separated =
+          gridMode === "stack"
+            ? pendingLabels
+            : separateOverlayLabels(pendingLabels, {
+                width: mount.clientWidth,
+                height: mount.clientHeight,
+                pad: 10,
+                gap: 8,
+              });
+        pendingLabels.forEach((item, index) => {
+          const pos = separated[index];
+          item.label.style.opacity = "1";
+          item.label.style.transform = `translate(-50%, 0) translate(${pos.x}px, ${pos.y}px)`;
+        });
       }
 
       for (const entry of reportEntries) {

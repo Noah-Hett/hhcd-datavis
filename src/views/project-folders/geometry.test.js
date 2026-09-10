@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import * as THREE from "three";
 import {
   ARCHIVE_PILE_RECIPE,
   CAROUSEL_FACE_YAW,
@@ -12,6 +13,7 @@ import {
   COVER_CANVAS_W,
   COVER_W,
   FOLDER_BACK_H,
+  FOLDER_FRONT_H,
   FOLDER_D,
   FOLDER_PAD,
   FOLDER_W,
@@ -32,10 +34,17 @@ import {
   computeArchiveLayout,
   computeCarouselPose,
   computeLayout,
+  folderGridMode,
+  folderLabelAnchor,
+  folderLabelScreenPos,
+  folderRowGap,
   folderSpacing,
+  layoutColumns,
   reportHitAllowed,
   paintCover,
+  rowCameraTarget,
   selectPeekSlot,
+  separateOverlayLabels,
   shortestAngleDelta,
   shouldUseTwoRows,
   stepCarouselIndex,
@@ -328,6 +337,164 @@ test("shouldUseTwoRows ignores a sidebar-sized squeeze and holds through a resiz
   assert.equal(shouldUseTwoRows(720, 800, false), true);
   assert.equal(shouldUseTwoRows(740, 800, true), true);
   assert.equal(shouldUseTwoRows(1100, 800, true), false);
+});
+
+test("folderGridMode stacks two columns on a phone and keeps a split on a square canvas", () => {
+  assert.equal(folderGridMode(390, 844), "stack");
+  assert.equal(folderGridMode(390, 700, "stack"), "stack");
+  assert.equal(folderGridMode(864, 844), "split");
+  assert.equal(folderGridMode(1440, 900), "row");
+  assert.equal(layoutColumns(5, "stack"), 2);
+  assert.equal(layoutColumns(5, "split"), 3);
+  assert.equal(layoutColumns(5, false), 5);
+});
+
+test("portrait stack is three rows for five folders and sleeves stay apart", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4, 4, 4]), { mode: "stack" });
+  assert.equal(layout.mode, "stack");
+  const zs = [
+    ...new Set(
+      Object.values(layout.folderPos).map((pos) => Number(pos.z.toFixed(4))),
+    ),
+  ].sort((a, b) => a - b);
+  assert.equal(zs.length, 3);
+  assert.ok(zs[1] - zs[0] >= folderRowGap(3, "stack") - 1e-6);
+  const boxes = Object.values(layout.folderPos).map((pos) => ({
+    minZ: pos.z,
+    maxZ: pos.z + FOLDER_D,
+    minX: pos.x,
+    maxX: pos.x + FOLDER_W,
+  }));
+  for (let i = 0; i < boxes.length; i += 1) {
+    for (let j = i + 1; j < boxes.length; j += 1) {
+      const overlapX = boxes[i].minX < boxes[j].maxX && boxes[j].minX < boxes[i].maxX;
+      const overlapZ = boxes[i].minZ < boxes[j].maxZ && boxes[j].minZ < boxes[i].maxZ;
+      assert.equal(overlapX && overlapZ, false);
+    }
+  }
+});
+
+test("portrait stack camera keeps every folder at a similar distance", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4, 4, 4, 4, 4]), {
+    mode: "stack",
+  });
+  const pose = rowCameraTarget(layout, 390 / 640);
+  const dists = Object.values(layout.folderPos).map((pos) =>
+    Math.hypot(
+      pose.posX - (pos.x + FOLDER_W * 0.5),
+      pose.posY - FOLDER_BACK_H * 0.5,
+      pose.posZ - (pos.z + FOLDER_D * 0.5),
+    ),
+  );
+  const min = Math.min(...dists);
+  const max = Math.max(...dists);
+  assert.ok(min > 0);
+  assert.ok(
+    max / min < 1.2,
+    `front/back distance ratio ${max / min} should stay even`,
+  );
+  const midX = Object.values(layout.folderPos).reduce(
+    (sum, pos) => sum + pos.x + FOLDER_W * 0.5,
+    0,
+  ) / layout.count;
+  assert.ok(Math.abs(pose.lookX - midX) < 0.35);
+});
+
+test("portrait stack camera fits every sleeve in frame at a similar size", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4, 4, 4, 4, 4]), {
+    mode: "stack",
+  });
+  const aspect = 390 / 640;
+  const pose = rowCameraTarget(layout, aspect);
+  const camera = new THREE.PerspectiveCamera(pose.fov, aspect, 0.1, 80);
+  camera.up.set(pose.upX ?? 0, pose.upY ?? 1, pose.upZ ?? 0);
+  camera.position.set(pose.posX, pose.posY, pose.posZ);
+  camera.lookAt(pose.lookX, pose.lookY, pose.lookZ);
+  camera.updateMatrixWorld(true);
+  const point = new THREE.Vector3();
+  const widths = [];
+  for (const pos of Object.values(layout.folderPos)) {
+    const corners = [
+      [pos.x, 0, pos.z],
+      [pos.x + FOLDER_W, 0, pos.z],
+      [pos.x, 0, pos.z + FOLDER_D],
+      [pos.x + FOLDER_W, 0, pos.z + FOLDER_D],
+      [pos.x, FOLDER_FRONT_H, pos.z + FOLDER_D],
+      [pos.x + FOLDER_W, FOLDER_FRONT_H, pos.z + FOLDER_D],
+    ];
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const [x, y, z] of corners) {
+      point.set(x, y, z).project(camera);
+      const sx = (point.x * 0.5 + 0.5) * 390;
+      const sy = (-point.y * 0.5 + 0.5) * 640;
+      minX = Math.min(minX, sx);
+      maxX = Math.max(maxX, sx);
+      minY = Math.min(minY, sy);
+      maxY = Math.max(maxY, sy);
+    }
+    assert.ok(minX > -20 && maxX < 410, `sleeve x ${minX}..${maxX} off canvas`);
+    assert.ok(minY > -20 && maxY < 660, `sleeve y ${minY}..${maxY} off canvas`);
+    widths.push(maxX - minX);
+  }
+  const minW = Math.min(...widths);
+  const maxW = Math.max(...widths);
+  assert.ok(
+    maxW / minW < 1.25,
+    `screen width ratio ${maxW / minW} should stay even`,
+  );
+});
+
+test("wide row camera still sits to the side of the shelf", () => {
+  const layout = computeLayout(fakeFolders([4, 4, 4, 4]));
+  const pose = rowCameraTarget(layout, 16 / 9);
+  const dist = pose.posZ - pose.lookZ;
+  assert.ok(dist > 0);
+  assert.ok(Math.abs(pose.posX - (pose.lookX - 0.36 * dist)) < 1e-9);
+  assert.ok(Math.abs(pose.posY - (pose.lookY + 0.5 * dist)) < 1e-9);
+});
+
+test("folder labels anchor in front of the sleeve, not on the jacket", () => {
+  const layout = computeLayout(fakeFolders([3]), { mode: "row" });
+  const pos = Object.values(layout.folderPos)[0];
+  const anchor = folderLabelAnchor(pos);
+  assert.ok(anchor.z > pos.z + FOLDER_D);
+  assert.equal(anchor.x, pos.x + FOLDER_W * 0.5);
+});
+
+test("separateOverlayLabels pushes overlapping pills apart and stays in bounds", () => {
+  const moved = separateOverlayLabels(
+    [
+      { x: 100, y: 40, w: 120, h: 28 },
+      { x: 110, y: 44, w: 120, h: 28 },
+    ],
+    { width: 390, height: 700, pad: 8, gap: 8 },
+  );
+  assert.ok(moved[1].y >= moved[0].y + 28 + 8 - 1e-6);
+  assert.ok(moved[0].x >= 8 + 60);
+  assert.ok(moved[1].x <= 390 - 8 - 60);
+  const clamped = separateOverlayLabels(
+    [{ x: 40, y: 680, w: 80, h: 28 }],
+    { width: 390, height: 700, pad: 8, bottomReserve: 60 },
+  );
+  assert.ok(clamped[0].y + 28 <= 700 - 60 - 8 + 1e-6);
+});
+
+test("folderLabelScreenPos parks a pill beside the sleeve, not on it", () => {
+  const left = folderLabelScreenPos(
+    { minX: 80, maxX: 160, minY: 40, maxY: 200 },
+    { w: 72, h: 28 },
+    { width: 390, height: 700, pad: 8, gap: 8 },
+  );
+  assert.ok(left.x + 36 <= 80, "left-column label sits left of the box");
+  const right = folderLabelScreenPos(
+    { minX: 220, maxX: 300, minY: 40, maxY: 200 },
+    { w: 72, h: 28 },
+    { width: 390, height: 700, pad: 8, gap: 8 },
+  );
+  assert.ok(right.x - 36 >= 300, "right-column label sits right of the box");
 });
 
 test("shortestAngleDelta takes the short way around", () => {

@@ -361,6 +361,20 @@ export function createReportMesh(report, shared) {
 }
 
 const ROW_GAP_Z = FOLDER_D + 0.72;
+/** Aisle between portrait rows — enough for a label, not a long hallway. */
+const STACK_ROW_GAP_Z = FOLDER_D + 1.05;
+
+export const ROW_CAM_FOV = 22;
+/** Narrower than a corridor FOV so perspective does not shrink the back row. */
+export const STACK_CAM_FOV = 26;
+/** High 3/4: enough lift that every sleeve is a similar size, enough back that lookAt stays stable. */
+const STACK_CAM_SIDE = 0.08;
+const STACK_CAM_LIFT = 1.38;
+const STACK_CAM_BACK = 0.52;
+/** Use most of the frustum so the grid fills the phone, not a tiny island. */
+const STACK_CAM_FILL = 0.9;
+/** Extra depth in front of the nearest sleeve so HTML pills can sit below it. */
+const STACK_CAM_LABEL_Z = 0.7;
 
 /** Desk-height for a report lying cover-up (rz ≈ −π/2). */
 const FLAT_GROUND_Y = 0.042;
@@ -516,22 +530,40 @@ export function computeCarouselPose(offset, count = CAROUSEL_RADIUS * 2 + 1) {
   };
 }
 
-export function folderSpacing(count) {
-  const min = FOLDER_W + 0.36;
+export function folderSpacing(count, mode = "row") {
+  const min = FOLDER_W + (mode === "stack" ? 0.5 : 0.36);
+  if (mode === "stack") return min;
   if (count <= 3) return Math.max(1.72, min);
   if (count <= 4) return Math.max(1.42, min);
   if (count <= 5) return Math.max(1.22, min);
   return Math.max(1.05, min);
 }
 
-export function layoutColumns(folderCount, twoRows) {
-  if (!twoRows) return folderCount;
-  return Math.ceil(folderCount / 2);
+/** row = one line; split = two rows; stack = 2-wide portrait grid. */
+export function resolveFolderGridMode(mode, twoRows = false) {
+  if (mode === "stack" || mode === "split" || mode === "row") return mode;
+  return twoRows ? "split" : "row";
 }
 
-function folderGridPosition(index, n, twoRows) {
-  if (!twoRows) {
-    const spacing = folderSpacing(n);
+export function folderRowGap(rows, mode = "split") {
+  if (rows <= 1) return 0;
+  return mode === "stack" ? STACK_ROW_GAP_Z : ROW_GAP_Z;
+}
+
+export function layoutColumns(folderCount, modeOrTwoRows = false) {
+  const n = Math.max(folderCount, 0);
+  const mode =
+    modeOrTwoRows === true || modeOrTwoRows === false
+      ? resolveFolderGridMode(null, modeOrTwoRows)
+      : resolveFolderGridMode(modeOrTwoRows);
+  if (mode === "stack") return Math.min(2, n);
+  if (mode === "split") return Math.ceil(n / 2);
+  return n;
+}
+
+function folderGridPosition(index, n, mode) {
+  if (mode === "row" || n <= 1) {
+    const spacing = folderSpacing(n, mode);
     return {
       x: -((n - 1) * spacing) / 2 + index * spacing,
       y: 0,
@@ -539,15 +571,18 @@ function folderGridPosition(index, n, twoRows) {
       spacing,
     };
   }
-  const cols = Math.ceil(n / 2);
-  const row = index < cols ? 0 : 1;
-  const col = row === 0 ? index : index - cols;
-  const rowCount = row === 0 ? Math.min(cols, n) : n - cols;
-  const spacing = folderSpacing(Math.max(rowCount, 1));
+  const cols = layoutColumns(n, mode);
+  const rows = Math.ceil(n / cols);
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  const rowCount = row === rows - 1 ? n - row * cols : cols;
+  const spacing = folderSpacing(Math.max(rowCount, 1), mode);
+  const gap = folderRowGap(rows, mode);
+  const z0 = -((rows - 1) * gap) / 2;
   return {
     x: -((rowCount - 1) * spacing) / 2 + col * spacing,
     y: 0,
-    z: row === 0 ? -ROW_GAP_Z / 2 : ROW_GAP_Z / 2,
+    z: z0 + row * gap,
     spacing,
   };
 }
@@ -560,6 +595,265 @@ export function shouldUseTwoRows(width, height, previous = false) {
     return w < 760 || ratio < 1.28;
   }
   return w < 700 || ratio < 1.15;
+}
+
+/**
+ * Portrait phones use a tall 2-column stack. Squarish / squeezed canvases
+ * keep the existing two-row split. Wide screens stay on a single row.
+ */
+export function folderGridMode(width, height, previous = "row") {
+  const w = Math.max(width, 1);
+  const h = Math.max(height, 1);
+  const ratio = w / h;
+  const holdStack = previous === "stack" && w < 700 && ratio < 1.15;
+  const enterStack = w < 560 || (w < 640 && ratio < 0.92);
+  if (holdStack || (previous !== "stack" && enterStack)) return "stack";
+  const two = shouldUseTwoRows(
+    width,
+    height,
+    previous === "split" || previous === "stack",
+  );
+  return two ? "split" : "row";
+}
+
+export function rowCameraFov(modeOrLayout, aspect) {
+  const mode =
+    typeof modeOrLayout === "string" ? modeOrLayout : modeOrLayout?.mode;
+  return mode === "stack" || aspect < 0.9 ? STACK_CAM_FOV : ROW_CAM_FOV;
+}
+
+function stackCameraBasis(nX, nY, nZ) {
+  const xX = nZ;
+  const xY = 0;
+  const xZ = -nX;
+  const xLen = Math.hypot(xX, xZ) || 1;
+  const rx = xX / xLen;
+  const rz = xZ / xLen;
+  return {
+    xX: rx,
+    xY: 0,
+    xZ: rz,
+    yX: nY * rz,
+    yY: nZ * rx - nX * rz,
+    yZ: -nY * rx,
+  };
+}
+
+function fitStackCameraDistance(layout, lookX, lookY, lookZ, nX, nY, nZ, halfH, halfV) {
+  const basis = stackCameraBasis(nX, nY, nZ);
+  const fillH = halfH * STACK_CAM_FILL;
+  const fillV = halfV * STACK_CAM_FILL;
+  let dist = 6.5;
+  const consider = (px, py, pz) => {
+    const relX = px - lookX;
+    const relY = py - lookY;
+    const relZ = pz - lookZ;
+    const cx = relX * basis.xX + relY * basis.xY + relZ * basis.xZ;
+    const cy = relX * basis.yX + relY * basis.yY + relZ * basis.yZ;
+    const along = relX * nX + relY * nY + relZ * nZ;
+    dist = Math.max(
+      dist,
+      along + 1.4,
+      along + Math.abs(cx) / fillH,
+      along + Math.abs(cy) / fillV,
+    );
+  };
+  const positions = Object.values(layout.folderPos);
+  if (!positions.length) {
+    consider(-FOLDER_W, 0, 0);
+    consider(FOLDER_W, FOLDER_BACK_H, FOLDER_D + STACK_CAM_LABEL_Z);
+    return dist;
+  }
+  for (const pos of positions) {
+    const x0 = pos.x;
+    const x1 = pos.x + FOLDER_W;
+    const z0 = pos.z;
+    const z1 = pos.z + FOLDER_D;
+    consider(x0, 0, z0);
+    consider(x1, 0, z0);
+    consider(x0, 0, z1);
+    consider(x1, 0, z1);
+    consider(x0, FOLDER_BACK_H, z0);
+    consider(x1, FOLDER_BACK_H, z0);
+    consider(x0, FOLDER_FRONT_H, z1);
+    consider(x1, FOLDER_FRONT_H, z1);
+    consider(x0, 0, z1 + STACK_CAM_LABEL_Z);
+    consider(x1, 0, z1 + STACK_CAM_LABEL_Z);
+  }
+  return dist;
+}
+
+/**
+ * Frame the whole folder grid from a high, centred isometric so every
+ * sleeve sits at a similar distance. Portrait used to look down an aisle
+ * and the front row ate the screen.
+ */
+export function rowCameraTarget(layout, aspect) {
+  const ext = layoutExtents(layout);
+  const stack = layout.mode === "stack" || aspect < 0.9;
+  const fovDeg = rowCameraFov(layout.mode ?? (stack ? "stack" : "row"), aspect);
+  const half = Math.tan((fovDeg * Math.PI) / 180 / 2);
+
+  const lookX = (ext.minX + ext.maxX) / 2;
+  const lookY = stack ? FOLDER_BACK_H * 0.3 : 1.18;
+  const lookZ = (ext.minZ + ext.maxZ) / 2;
+
+  if (!stack) {
+    const worldW = ext.width + 1.15 * 2;
+    const worldH = FOLDER_BACK_H + 1.55;
+    const worldD = ext.depth + 0.95 * 2;
+    const a = Math.max(aspect, 0.4);
+    const distX = worldW / 2 / (half * a);
+    const distY = worldH / 2 / half;
+    const distZ = worldD / 2 / half;
+    const dist = Math.max(distX, distY, distZ, 7.2) * 1.08;
+    return {
+      fov: fovDeg,
+      lookX,
+      lookY,
+      lookZ,
+      posX: lookX - 0.36 * dist,
+      posY: lookY + 0.5 * dist,
+      posZ: lookZ + dist,
+      upX: 0,
+      upY: 1,
+      upZ: 0,
+    };
+  }
+
+  const dirLen = Math.hypot(STACK_CAM_SIDE, STACK_CAM_LIFT, STACK_CAM_BACK);
+  const nX = -STACK_CAM_SIDE / dirLen;
+  const nY = STACK_CAM_LIFT / dirLen;
+  const nZ = STACK_CAM_BACK / dirLen;
+  const a = Math.max(aspect, 0.42);
+  const dist = fitStackCameraDistance(
+    layout,
+    lookX,
+    lookY,
+    lookZ,
+    nX,
+    nY,
+    nZ,
+    half * a,
+    half,
+  );
+  return {
+    fov: fovDeg,
+    lookX,
+    lookY,
+    lookZ,
+    posX: lookX + nX * dist,
+    posY: lookY + nY * dist,
+    posZ: lookZ + nZ * dist,
+    upX: 0,
+    upY: 1,
+    upZ: 0,
+  };
+}
+
+/** World point just in front of a sleeve so the HTML label sits off the jacket. */
+export function folderLabelAnchor(folderPos) {
+  return {
+    x: folderPos.x + FOLDER_W * 0.5,
+    y: 0.08,
+    z: folderPos.z + FOLDER_D + 0.22,
+  };
+}
+
+/**
+ * Nudge top-centre screen labels so they do not cover each other or the
+ * bottom chrome. `x,y` is the top-centre of each pill.
+ */
+export function separateOverlayLabels(items, bounds = {}) {
+  const width = Math.max(bounds.width ?? 0, 1);
+  const height = Math.max(bounds.height ?? 0, 1);
+  const pad = bounds.pad ?? 8;
+  const gap = bounds.gap ?? 8;
+  const bottom = height - (bounds.bottomReserve ?? 0);
+  const placed = items.map((item) => {
+    const w = Math.max(item.w ?? 0, 1);
+    const h = Math.max(item.h ?? 0, 1);
+    const half = w / 2;
+    return {
+      x: Math.min(width - pad - half, Math.max(pad + half, item.x ?? 0)),
+      y: item.y ?? 0,
+      w,
+      h,
+    };
+  });
+
+  const order = placed
+    .map((_, index) => index)
+    .sort((a, b) => placed[a].y - placed[b].y || placed[a].x - placed[b].x);
+
+  for (let a = 0; a < order.length; a += 1) {
+    const current = placed[order[a]];
+    for (let b = 0; b < a; b += 1) {
+      const other = placed[order[b]];
+      const overlapX =
+        Math.abs(current.x - other.x) < (current.w + other.w) / 2 + gap;
+      const overlapY =
+        current.y < other.y + other.h + gap &&
+        current.y + current.h + gap > other.y;
+      if (overlapX && overlapY) {
+        current.y = other.y + other.h + gap;
+      }
+    }
+    const maxY = bottom - current.h - pad;
+    current.y = Math.min(Math.max(current.y, pad), Math.max(pad, maxY));
+  }
+
+  return placed.map(({ x, y }) => ({ x, y }));
+}
+
+export function folderBoxCorners(folderPos) {
+  const x = folderPos.x;
+  const z = folderPos.z;
+  return [
+    { x, y: 0, z },
+    { x: x + FOLDER_W, y: 0, z },
+    { x, y: 0, z: z + FOLDER_D },
+    { x: x + FOLDER_W, y: 0, z: z + FOLDER_D },
+    { x, y: FOLDER_FRONT_H, z: z + FOLDER_D },
+    { x: x + FOLDER_W, y: FOLDER_FRONT_H, z: z + FOLDER_D },
+    { x, y: FOLDER_BACK_H * 0.55, z },
+    { x: x + FOLDER_W, y: FOLDER_BACK_H * 0.55, z },
+  ];
+}
+
+export function screenBoxFromPoints(points) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const point of points) {
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
+  }
+  if (!Number.isFinite(minX)) {
+    return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+  }
+  return { minX, maxX, minY, maxY };
+}
+
+/** Place a pill to the left or right of a folder’s screen box, vertically centred.
+ * Prefer hanging off the canvas to covering the sleeve. */
+export function folderLabelScreenPos(box, size, bounds = {}) {
+  const w = Math.max(size.w ?? 0, 1);
+  const h = Math.max(size.h ?? 0, 1);
+  const width = Math.max(bounds.width ?? 0, 1);
+  const height = Math.max(bounds.height ?? 0, 1);
+  const pad = bounds.pad ?? 8;
+  const gap = bounds.gap ?? 8;
+  const folderCx = (box.minX + box.maxX) / 2;
+  const folderCy = (box.minY + box.maxY) / 2;
+  const left = folderCx < width * 0.5;
+  let x = left ? box.minX - w / 2 - gap : box.maxX + w / 2 + gap;
+  x = Math.min(width - w * 0.2, Math.max(w * 0.2, x));
+  const y = Math.min(height - pad - h, Math.max(pad, folderCy - h / 2));
+  return { x, y };
 }
 
 export function layoutExtents(layout) {
@@ -604,14 +898,15 @@ export function carouselOrigin(layout) {
   };
 }
 
-export function computeLayout(folders, { twoRows = false } = {}) {
+export function computeLayout(folders, { twoRows = false, mode } = {}) {
   const n = folders.length;
+  const gridMode = resolveFolderGridMode(mode, twoRows);
   const folderPos = {};
   const reportPos = {};
-  let spacing = folderSpacing(layoutColumns(n, twoRows));
+  let spacing = folderSpacing(layoutColumns(n, gridMode), gridMode);
 
   folders.forEach((folder, index) => {
-    const grid = folderGridPosition(index, n, twoRows);
+    const grid = folderGridPosition(index, n, gridMode);
     spacing = grid.spacing;
     folderPos[folder.id] = { x: grid.x, y: grid.y, z: grid.z, folder };
     const count = folder.reports.length;
@@ -640,7 +935,15 @@ export function computeLayout(folders, { twoRows = false } = {}) {
     });
   });
 
-  return { folderPos, reportPos, folders, spacing, count: n, twoRows };
+  return {
+    folderPos,
+    reportPos,
+    folders,
+    spacing,
+    count: n,
+    mode: gridMode,
+    twoRows: gridMode !== "row",
+  };
 }
 
 function reportSeed(reportNo) {
