@@ -332,7 +332,7 @@
   text-align: left;
   font-size: 15px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.05;
   color: var(--text);
   font-family: var(--font);
 }
@@ -590,7 +590,7 @@
 
   .y-label {
     font-size: 11px;
-    line-height: 1.2;
+    line-height: 1.05;
   }
 
   .x-end {
